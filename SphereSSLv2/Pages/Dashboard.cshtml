@@ -1,0 +1,305 @@
+﻿@page
+@model SphereSSLv2.Pages.DashboardModel
+@{
+}@{
+    ViewData["Title"] = "Dashboard";
+}
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-grow-1">
+        <div class="flex-grow-1">
+            <div class="container text-center">
+
+       <br></br>
+                <div class="row">
+
+                    <div class="col-md-5">
+                        <h3 class="title mb-4">Quick Create</h3>
+
+                        <div class="card quick-create shadow-sm mb-4 cert-form">
+                            <form>
+                                <h5>Email Address</h5>
+                                <input type="email" class="form-control mb-3" placeholder="you@example.com" required />
+
+                                <h5>Domain Address</h5>
+                                <input type="text" class="form-control mb-3" placeholder="example.com" required />
+
+                                <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
+                                    <div class="format-option text-center">
+                                        <input type="radio" name="certFormat" value="pem" id="formatPem" />
+                                        <label for="formatPem">
+                                            <strong>Single File</strong><br>
+                                            <span class="format-subtext">.pem</span>
+                                        </label>
+                                    </div>
+                                    <div class="format-option text-center">
+                                        <input type="radio" name="certFormat" value="crtkey" id="formatCrtKey" />
+                                        <label for="formatCrtKey">
+                                            <strong>Separate Files</strong><br>
+                                            <span class="format-subtext">.crt and .key</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <h5>Save Path</h5>
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePathInput" />
+                                    <button class="btn btn-outline-secondary" type="button" id="browseBtn">Browse</button>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="save" />
+                                    <label class="form-check-label" for="save">
+                                        Save Order for renewal
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="auto" />
+                                    <label class="form-check-label" for="auto">
+                                        Auto Renew (DNS via API)
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn-glow w-40">Start</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <h3 class="title mb-4">Upcoming Renewals</h3>
+                  
+                        <div class="card renewals shadow-sm mb-4">
+
+                            <p>This is a paragraph Too </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <h3 class="title mb-4">Helpful Links</h3>
+
+                        <div class="card useful-links shadow-sm mb-4 ">
+                            <a href="https://www.cloudflare.com/" target="_blank">
+                                <img src="https://www.cloudflare.com/favicon.ico" alt="Cloudflare" class="link-icon" />
+                                <span>Cloudflare</span>
+                            </a>
+
+                            <a href="https://letsencrypt.org/" target="_blank">
+                                <img src="https://letsencrypt.org/favicon.ico" alt="Let's Encrypt" class="link-icon" />
+                                <span>Let's Encrypt</span>
+                            </a>
+
+                            <a href="https://www.namecheap.com/" target="_blank">
+                                <img src="https://www.namecheap.com/favicon.ico" alt="NameCheap" class="link-icon" />
+                                <span>NameCheap</span>
+                            </a>
+
+                         
+                            <a href="https://www.certbot.com/" target="_blank">
+                                <img src="https://www.certbot.com/favicon.ico" alt="CertBot" class="link-icon" />
+                                <span>CertBot</span>
+                            </a>
+
+                            <a href="https://github.com/kl3mta3/SphereSSLv2" target="_blank">
+                                <img src="https://github.com/favicon.ico" alt="GitHub" class="link-icon" />
+                                <span>GitHub</span>
+                            </a>
+
+                        </div>
+                    </div>
+
+
+                </div>
+
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+    .card {
+        border-radius: 15px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        background-color: #ffffff;
+        backdrop-filter: blur(10px); /* subtle blur effect */
+    }
+
+        .card h3 {
+            color: #343a40;
+        }
+
+        .card p {
+            color: #6c757d;
+        }
+
+        .card.useful-links {
+            margin: 0 auto;
+        }
+
+        .card.renewals {
+            max-width: 400px; /* was probably ~300px before */
+            padding: 25px 50px; /* top/bottom, left/right */
+            border-radius: 12px;
+            background-color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .card.quick-create{
+            max-width: 400px; /* was probably ~300px before */
+            padding: 25px 50px; /* top/bottom, left/right */
+            border-radius: 12px;
+            background-color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            margin: 0 auto;
+            text-align: center;
+        }
+
+
+    
+
+    .useful-links {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        border-radius: 12px;
+        background-color: #fff;
+        text-align: center;
+    }
+
+        .useful-links a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 8px 12px;
+            margin: 4px 0;
+            text-decoration: none;
+            color: #0b71a7;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.2s;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 240px;
+        }
+
+            .useful-links a:hover {
+                background: #f3faff;
+                transform: scale(1.02);
+            }
+
+    .link-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .link-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+    }
+
+    .resource-link {
+        background: linear-gradient(145deg, #0b71a7, #0f1a2b);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        margin: 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: transform 0.2s ease;
+    }
+
+        .resource-link:hover {
+            transform: scale(1.03);
+        }
+
+
+
+
+    .cert-form {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 20px, 40px;
+        border-radius: 20px;
+        border: 1px solid #0b2950;
+        text-align: center;
+    }
+
+        .cert-form h5 {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .cert-form input[type="radio"] {
+            margin-top: 5px;
+            accent-color: #0b71a7;
+        }
+
+
+
+    .btn-glow {
+        background: linear-gradient(to right, #007bff, #00c6ff); 
+        border: none;
+        border-radius: 12px;
+        color: white;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+        transition: all 0.2s ease-in-out;
+    }
+
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.5);
+            background: linear-gradient(to right, #0056d2, #0098e5);
+        }
+
+        .btn-glow:active {
+            transform: translateY(1px);
+            box-shadow: 0 3px 8px rgba(0, 123, 255, 0.3);
+        }
+
+
+    .cert-format-options input[type="radio"] {
+        margin-bottom: 6px;
+        transform: scale(1.1);
+        accent-color: #007bff;
+    }
+
+    .cert-format-options label {
+        display: block;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+    .format-subtext {
+        font-size: 0.75rem;
+        color: #666;
+        font-style: italic;
+    }
+
+
+</style>
+
+<script>
+document.getElementById('browseBtn').addEventListener('click', async () => {
+    const res = await fetch('/select-folder');
+    const path = await res.text();
+    if (path) {
+        document.getElementById('savePathInput').value = path; 
+    }
+});
+</script>

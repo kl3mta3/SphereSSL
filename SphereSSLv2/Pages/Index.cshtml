@@ -1,0 +1,73 @@
+﻿@page
+@model SphereSSLv2.Pages.IndexModel
+@{
+    ViewData["Title"] = "Log In";
+}
+
+
+<div class="container text-center">
+    <div class="titleIndex-wrapper">
+        <h2 class="titleIndex mb-0 d-flex align-items-center justify-content-center">
+            <span>Sphere</span>
+            <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo" />
+        </h2>
+    </div>
+    <p class="lead">SSL Made Easy</p>
+
+    <form method="post">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="border p-4 d-flex flex-column align-items-center bg-light text-dark custom-login-box">
+                    <h2>Sign In</h2>
+
+                    <div class="mb-3 w-100">
+                        <label for="Username" class="form-label">User Name</label>
+                        <input type="text" asp-for="Username" class="form-control" id="Username" placeholder="Enter User Name" required>
+                    </div>
+
+                    <div class="mb-3 w-100">
+                        <label for="Password" class="form-label">Password</label>
+                        <input type="password" asp-for="Password" class="form-control" id="Password" placeholder="Enter Password" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-glow mt-auto">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        @foreach (var modelError in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <div class="text-danger mt-2">@modelError.ErrorMessage</div>
+        }
+    </form>
+</div>
+<style>
+    .custom-login-box {
+        border-radius: 25px; /* bigger roundness */
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); /* soft deep shadow */
+        backdrop-filter: blur(10px); /* subtle blur effect */
+    }
+
+    .btn-glow {
+        background: linear-gradient(to right, #007bff, #00c6ff); /* smooth blue gradient */
+        border: none;
+        border-radius: 12px;
+        color: white;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+        transition: all 0.2s ease-in-out;
+    }
+
+    .btn-glow:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.5);
+        background: linear-gradient(to right, #0056d2, #0098e5);
+    }
+
+    .btn-glow:active {
+        transform: translateY(1px);
+        box-shadow: 0 3px 8px rgba(0, 123, 255, 0.3);
+    }
+}</style>
