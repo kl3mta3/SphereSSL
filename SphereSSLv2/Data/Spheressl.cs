@@ -1,4 +1,6 @@
-﻿using SphereSSL2.Model;
+﻿using DnsClient;
+using DnsClient.Protocol;
+using SphereSSL2.Model;
 using SphereSSL2.View;
 using SphereSSLv2.Services;
 using System;
@@ -22,7 +24,7 @@ namespace SphereSSLv2.Data
         internal static string TrayAppPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SphereSSL.exe");
         internal static string ServerIP { get; set; } = "127.0.0.1";
         internal static int ServerPort { get; set; } = 7171;
-
+        internal static string dbPath = "certificates.db";
         internal static string HashedPassword = string.Empty;
         internal static string Username = string.Empty;
         internal static string AutoLaunchBrowser = "true";
@@ -213,20 +215,42 @@ namespace SphereSSLv2.Data
             }
         }
 
-        //old will remove later
-        public static async Task MainMenu()
+        public static async Task<List<string>> GetNameServers(string domain)
         {
+            var lookup = new LookupClient();
+            var result = await lookup.QueryAsync(domain, QueryType.NS);
 
-
-
-            await AcmeService.CreateCert();
-
+            return result.Answers
+                .OfType<DnsClient.Protocol.NsRecord>()
+                .Select(ns => ns.NSDName.Value)
+                .ToList();
         }
-        internal static string PromptFor(string label)
+
+        public static async Task<(string, string)> ExtractDnsProvider(string nsRecord)
         {
+            if (string.IsNullOrWhiteSpace(nsRecord))
+                return ("Unknown", "Unknown.com");
 
+            var parts = nsRecord.ToLower().TrimEnd('.').Split('.');
 
-            return label;
+            if (parts.Length >= 2)
+                return (parts[^2], parts[^2] + "." + parts[^1]);
+
+            return ("Unknown","Unknown.com");
+        }
+
+        public static async Task<(string, string)> GetNameServersProvider(string domain)
+        {
+            
+            var results = await GetNameServers(domain);
+
+            if (results == null || results.Count == 0)
+            {
+                Logger.Info($"NameServer Provider Not Located for domain {domain}");
+                return ("Unknown", "Unknown.com");
+            }
+          
+            return await ExtractDnsProvider(results[0]);
         }
     }
 

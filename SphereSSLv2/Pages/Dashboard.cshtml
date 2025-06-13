@@ -10,104 +10,97 @@
             <div class="container text-center">
 
        <br></br>
-                <div class="row">
+                <div class="container my-4">
+                    <div class="row">
+                        <!-- Quick Create -->
+                        <div class="col-lg-5 mb-4">
+                            <h3 class="title mb-4">Quick Create</h3>
+                            <div class="card quick-create shadow-sm cert-form p-4">
+                                <form onsubmit="event.preventDefault(); submitOrder();">
+                                    <h5>Email Address</h5>
+                                    <input type="email" id="email" name="email" class="form-control mb-3" placeholder="you@example.com" required />
 
-                    <div class="col-md-5">
-                        <h3 class="title mb-4">Quick Create</h3>
+                                    <h5>Domain Address</h5>
+                                    <input type="text" id="domain" name="domain" class="form-control mb-3" placeholder="example.com" required />
 
-                        <div class="card quick-create shadow-sm mb-4 cert-form">
-                            <form>
-                                <h5>Email Address</h5>
-                                <input type="email" class="form-control mb-3" placeholder="you@example.com" required />
+                                    <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
+                                        <div class="format-option text-center">
+                                            <input type="radio" name="certFormat" value="false" id="useSingleFile" />
+                                            <label for="useSingleFile">
+                                                <strong>Single File</strong><br>
+                                                <span class="format-subtext">.pem</span>
+                                            </label>
+                                        </div>
+                                        <div class="format-option text-center">
+                                            <input type="radio" name="certFormat" value="true" id="useSeparateFiles" />
+                                            <label for="useSeparateFiles">
+                                                <strong>Separate Files</strong><br>
+                                                <span class="format-subtext">.crt and .key</span>
+                                            </label>
+                                        </div>
+                                    </div>
 
-                                <h5>Domain Address</h5>
-                                <input type="text" class="form-control mb-3" placeholder="example.com" required />
+                                    <h5>Save Path</h5>
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath" />
+                                        <button class="btn btn-outline-secondary" type="button" id="browseBtn">Browse</button>
+                                    </div>
 
-                                <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
-                                    <div class="format-option text-center">
-                                        <input type="radio" name="certFormat" value="pem" id="formatPem" />
-                                        <label for="formatPem">
-                                            <strong>Single File</strong><br>
-                                            <span class="format-subtext">.pem</span>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="saveForRenewal" />
+                                        <label class="form-check-label" for="saveForRenewal">
+                                            Save Order for renewal
                                         </label>
                                     </div>
-                                    <div class="format-option text-center">
-                                        <input type="radio" name="certFormat" value="crtkey" id="formatCrtKey" />
-                                        <label for="formatCrtKey">
-                                            <strong>Separate Files</strong><br>
-                                            <span class="format-subtext">.crt and .key</span>
+
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="autoRenew" />
+                                        <label class="form-check-label" for="autoRenew">
+                                            Auto Renew (DNS via API)
                                         </label>
                                     </div>
-                                </div>
 
-                                <h5>Save Path</h5>
-                                <div class="input-group mb-3">
-                                    <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePathInput" />
-                                    <button class="btn btn-outline-secondary" type="button" id="browseBtn">Browse</button>
-                                </div>
+                                    <button type="submit" class="btn-glow w-40">Start</button>
+                                </form>
+                             
+                            </div>
+                        </div>
 
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="save" />
-                                    <label class="form-check-label" for="save">
-                                        Save Order for renewal
-                                    </label>
-                                </div>
+                        <!-- Upcoming Renewals -->
+                        <div class="col-lg-4 mb-4">
+                            <h3 class="title mb-4">Upcoming Renewals</h3>
+                            <div class="card renewals shadow-sm p-3">
+                                <p>This is a paragraph too</p>
+                            </div>
+                        </div>
 
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" id="auto" />
-                                    <label class="form-check-label" for="auto">
-                                        Auto Renew (DNS via API)
-                                    </label>
-                                </div>
-
-                                <button type="submit" class="btn-glow w-40">Start</button>
-                            </form>
+                        <!-- Helpful Links -->
+                        <div class="col-lg-3 mb-4">
+                            <h3 class="title mb-4">Helpful Links</h3>
+                            <div class="card useful-links shadow-sm p-3">
+                                <a href="https://www.cloudflare.com/" target="_blank">
+                                    <img src="https://www.cloudflare.com/favicon.ico" alt="Cloudflare" class="link-icon" />
+                                    <span>Cloudflare</span>
+                                </a>
+                                <a href="https://letsencrypt.org/" target="_blank">
+                                    <img src="https://letsencrypt.org/favicon.ico" alt="Let's Encrypt" class="link-icon" />
+                                    <span>Let's Encrypt</span>
+                                </a>
+                                <a href="https://www.namecheap.com/" target="_blank">
+                                    <img src="https://www.namecheap.com/favicon.ico" alt="NameCheap" class="link-icon" />
+                                    <span>NameCheap</span>
+                                </a>
+                                <a href="https://www.certbot.com/" target="_blank">
+                                    <img src="https://www.certbot.com/favicon.ico" alt="CertBot" class="link-icon" />
+                                    <span>CertBot</span>
+                                </a>
+                                <a href="https://github.com/kl3mta3/SphereSSLv2" target="_blank">
+                                    <img src="https://github.com/favicon.ico" alt="GitHub" class="link-icon" />
+                                    <span>GitHub</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="col-md-4">
-                        <h3 class="title mb-4">Upcoming Renewals</h3>
-                  
-                        <div class="card renewals shadow-sm mb-4">
-
-                            <p>This is a paragraph Too </p>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <h3 class="title mb-4">Helpful Links</h3>
-
-                        <div class="card useful-links shadow-sm mb-4 ">
-                            <a href="https://www.cloudflare.com/" target="_blank">
-                                <img src="https://www.cloudflare.com/favicon.ico" alt="Cloudflare" class="link-icon" />
-                                <span>Cloudflare</span>
-                            </a>
-
-                            <a href="https://letsencrypt.org/" target="_blank">
-                                <img src="https://letsencrypt.org/favicon.ico" alt="Let's Encrypt" class="link-icon" />
-                                <span>Let's Encrypt</span>
-                            </a>
-
-                            <a href="https://www.namecheap.com/" target="_blank">
-                                <img src="https://www.namecheap.com/favicon.ico" alt="NameCheap" class="link-icon" />
-                                <span>NameCheap</span>
-                            </a>
-
-                         
-                            <a href="https://www.certbot.com/" target="_blank">
-                                <img src="https://www.certbot.com/favicon.ico" alt="CertBot" class="link-icon" />
-                                <span>CertBot</span>
-                            </a>
-
-                            <a href="https://github.com/kl3mta3/SphereSSLv2" target="_blank">
-                                <img src="https://github.com/favicon.ico" alt="GitHub" class="link-icon" />
-                                <span>GitHub</span>
-                            </a>
-
-                        </div>
-                    </div>
-
-
                 </div>
 
 
@@ -118,7 +111,6 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <style>
     .card {
         border-radius: 15px;
@@ -294,12 +286,98 @@
 
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+@* Open Path location Window via task app *@
+
 <script>
 document.getElementById('browseBtn').addEventListener('click', async () => {
     const res = await fetch('/select-folder');
     const path = await res.text();
     if (path) {
-        document.getElementById('savePathInput').value = path; 
+        document.getElementById('savePath').value = path; 
     }
 });
+</script>
+
+
+@* Submit Quick Create *@
+<script>
+      async function submitOrder() {
+        const selectedFormat = document.querySelector('input[name="certFormat"]:checked');
+        const useSeparateFiles = selectedFormat ? selectedFormat.value === "true" : false;
+
+        let order = {
+            orderId: "",
+            domain: document.getElementById("domain").value,
+            email: document.getElementById("email").value,
+            dnsChallengeToken: "",
+            savePath: document.getElementById("savePath").value,
+            creationTime: "",
+            useSeparateFiles: useSeparateFiles,
+            saveForRenewal: document.getElementById("saveForRenewal").checked,
+            autoRenew: document.getElementById("autoRenew").checked
+        };
+
+        const response = await fetch("/Dashboard?handler=QuickCreate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(order)
+        });
+
+        const updatedOrder = await response.json();
+        console.log("Updated Order Received:", updatedOrder);
+
+        const modalResponse = await fetch(`/Dashboard?handler=ShowChallangeModal`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(updatedOrder)  // Send the corrected object
+        });
+
+        const modalHtml = await modalResponse.text();
+        document.getElementById("dnsChallengeModalBody").innerHTML = modalHtml;
+        const modal = new bootstrap.Modal(document.getElementById("dnsChallengeModal"));
+        modal.show();
+    }
+</script>
+
+<script>
+    function copyDnsToken(button) {
+        const token = document.getElementById("dnsToken").innerText;
+        navigator.clipboard.writeText(token).then(() => {
+            const icon = button.querySelector('i');
+            icon.classList.remove("bi-clipboard");
+            icon.classList.add("bi-clipboard-check");
+
+            setTimeout(() => {
+                icon.classList.remove("bi-clipboard-check");
+                icon.classList.add("bi-clipboard");
+            }, 1500);
+        }).catch(err => {
+            alert("Failed to copy token.");
+            console.error(err);
+        });
+    }
+</script>
+<script>
+    function copyDNSName(button) {
+        const token = document.getElementById("domainName").innerText;
+        navigator.clipboard.writeText(token).then(() => {
+            const icon = button.querySelector('i');
+            icon.classList.remove("bi-clipboard");
+            icon.classList.add("bi-clipboard-check");
+
+            setTimeout(() => {
+                icon.classList.remove("bi-clipboard-check");
+                icon.classList.add("bi-clipboard");
+            }, 1500);
+        }).catch(err => {
+            alert("Failed to copy token.");
+            console.error(err);
+        });
+    }
 </script>
