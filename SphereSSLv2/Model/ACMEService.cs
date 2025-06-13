@@ -31,12 +31,12 @@ namespace SphereSSL2.Model
     public class AcmeService
     {
         private static AcmeProtocolClient _client;
-        private static ESJwsTool _signer;
-        private static AccountDetails _account;
-        private static ServiceDirectory _directory;
-        private static OrderDetails _order;
-        private static string _domain;
-        private static string _challangeDomain;
+        internal static ESJwsTool _signer;
+        internal static AccountDetails _account;
+        internal static ServiceDirectory _directory;
+        internal static OrderDetails _order;
+        internal static string _domain;
+        internal static string _challangeDomain;
         private static bool _UseStaging = false; // Set to true for testing with Let's Encrypt staging environment
         internal static AcmeService _acmeService;
 
@@ -122,7 +122,7 @@ namespace SphereSSL2.Model
             return (authz.Identifier.Value, dnsValue);
         }
 
-        private static string Base64UrlEncode(byte[] data)
+        internal static string Base64UrlEncode(byte[] data)
         {
             return Convert.ToBase64String(data)
                 .TrimEnd('=')                
@@ -130,18 +130,18 @@ namespace SphereSSL2.Model
                 .Replace('/', '_');
         }
 
-        public async Task<(string Token, string Domain)> CreateUserAccountForCert()
+        public async Task<(string Token, string Domain)> CreateUserAccountForCert(string email, string requestDomain)
         {
           
             _order = new OrderDetails();
             _domain = "";
-     
-            string email = "";
-            UI.PrintFooter();
+
+            Console.WriteLine($"CreateUserAccountForCert Triggered.");
+
             Logger.Debug("Initializing SphereSSL...");
 
-            _domain = Spheressl.PromptFor("Domain");
-            email = Spheressl.PromptFor("Email");
+            _domain = requestDomain;
+           
 
 
             try
@@ -184,11 +184,11 @@ namespace SphereSSL2.Model
             return (dnsValue, domain);
         }
 
-        public static async Task CreateCert()
+        public static async Task CreateCert(string _email, string _domain, string _savePath, bool _useSeparateFiles, bool _saveForRenewal, bool _autoRenew)
         {
             _acmeService = new AcmeService();
             Console.Clear();
-            var (dnsChallengeToken, domain) = await _acmeService.CreateUserAccountForCert();
+            var (dnsChallengeToken, domain) = await _acmeService.CreateUserAccountForCert(_email, _domain);
 
             Logger.Debug($"DNS Challenge Token: \"{dnsChallengeToken}\"");
             Logger.Debug($"Domain: {domain}");
@@ -224,8 +224,8 @@ namespace SphereSSL2.Model
             }
 
             Logger.Debug("\nPress any key to return to the main menu...");
-            Console.ReadKey();
-            await Spheressl.MainMenu();
+  
+        
         }
 
         public static async Task VerifyRecord(string dnsChallengeToken, string domain)

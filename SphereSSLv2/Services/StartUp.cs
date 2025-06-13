@@ -109,7 +109,7 @@ namespace SphereSSLv2.Services
             {
                 File.Create(Logger.LogFilePath).Close();
             }
-
+            await DatabaseManager.Initialize();
             await StartTrayApp();
 
         }
