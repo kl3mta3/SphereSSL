@@ -91,11 +91,11 @@ namespace SphereSSLv2.Data
 
                 await command.ExecuteNonQueryAsync();
 
-                // Corrected insert (no extra closing paren)
+          
                 command.CommandText = "INSERT OR IGNORE INTO DbVersion(Id, Version) VALUES(1, 1);";
                 await command.ExecuteNonQueryAsync();
 
-                // Call this to refresh Health table data
+           
                 await RecalculateHealthStats();
             }
             catch (Exception ex)
