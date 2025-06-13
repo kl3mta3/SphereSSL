@@ -12,7 +12,7 @@ namespace SphereSSLv2.Data
             try
             {
                 using var connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
-                await connection.OpenAsync(); // ✨ async version
+                await connection.OpenAsync(); 
 
                 var command = connection.CreateCommand();
                 command.CommandText = @"
@@ -1169,12 +1169,12 @@ namespace SphereSSLv2.Data
             var command = connection.CreateCommand();
 
             command.CommandText = @"
-        SELECT COUNT(*) FROM CertRecord;
+        SELECT COUNT(*) FROM CertRecords;
     ";
             var totalCerts = Convert.ToInt32(await command.ExecuteScalarAsync());
 
             command.CommandText = @"
-        SELECT COUNT(*) FROM CertRecord WHERE ExpiryDate < @Now;
+        SELECT COUNT(*) FROM CertRecords WHERE ExpiryDate < @Now;
     ";
             command.Parameters.Clear();
             command.Parameters.AddWithValue("@Now", DateTime.UtcNow.ToString("o"));
