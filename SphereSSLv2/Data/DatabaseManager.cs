@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
+using SphereSSLv2.Services;
 using System.Security.AccessControl;
 
 namespace SphereSSLv2.Data
@@ -11,7 +12,7 @@ namespace SphereSSLv2.Data
             try
             {
                 using var connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
-                connection.Open();
+                await connection.OpenAsync(); // ✨ async version
 
                 var command = connection.CreateCommand();
                 command.CommandText = @"
@@ -37,7 +38,6 @@ namespace SphereSSLv2.Data
                     Thumbprint TEXT,
                     ZoneId TEXT,
                     AuthorizationUrls TEXT
-
                 );
 
                 CREATE TABLE IF NOT EXISTS ExpiredCerts (
@@ -62,44 +62,46 @@ namespace SphereSSLv2.Data
                     Thumbprint TEXT,
                     ZoneId TEXT,
                     AuthorizationUrls TEXT
-
                 );
 
                 CREATE TABLE IF NOT EXISTS Health (
-                   Id INTEGER PRIMARY KEY CHECK (Id = 1),
-                       TotalCertsInDB INTEGER,
-                       ExpiredCertCount INTEGER,
-                       TotalDNSProviderCount INTEGER,
-                       DateLastBooted TEXT
-
+                    Id INTEGER PRIMARY KEY CHECK (Id = 1),
+                    TotalCertsInDB INTEGER,
+                    ExpiredCertCount INTEGER,
+                    TotalDNSProviderCount INTEGER,
+                    DateLastBooted TEXT
                 );
 
-                    CREATE TABLE IF NOT EXISTS DbVersion (
+                CREATE TABLE IF NOT EXISTS DbVersion (
                     Id INTEGER PRIMARY KEY CHECK (Id = 1),
                     Version INTEGER NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS DNSProviders (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                       ProviderName TEXT,
-                       ProviderURL TEXT,
-                       APIKey TEXT,
-                       Ttl INTEGER,
-                       UpdateAPI TEXT,
-                       CreateAPI TEXT,
-                       DeleteAPI TEXT
-                );";
+                    ProviderName TEXT,
+                    ProviderURL TEXT,
+                    APIKey TEXT,
+                    Ttl INTEGER,
+                    UpdateAPI TEXT,
+                    CreateAPI TEXT,
+                    DeleteAPI TEXT
+                );
+                ";
 
+                await command.ExecuteNonQueryAsync();
 
-                command.ExecuteNonQuery();
+                // Corrected insert (no extra closing paren)
+                command.CommandText = "INSERT OR IGNORE INTO DbVersion(Id, Version) VALUES(1, 1);";
+                await command.ExecuteNonQueryAsync();
 
-                command.CommandText = @"
-                INSERT OR IGNORE INTO DbVersion(Id, Version) VALUES(1, 1));";
-
+                // Call this to refresh Health table data
+                await RecalculateHealthStats();
             }
             catch (Exception ex)
             {
-
+                Logger.Error("Initialization failed: " + ex.Message);
+              
             }
         }
 
@@ -1147,6 +1149,59 @@ namespace SphereSSLv2.Data
             return result is DBNull or null ? "" : result.ToString();
         }
 
+        public static async Task SetDateLastBooted(string timestamp)
+        {
+            using var connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
+            await connection.OpenAsync();
+
+            var command = connection.CreateCommand();
+            command.CommandText = "UPDATE Health SET DateLastBooted = @Timestamp WHERE Id = 1";
+            command.Parameters.AddWithValue("@Timestamp", timestamp);
+            await command.ExecuteNonQueryAsync();
+        }
+
+
+        public static async Task RecalculateHealthStats()
+        {
+            using var connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
+            await connection.OpenAsync();
+
+            var command = connection.CreateCommand();
+
+            command.CommandText = @"
+        SELECT COUNT(*) FROM CertRecord;
+    ";
+            var totalCerts = Convert.ToInt32(await command.ExecuteScalarAsync());
+
+            command.CommandText = @"
+        SELECT COUNT(*) FROM CertRecord WHERE ExpiryDate < @Now;
+    ";
+            command.Parameters.Clear();
+            command.Parameters.AddWithValue("@Now", DateTime.UtcNow.ToString("o"));
+            var expiredCerts = Convert.ToInt32(await command.ExecuteScalarAsync());
+
+            command.CommandText = @"
+        SELECT COUNT(*) FROM DNSProviders;
+    ";
+            command.Parameters.Clear();
+            var totalDNS = Convert.ToInt32(await command.ExecuteScalarAsync());
+
+            command.CommandText = @"
+        UPDATE Health
+        SET TotalCertsInDB = @TotalCerts,
+            ExpiredCertCount = @ExpiredCerts,
+            TotalDNSProviderCount = @TotalDNS,
+            DateLastBooted = @Now
+        WHERE Id = 1;
+    ";
+            command.Parameters.Clear();
+            command.Parameters.AddWithValue("@TotalCerts", totalCerts);
+            command.Parameters.AddWithValue("@ExpiredCerts", expiredCerts);
+            command.Parameters.AddWithValue("@TotalDNS", totalDNS);
+            command.Parameters.AddWithValue("@Now", DateTime.UtcNow.ToString("o"));
+
+            await command.ExecuteNonQueryAsync();
+        }
 
 
         //DB Version and Migration
