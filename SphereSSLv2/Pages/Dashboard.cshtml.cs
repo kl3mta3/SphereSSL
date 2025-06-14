@@ -17,8 +17,10 @@ namespace SphereSSLv2.Pages
 
         public List<CertRecord> CertRecords = Spheressl.CertRecords;
         public List<CertRecord> ExpiringSoonRecords = Spheressl.ExpiringSoonCertRecords;
+        public List<DNSProvider> DNSProviders = Spheressl.DNSProviders;
+
         [BindProperty]
-        public CertRecord Order { get; set; } = new CertRecord();
+        public DNSProvider SelectedDNSProvider { get; set; } = new DNSProvider();
 
         public DashboardModel(ILogger<DashboardModel> logger)
         {
@@ -144,10 +146,11 @@ namespace SphereSSLv2.Pages
         {
 
 
+            return Page();
+        }
 
-
-
-
+        public async Task<IActionResult> OnPostShowAddProviderModal([FromBody] DNSProvider provider)
+        {
 
 
             return Page();
@@ -163,12 +166,6 @@ namespace SphereSSLv2.Pages
             {
                 return Content("<p class='text-danger'>No record found with that ID.</p>");
             }
-            var fakePath = Path.Combine(
-                @"C:\Users\Kenny\Documents",
-                "cert3.pem"
-            );
-
-            record.SavePath = fakePath;
 
             var directoryPath = Path.GetDirectoryName(record.SavePath)?.Replace("\\", "/") ?? string.Empty;
             var htmlSafePath = System.Net.WebUtility.HtmlEncode(record.SavePath);

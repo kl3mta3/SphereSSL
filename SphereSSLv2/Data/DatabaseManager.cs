@@ -80,12 +80,10 @@ namespace SphereSSLv2.Data
                 CREATE TABLE IF NOT EXISTS DNSProviders (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ProviderName TEXT,
-                    ProviderURL TEXT,
+                    ProviderBaseURL TEXT,
                     APIKey TEXT,
-                    Ttl INTEGER,
-                    UpdateAPI TEXT,
-                    CreateAPI TEXT,
-                    DeleteAPI TEXT
+                    Ttl INTEGER
+
                 );
                 ";
 
@@ -821,7 +819,7 @@ namespace SphereSSLv2.Data
             command.CommandText = @"
         INSERT INTO DNSProviders (
             ProviderName,
-            ProviderURL,
+            ProviderBaseURL,
             APIKey,
             Ttl,
             UpdateAPI,
@@ -829,7 +827,7 @@ namespace SphereSSLv2.Data
             DeleteAPI
         ) VALUES (
             @ProviderName,
-            @ProviderURL,
+            @ProviderBaseURL,
             @APIKey,
             @Ttl,
             @UpdateAPI,
@@ -839,12 +837,9 @@ namespace SphereSSLv2.Data
     ";
 
             command.Parameters.AddWithValue("@ProviderName", provider.ProviderName);
-            command.Parameters.AddWithValue("@ProviderURL", provider.ProviderURL);
+            command.Parameters.AddWithValue("@ProviderBaseURL", provider.ProviderBaseURL);
             command.Parameters.AddWithValue("@APIKey", provider.APIKey);
             command.Parameters.AddWithValue("@Ttl", provider.Ttl);
-            command.Parameters.AddWithValue("@UpdateAPI", provider.UpdateAPI);
-            command.Parameters.AddWithValue("@CreateAPI", provider.CreateAPI);
-            command.Parameters.AddWithValue("@DeleteAPI", provider.DeleteAPI);
 
             await command.ExecuteNonQueryAsync();
             await AdjustTotalDNSProvidersInDB(1);
@@ -867,7 +862,7 @@ namespace SphereSSLv2.Data
             command.CommandText = @"
         UPDATE DNSProviders
         SET 
-            ProviderURL = @ProviderURL,
+            ProviderBaseURL = @ProviderBaseURL,
             APIKey = @APIKey,
             Ttl = @Ttl,
             UpdateAPI = @UpdateAPI,
@@ -877,12 +872,10 @@ namespace SphereSSLv2.Data
     ";
 
             command.Parameters.AddWithValue("@ProviderName", updated.ProviderName);
-            command.Parameters.AddWithValue("@ProviderURL", updated.ProviderURL);
+            command.Parameters.AddWithValue("@ProviderBaseURL", updated.ProviderBaseURL);
             command.Parameters.AddWithValue("@APIKey", updated.APIKey);
             command.Parameters.AddWithValue("@Ttl", updated.Ttl);
-            command.Parameters.AddWithValue("@UpdateAPI", updated.UpdateAPI);
-            command.Parameters.AddWithValue("@CreateAPI", updated.CreateAPI);
-            command.Parameters.AddWithValue("@DeleteAPI", updated.DeleteAPI);
+
 
             await command.ExecuteNonQueryAsync();
         }
@@ -917,7 +910,7 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT ProviderName, ProviderURL, APIKey, Ttl, UpdateAPI, CreateAPI, DeleteAPI
+        SELECT ProviderName, ProviderBaseURL, APIKey, Ttl
         FROM DNSProviders
         WHERE ProviderName = @ProviderName;
     ";
@@ -929,13 +922,11 @@ namespace SphereSSLv2.Data
             {
                 return new DNSProvider
                 {
-                    ProviderName = reader.GetString(0),
-                    ProviderURL = reader.GetString(1),
-                    APIKey = reader.GetString(2),
-                    Ttl = reader.GetInt32(3),
-                    UpdateAPI = reader.GetString(4),
-                    CreateAPI = reader.GetString(5),
-                    DeleteAPI = reader.GetString(6),
+                    ProviderName = reader["ProviderName"].ToString(),
+                    ProviderBaseURL = reader["ProviderBaseURL"].ToString(),
+                    APIKey = reader["APIKey"].ToString(),
+                    Ttl = Convert.ToInt32(reader["Ttl"]),
+
                 };
             }
 
@@ -951,7 +942,7 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT ProviderName, ProviderURL, APIKey, Ttl, UpdateAPI, CreateAPI, DeleteAPI
+        SELECT ProviderName, ProviderBaseURL, APIKey, Ttl
         FROM DNSProviders;
     ";
 
@@ -960,13 +951,11 @@ namespace SphereSSLv2.Data
             {
                 var provider = new DNSProvider
                 {
-                    ProviderName = reader.GetString(0),
-                    ProviderURL = reader.GetString(1),
-                    APIKey = reader.GetString(2),
-                    Ttl = reader.GetInt32(3),
-                    UpdateAPI = reader.GetString(4),
-                    CreateAPI = reader.GetString(5),
-                    DeleteAPI = reader.GetString(6),
+                    ProviderName = reader["ProviderName"].ToString(),
+                    ProviderBaseURL = reader["ProviderBaseURL"].ToString(),
+                    APIKey = reader["APIKey"].ToString(),
+                    Ttl = Convert.ToInt32(reader["Ttl"]),
+
                 };
 
                 providers.Add(provider);
