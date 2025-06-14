@@ -17,7 +17,7 @@ namespace SphereSSLv2.Data
     public class Spheressl
     {
 
-        internal static bool UseLogOn = true;
+        internal static bool UseLogOn = false;
         internal static bool IsLogIn = false;
         internal static string ConfigFilePath = "app.config";
         internal static Process TrayAppProcess;
@@ -37,7 +37,7 @@ namespace SphereSSLv2.Data
         internal static List<DNSProvider> DNSProviders = new List<DNSProvider>();
 
         //for testing
-        internal static bool GenerateFakeTestCerts=false;
+        internal static bool GenerateFakeTestCerts=true;
 
 
 

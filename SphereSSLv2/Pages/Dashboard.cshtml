@@ -6,14 +6,14 @@
 }
 <div class="container-fluid">
     <div class="d-flex flex-column flex-grow-1">
-        <div class="flex-grow-1">
-            <div class="container text-center">
+        <div class="flex-grow-1 ">
+            <div class="container text-center ">
 
-       <br></br>
-                <div class="container my-4">
+                <div class="container-fluid px-4">
                     <div class="row">
+
                         <!-- Quick Create -->
-                        <div class="col-lg-5 mb-4">
+                        <div class="col-lg-4 mb-4">
                             <h3 class="title mb-4">Quick Create</h3>
                             <div class="card quick-create shadow-sm cert-form p-4">
                                 <form onsubmit="event.preventDefault(); submitOrder();">
@@ -62,22 +62,72 @@
 
                                     <button type="submit" class="btn-glow w-40">Start</button>
                                 </form>
-                             
+
                             </div>
                         </div>
 
                         <!-- Upcoming Renewals -->
-                        <div class="col-lg-4 mb-4">
+                        <div class="col-lg-6 mb-4">
                             <h3 class="title mb-4">Upcoming Renewals</h3>
-                            <div class="card renewals shadow-sm p-3">
-                                <p>This is a paragraph too</p>
+                            <div class="card renewals shadow-sm p-3 " style="  min-width: 600px; min-height: 505px; max-height: 600px; overflow-y: hidden;">
+
+
+
+
+                                <div class="d-flex align-items-center" px-3 mb-2 fw-bold text-secondary small">
+                                    <span style="width: 42%;"> Domain</span>
+                                    <span style="width: 13%;">Expires In</span>
+                                    <span style="width: 32%;">Provider</span>
+                                    <span style="width: 10%;">Auto Renew</span>
+                                </div>
+
+                                <div class="list-group overflow-auto" style=" height: 100%; overflow-y: scroll;">
+                                    @if (Model.ExpiringSoonRecords != null && Model.ExpiringSoonRecords.Any())
+                                    {
+
+
+                                        foreach (var record in Model.ExpiringSoonRecords)
+                                        {
+
+
+                                            var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
+                                            <div class="card mb-2 shadow-sm"
+                                                 role="button"
+                                                 onclick="showCertRecordModal('@record.OrderId')"
+                                                 style="cursor: pointer; width: 100%;">
+                                                <div class="card-body d-flex align-items-center justify-content-between" style="max-height: 1px;">
+                                                    <div class="renewal-row">
+                                                        <a href="https://@record.Domain"
+                                                           target="_blank"
+                                                           title="Go to @record.Domain"
+                                                           class="fw-semibold text-primary text-decoration-underline domain-link">
+                                                            @record.Domain
+                                                        </a>
+
+                                                        <span class="text-dark expires-in">@ExpiresIn</span>
+                                                        <span class="text-muted provider">@record.Provider</span>
+                                                        <span class="text-center auto-renew">
+                                                            <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger")"></i>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="list-group-item disabled text-muted">No Certs found.</div>
+                                    }
+                                </div>
+
+
                             </div>
                         </div>
 
                         <!-- Helpful Links -->
-                        <div class="col-lg-3 mb-4">
-                            <h3 class="title mb-4">Helpful Links</h3>
-                            <div class="card useful-links shadow-sm p-3">
+                        <div class="col-lg-2 mb-4">
+                            <h3 class="title mb-4" style="  min-width: 250px; ">Helpful Links</h3>
+                            <div class="card useful-links shadow-sm p-3" style="  min-width: 250px; ">
                                 <a href="https://www.cloudflare.com/" target="_blank">
                                     <img src="https://www.cloudflare.com/favicon.ico" alt="Cloudflare" class="link-icon" />
                                     <span>Cloudflare</span>
@@ -112,6 +162,10 @@
 </div>
 
 <style>
+
+    
+
+
     .card {
         border-radius: 15px;
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
@@ -133,8 +187,8 @@
         }
 
         .card.renewals {
-            max-width: 400px; /* was probably ~300px before */
-            padding: 25px 50px; /* top/bottom, left/right */
+            max-width: 700px;
+            padding: 25px 50px; 
             border-radius: 12px;
             background-color: white;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -143,8 +197,8 @@
         }
 
         .card.quick-create{
-            max-width: 400px; /* was probably ~300px before */
-            padding: 25px 50px; /* top/bottom, left/right */
+            max-width: 400px;
+            padding: 25px 50px; 
             border-radius: 12px;
             background-color: white;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -152,8 +206,15 @@
             text-align: center;
         }
 
+        .card.mb-2:hover {
+            transform: scale(1.01);
+            background: #f3faff;
+            box-shadow: 0 6px 18px rgba(0, 123, 255, 0.25);
+            transition: all 0.2s ease-in-out;
+            border: 1px solid rgba(0, 123, 255, 0.4);
+            cursor: pointer;
+        }
 
-    
 
     .useful-links {
         display: flex;
@@ -184,6 +245,7 @@
             .useful-links a:hover {
                 background: #f3faff;
                 transform: scale(1.02);
+                transition: all 0.2s ease-in-out;
             }
 
     .link-icon {
@@ -283,6 +345,93 @@
         font-style: italic;
     }
 
+    .list-group {
+        overflow-y: scroll;
+        overflow-x: visible;
+        padding-top: 10px;
+        padding-left: 5px;
+        padding-right: 5px;
+
+    }
+
+    .card.mb-2 .renewal-row {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center; 
+        gap: 8px;
+        text-align: center;
+    }
+
+    .domain-link {
+        flex: 3 1 auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-align: left;
+        font-weight: 600;
+        text-overflow: ellipsis;
+
+    }
+
+    .expires-in {
+        flex: 3 1 auto;
+        white-space: nowrap;
+        text-align: center;
+        margin-left: 25px;
+        margin-right: 0px;
+        font-weight: 600;
+
+    }
+
+    .provider {
+        flex: 3 1 auto;
+        white-space: nowrap;
+        text-align: left;
+        margin-left: 35px;
+        margin-right: 0px;
+
+        font-weight: 600;
+
+    }
+
+    .auto-renew {
+        flex: 0 0 10px;
+        text-align: center;
+    
+    }
+
+
+    .form-check-input {
+        accent-color: #05131d; 
+        transform: scale(1.2); 
+        margin-right: 8px;
+        cursor: pointer;
+    }
+
+    .form-check-label {
+        text-align: left !important;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #333;
+        cursor: pointer;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-bottom: 0.75rem;
+        text-align: left;
+    }
+
+    .domain-link {
+        display: inline !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        white-space: nowrap;
+        max-width: max-content;
+    }
+
 
 </style>
 
@@ -300,6 +449,16 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 });
 </script>
 
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll('.no-modal-link').forEach(link => {
+            link.addEventListener('click', e => {
+                // prevents the card's onclick from triggering when clicking the link
+                e.stopImmediatePropagation();
+            });
+        });
+    });
+</script>
 
 @* Submit Quick Create *@
 <script>
@@ -363,6 +522,8 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         });
     }
 </script>
+
+
 <script>
     function copyDNSName(button) {
         const token = document.getElementById("domainName").innerText;
@@ -379,5 +540,25 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             alert("Failed to copy token.");
             console.error(err);
         });
+    }
+</script>
+
+
+<script>
+    function showCertRecordModal(orderId) {
+        const modalBody = document.getElementById("certRecordModalBody");
+        modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+        fetch(`/Dashboard?handler=ExpiringRecordModal&orderId=${encodeURIComponent(orderId)}`)
+            .then(res => res.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+                const modal = new bootstrap.Modal(document.getElementById('certRecordModal'));
+                modal.show();
+            })
+            .catch(err => {
+                modalBody.innerHTML = `<p class="text-danger">Failed to load record.</p>`;
+                console.error(err);
+            });
     }
 </script>

@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using ACMESharp.Crypto.JOSE;
 using Org.BouncyCastle.Crypto;
 using System.Security.Cryptography;
+using Microsoft.VisualBasic.ApplicationServices;
 
 namespace SphereSSLv2.Pages
 {
@@ -14,11 +15,15 @@ namespace SphereSSLv2.Pages
     {
         private readonly ILogger<DashboardModel> _logger;
 
+        public List<CertRecord> CertRecords = Spheressl.CertRecords;
+        public List<CertRecord> ExpiringSoonRecords = Spheressl.ExpiringSoonCertRecords;
+        [BindProperty]
+        public CertRecord Order { get; set; } = new CertRecord();
 
         public DashboardModel(ILogger<DashboardModel> logger)
         {
             _logger = logger;
-
+            
         }
 
         public async Task<IActionResult> OnGet()
@@ -32,7 +37,8 @@ namespace SphereSSLv2.Pages
                     return RedirectToPage("/Index");
                 }
             }
-
+            CertRecords = Spheressl.CertRecords;
+            ExpiringSoonRecords = Spheressl.ExpiringSoonCertRecords;
             return Page();
         }
 
@@ -147,7 +153,60 @@ namespace SphereSSLv2.Pages
             return Page();
         }
 
+        public async Task<IActionResult> OnGetExpiringRecordModal(string orderId)
+        {
 
+
+            var record = Spheressl.ExpiringSoonCertRecords.FirstOrDefault(r => r.OrderId == orderId);
+
+            if (record == null)
+            {
+                return Content("<p class='text-danger'>No record found with that ID.</p>");
+            }
+            var fakePath = Path.Combine(
+                @"C:\Users\Kenny\Documents",
+                "cert3.pem"
+            );
+
+            record.SavePath = fakePath;
+
+            var directoryPath = Path.GetDirectoryName(record.SavePath)?.Replace("\\", "/") ?? string.Empty;
+            var htmlSafePath = System.Net.WebUtility.HtmlEncode(record.SavePath);
+            var fileUrl = "file:///" + directoryPath.Replace(" ", "%20");
+         
+
+            var html = $@"
+        <div class='container-fluid'>
+            <div class='row g-3'>
+                <div class='col-md-6'><strong>Domain:</strong><br> <a href='{record.Domain}' target='_blank'>{record.Domain}</a></div>
+                <div class='col-md-6'><strong>Email:</strong> <span>{record.Email}</span></div>
+                <div class='col-md-6'><strong>Provider:</strong> <span>{record.Provider}</span></div>
+                <div class='col-md-6'><strong>Challenge Type:</strong> <span>{record.ChallengeType}</span></div>
+                <div class='col-md-6'><strong>Created:</strong> <span>{record.CreationDate:g}</span></div>
+                <div class='col-md-6'><strong>Expires:</strong> <span>{record.ExpiryDate:g}</span></div>
+                <div class='col-md-6'><strong>Auto Renew:</strong> <span class='badge bg-{(record.autoRenew ? "success" : "danger")}'>{(record.autoRenew ? "Enabled" : "Disabled")}</span></div>
+                <div class='col-md-6'><strong>Save for Renewal:</strong> <span class='badge bg-{(record.SaveForRenewal ? "info" : "secondary")}'>{(record.SaveForRenewal ? "Yes" : "No")}</span></div>
+                <div class='col-md-6'><strong>Successful Renewals:</strong> <span class='text-success fw-bold'>{record.SuccessfulRenewals}</span></div>
+                <div class='col-md-6'><strong>Failed Renewals:</strong> <span class='text-danger fw-bold'>{record.FailedRenewals}</span></div>
+
+
+                <div class='col-md-12'>
+                    <strong>Save Path:</strong><br>
+                <a href=""#"" onclick=""fetch('http://localhost:7172/open-location/?path=C:/Users/Kenny/Documents'); return false;"">
+                    <code class=""small text-break text-danger"">{record.SavePath}</code>
+                </a>
+                </div>
+
+                <div class='col-md-12'><strong>DNS Token:</strong><br><code class='small text-break'>{record.DnsChallengeToken}</code></div>
+                <div class='col-md-12'><strong>Order URL:</strong><br><span>{record.OrderUrl}</span></div>
+                <div class='col-md-12'><strong>Account ID:</strong><br><code class='small text-break'>{record.AccountID}</code></div>
+            </div>
+        </div>";
+
+            return Content(html, "text/html");
+        }
+
+        
 
         public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord order)
         {

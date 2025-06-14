@@ -115,7 +115,7 @@ namespace SphereSSLv2.Data
             var command = connection.CreateCommand();
 
             command.CommandText = @"
-        INSERT INTO CertRecord (
+        INSERT INTO CertRecords (
             OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
@@ -166,7 +166,7 @@ namespace SphereSSLv2.Data
             var command = connection.CreateCommand();
 
             command.CommandText = @"
-        UPDATE CertRecord SET
+        UPDATE CertRecords SET
             Domain = @Domain,
             Email = @Email,
             DnsChallengeToken = @DnsChallengeToken,
@@ -229,7 +229,7 @@ namespace SphereSSLv2.Data
             }
 
             command.CommandText = @"
-        DELETE FROM CertRecord
+        DELETE FROM CertRecords
         WHERE OrderId = @OrderId;
     ";
 
@@ -253,7 +253,7 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT * FROM CertRecord
+        SELECT * FROM CertRecords
         WHERE OrderId = @OrderId;
     ";
 
@@ -300,7 +300,7 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT * FROM CertRecord
+        SELECT * FROM CertRecords
         WHERE Domain = @Domain
         LIMIT 1;
     ";
@@ -354,7 +354,7 @@ namespace SphereSSLv2.Data
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
             ChallengeType, Thumbprint, ZoneId, AuthorizationUrls
-        FROM CertRecord;
+        FROM CertRecords;
     ";
 
             using var reader = await command.ExecuteReaderAsync();
@@ -412,7 +412,7 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT * FROM CertRecord
+        SELECT * FROM CertRecords
         WHERE julianday(ExpiryDate) - julianday('now') <= @Threshold;
     ";
 
@@ -461,7 +461,7 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT * FROM CertRecord
+        SELECT * FROM CertRecords
         WHERE Email = @Email;
     ";
 
@@ -510,7 +510,7 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-            SELECT * FROM CertRecord;
+            SELECT * FROM CertRecords;
             ";
 
             using var reader = await command.ExecuteReaderAsync();

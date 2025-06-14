@@ -178,8 +178,6 @@ namespace SphereSSLv2.Services
             }
 
             _ = Task.Run(RefreshExpiringCertListsLoop);
-
-            Console.WriteLine($"");
         }
 
         private static async Task RefreshExpiringCertListsLoop()

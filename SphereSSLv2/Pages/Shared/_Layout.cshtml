@@ -69,7 +69,7 @@
             </nav>
         </div>
 
-        <div class="inner-box">
+        <div class="inner-box ">
             @RenderBody()
         </div>
 
@@ -125,6 +125,25 @@
     </div>
 </div>
 
+<!-- Cert Record Modal-->
+<div class="modal fade" id="certRecordModal" tabindex="-1" aria-labelledby="certRecordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-sm">
+            <div class="modal-header" style="background-color: #042c41; color: white;">
+                <h5 class="modal-title" id="certRecordModalLabel">Certificate Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="certRecordModalBody">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 </html>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -153,3 +172,31 @@
         }
     });
 </script>
+
+<style>
+    .main-container {
+        height: 100%;
+        max-width: 100vw;
+        background: linear-gradient(100deg, #14083b 60%, #17395d );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: nowrap;
+
+    }
+
+    .inner-box {
+        background-image: repeating-linear-gradient( 45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 10px );
+        background: linear-gradient(90deg, #0f1a2b, #0b71a7 99% );
+        background-blend-mode: overlay;
+        transition: background 0.3s ease;
+        width: 100%;
+        height: 80%;
+        border-top-left-radius: 60px;
+        border-bottom-left-radius: 60px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        box-shadow: inset 8px 0 15px rgba(0, 0, 0, 0.25);
+        padding: 20px;
+        box-sizing: border-box;
+    }</style>
