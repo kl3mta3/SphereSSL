@@ -23,10 +23,10 @@ namespace SphereSSLv2.Data
         public string Provider { get; set; } = string.Empty;
 
         [JsonProperty("creationTime")]
-        public DateTime CreationDate { get; set; } 
+        public DateTime CreationDate { get; set; }
 
         [JsonProperty("expiryDate")]
-        public DateTime ExpiryDate { get; set; } 
+        public DateTime ExpiryDate { get; set; }
 
         [JsonProperty("useSeparateFiles")]
         public bool UseSeparateFiles { get; set; } = false;
@@ -57,12 +57,15 @@ namespace SphereSSLv2.Data
         public string OrderUrl { get; set; } = string.Empty;
 
         [JsonProperty("challengeType")]
-        public string ChallengeType{ get; set; } = string.Empty;
+        public string ChallengeType { get; set; } = string.Empty;
 
         [JsonProperty("thumbprint")]
         public string Thumbprint { get; set; } = string.Empty;
 
         [JsonProperty("authorizationUrls")]
         public List<string> AuthorizationUrls { get; set; } = new();
+
+
+       
     }
-}
+ }

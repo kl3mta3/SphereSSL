@@ -101,7 +101,7 @@ namespace SphereSSLv2.Data
             catch (Exception ex)
             {
                 Logger.Error("Initialization failed: " + ex.Message);
-              
+
             }
         }
 
@@ -151,6 +151,11 @@ namespace SphereSSLv2.Data
 
             await command.ExecuteNonQueryAsync();
             await AdjustTotalCertsInDB(1);
+
+            if (!Spheressl.CertRecords.Any(r => r.OrderId == record.OrderId))
+            {
+                Spheressl.CertRecords.Add(record);
+            }
         }
 
         public static async Task UpdateCertRecord(CertRecord record)
@@ -233,6 +238,12 @@ namespace SphereSSLv2.Data
             await command.ExecuteNonQueryAsync();
 
             await AdjustTotalCertsInDB(-1);
+
+            var recordToRemove = Spheressl.CertRecords.FirstOrDefault(r => r.OrderId == orderId);
+            if (recordToRemove != null)
+            {
+                Spheressl.CertRecords.Remove(recordToRemove);
+            }
         }
 
         public static async Task<CertRecord?> GetCertRecordByOrderId(string orderId)
@@ -559,7 +570,7 @@ namespace SphereSSLv2.Data
         //Expired cert Management
         public static async Task InsertExpiredCert(CertRecord record, SqliteConnection? connection = null, SqliteTransaction? transaction = null)
         {
-            if(connection == null)
+            if (connection == null)
             {
                 connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
             }
@@ -611,6 +622,12 @@ namespace SphereSSLv2.Data
 
             await command.ExecuteNonQueryAsync();
             await AdjustExpiredCertCountInDB(1);
+
+            if (!Spheressl.ExpiredCertRecords.Any(r => r.OrderId == record.OrderId))
+            {
+                Spheressl.ExpiredCertRecords.Add(record);
+            }
+
         }
 
         public static async Task DeleteExpiredCertsByOrderId(string orderId)
@@ -628,6 +645,13 @@ namespace SphereSSLv2.Data
 
             await command.ExecuteNonQueryAsync();
             await AdjustExpiredCertCountInDB(-1);
+
+            var recordToRemove = Spheressl.ExpiredCertRecords.FirstOrDefault(r => r.OrderId == orderId);
+            if (recordToRemove != null)
+            {
+                Spheressl.ExpiredCertRecords.Remove(recordToRemove);
+            }
+
         }
 
         public static async Task<CertRecord?> GetExpiredCertByOrderId(string orderId)
@@ -824,6 +848,14 @@ namespace SphereSSLv2.Data
 
             await command.ExecuteNonQueryAsync();
             await AdjustTotalDNSProvidersInDB(1);
+
+
+            if (!Spheressl.DNSProviders.Any(r => r.ProviderName == provider.ProviderName))
+            {
+                Spheressl.DNSProviders.Add(provider);
+            }
+
+
         }
 
         public static async Task UpdateDNSProvider(DNSProvider updated)
@@ -870,6 +902,12 @@ namespace SphereSSLv2.Data
 
             await command.ExecuteNonQueryAsync();
             await AdjustTotalDNSProvidersInDB(-1);
+
+            var recordToRemove = Spheressl.DNSProviders.FirstOrDefault(r => r.ProviderName == providerName);
+            if (recordToRemove != null)
+            {
+                Spheressl.DNSProviders.Remove(recordToRemove);
+            }
         }
 
         public static async Task<DNSProvider?> GetDNSProviderByName(string name)
@@ -1159,7 +1197,6 @@ namespace SphereSSLv2.Data
             command.Parameters.AddWithValue("@Timestamp", timestamp);
             await command.ExecuteNonQueryAsync();
         }
-
 
         public static async Task RecalculateHealthStats()
         {

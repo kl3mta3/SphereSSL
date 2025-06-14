@@ -2,13 +2,12 @@
 using System.Net;
 using SphereSSLv2.Data;
 using System.Diagnostics;
+using SphereSSLv2.Testing;
 
 namespace SphereSSLv2.Services
 {
     public class StartUp
     {
-
-
         public static WebApplication CreateWebApp(string[] args, int port)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -102,20 +101,20 @@ namespace SphereSSLv2.Services
             }
             else
             {
-               // await Spheressl.LoadConfigFile();
+                // await Spheressl.LoadConfigFile();
             }
 
             if (!File.Exists(Logger.LogFilePath))
             {
                 File.Create(Logger.LogFilePath).Close();
             }
-            await DatabaseManager.Initialize();
+
+            await InitilizeDatabase();
             await StartTrayApp();
 
         }
 
-
-        public static async Task StartTrayApp()
+        private static async Task StartTrayApp()
         {
             var processName = Path.GetFileNameWithoutExtension(Spheressl.TrayAppPath);
 
@@ -123,17 +122,17 @@ namespace SphereSSLv2.Services
             var existing = Process.GetProcessesByName(processName).FirstOrDefault();
             if (existing != null && !existing.HasExited)
             {
-               
+
                 try
                 {
 
                     if (existing.MainModule.FileName != Spheressl.TrayAppPath)
                     {
-                       Spheressl.TrayAppProcess = existing;
+                        Spheressl.TrayAppProcess = existing;
                         return;
                     }
                 }
-                catch { /* Permissions issue or race condition? Just skip check. */ }
+                catch { }
 
 
                 return;
@@ -150,8 +149,57 @@ namespace SphereSSLv2.Services
             Spheressl.TrayAppProcess.StartInfo.UseShellExecute = true;
             Spheressl.TrayAppProcess.Start();
         }
+
+        private static async Task InitilizeDatabase()
+        {
+            var now = DateTime.UtcNow;
+
+            await DatabaseManager.Initialize();
+            await DatabaseManager.RecalculateHealthStats();
+
+            Spheressl.DNSProviders = await DatabaseManager.GetAllDNSProviders();
+            Spheressl.CertRecords = await DatabaseManager.GetAllCertRecords();
+
+
+            //for testing (remove later)
+            if (!Spheressl.CertRecords.Any() && Spheressl.GenerateFakeTestCerts)
+            {
+
+                await TestingTools.GenerateFakeCertRecords();
+            }
+
+            if (Spheressl.CertRecords.Count <= 1)
+            {
+
+                Spheressl.ExpiredCertRecords = Spheressl.CertRecords
+                    .FindAll(cert => cert.ExpiryDate < now);
+                Spheressl.ExpiringSoonCertRecords = Spheressl.CertRecords
+                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
+            }
+
+            _ = Task.Run(RefreshExpiringCertListsLoop);
+
+            Console.WriteLine($"");
+        }
+
+        private static async Task RefreshExpiringCertListsLoop()
+        {
+            while (true)
+            {
+                try
+                {
+                    var now = DateTime.UtcNow;
+
+                    Spheressl.ExpiringSoonCertRecords = Spheressl.CertRecords
+                        .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(Spheressl.ExpiringNoticePeriodInDays));
+                }
+                catch (Exception ex)
+                {
+                    Logger.Debug($"[ExpiringCertRefresher] Error: {ex.Message}");
+                }
+
+                await Task.Delay(TimeSpan.FromMinutes(Spheressl.RefreshExpiringSoonRateInMinutes)); 
+            }
+        }
     }
-
-
-
 }

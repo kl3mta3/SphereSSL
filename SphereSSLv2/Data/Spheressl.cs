@@ -24,10 +24,22 @@ namespace SphereSSLv2.Data
         internal static string TrayAppPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SphereSSL.exe");
         internal static string ServerIP { get; set; } = "127.0.0.1";
         internal static int ServerPort { get; set; } = 7171;
+        public static double RefreshExpiringSoonRateInMinutes { get; } = 5;
+        public static double ExpiringNoticePeriodInDays { get; } = 30;
+
         internal static string dbPath = "certificates.db";
         internal static string HashedPassword = string.Empty;
         internal static string Username = string.Empty;
         internal static string AutoLaunchBrowser = "true";
+        internal static List<CertRecord> ExpiredCertRecords = new List<CertRecord>();
+        internal static List<CertRecord> ExpiringSoonCertRecords = new List<CertRecord>();
+        internal static List<CertRecord> CertRecords = new List<CertRecord>();
+        internal static List<DNSProvider> DNSProviders = new List<DNSProvider>();
+
+        //for testing
+        internal static bool GenerateFakeTestCerts=false;
+
+
 
         internal static void OnProcessExit(object? sender, EventArgs e)
         {
@@ -47,8 +59,6 @@ namespace SphereSSLv2.Data
 
         private static async Task UpdateSavedPassword(string password)
         {
-
-
             try
             {
                 string hashedPassword = HashPassword(password);
