@@ -8,6 +8,7 @@ using ACMESharp.Crypto.JOSE;
 using Org.BouncyCastle.Crypto;
 using System.Security.Cryptography;
 using Microsoft.VisualBasic.ApplicationServices;
+using SphereSSLv2.Services;
 
 namespace SphereSSLv2.Pages
 {
@@ -44,24 +45,56 @@ namespace SphereSSLv2.Pages
             return Page();
         }
 
-        public async Task<IActionResult> OnPostQuickCreate([FromBody] CertRecord order)
+        public async Task<IActionResult> OnPostQuickCreate([FromBody] QuickCreateRequest request)
+{
+     if (request == null)
+     {
+         Logger.Debug("QuickCreateRequest was null.");
+         return BadRequest("Invalid request payload.");
+     }
+
+     
+       var order = request.Order;
+       var providerName = request.Provider;
+       DNSProvider provider = DNSProviders.FirstOrDefault(p => p.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
+
+
+    var autoAdd = request.AutoAdd;
+
+    AcmeService._acmeService = new AcmeService();
+    string orderID = AcmeService.GenerateCertRequestId();
+
+    var (dnsChallengeToken, domain) = await AcmeService._acmeService.CreateUserAccountForCert(order.Email, order.Domain);
+
+    order.OrderId = orderID;
+    order.DnsChallengeToken = dnsChallengeToken;
+    order.Domain = domain;
+    order.ChallengeType = "DNS-01";
+            bool added = false;
+
+    if (autoAdd)
+    {
+        Logger.Debug($"Auto-adding DNS record using provider: {provider.ProviderName}");
+        added = await DNSProvider.TryAutoAddDNS(provider, order.Domain, order.DnsChallengeToken);
+        if (!added)
         {
-
-            AcmeService._acmeService = new AcmeService();
-            string orderID = AcmeService.GenerateCertRequestId();
-            var (dnsChallengeToken, domain) = await AcmeService._acmeService.CreateUserAccountForCert(order.Email, order.Domain);
-
-
-            order.OrderId = orderID;
-            order.DnsChallengeToken = dnsChallengeToken;
-            order.Domain = domain;
-            order.ChallengeType = "DNA-01";
-            return new JsonResult(order);
+            Logger.Debug($"Failed to auto-add DNS record for provider: {provider}");
         }
+    }
 
-        public async Task<IActionResult> OnPostShowChallangeModal([FromBody] CertRecord order)
+         QuickCreateResponse response = new QuickCreateResponse
         {
+            Order = order,
+            AutoAdd = autoAdd,
+            AutoAddedSuccessfully = added,
+        };
 
+            return new JsonResult(response);
+}
+
+        public async Task<IActionResult> OnPostShowChallangeModal([FromBody] QuickCreateResponse _order)
+        {
+            CertRecord order = _order.Order;
             var (provider, link) = await Spheressl.GetNameServersProvider(order.Domain);
             var nsList = await Spheressl.GetNameServers(order.Domain);
 
@@ -80,9 +113,88 @@ namespace SphereSSLv2.Pages
             string fullLink = "https://" + link;
             string fullDomainName = "_acme-challenge." + order.Domain;
 
-            try
+            string addedStatus = "";
+            if (_order.AutoAddedSuccessfully)
             {
-                var html = $@"
+                addedStatus = "The Record was added to the DNS successfully.";
+            }
+            else if (!_order.AutoAddedSuccessfully)
+            {
+                addedStatus = "Failed to add the record to the DNS. Please add it manually.";
+            }
+
+            if (_order.AutoAdd)
+            {
+
+                try
+                {
+                    var html = $@"
+                    <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
+                        <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
+
+                       <div class='mb-3'>
+                            <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
+                         <div class='form-control text-break px-3 py-2 bg-light border'>
+                             <div> Domain: <a href='{order.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
+                                {order.Domain} </a>  </div>   
+                            
+                           <div> Provider: {Spheressl.CapitalizeFirstLetter(order.Provider)} </div>
+                           <div> Website: <a href='{fullLink}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
+                                ({fullLink}) </a> </div>
+                                <div> NameServer1: {nsList[0]} </div>  
+                                <div> NameServer2: {nsList[1]} </div>  
+                             
+                        </div>
+                        </div>
+
+                        <div class='mb-3'>
+                            <p class='mb-1'>{addedStatus}</p>
+                            <div class='bg-white border rounded p-3'>
+                         
+                              <div class='d-flex align-items-center'>
+                                    <strong class='me-2'>Name:</strong>
+                                    <span id='domainName' class='text-monospace flex-grow-1'>{fullDomainName}</span>
+                                    <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='copyDNSName(this)' title='Copy to clipboard'>
+                                        <i class=""bi bi-clipboard""></i>
+                                    </button>
+                                </div>
+                                <div class='d-flex align-items-center'>
+                                    <strong class='me-2'>Value:</strong>
+                                    <span id='dnsToken' class='text-monospace flex-grow-1'>{order.DnsChallengeToken}</span>
+                                    <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='copyDnsToken(this)' title='Copy to clipboard'>
+                                        <i class=""bi bi-clipboard""></i>
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class='mb-4' justify-content-center>
+                            <p class='mb-0'>Once you've added the record, click <strong>Ready</strong>.</p>
+                            <small class='text-muted'>Need help? Click <strong>Learn More</strong>.</small>
+                        </div>
+                        
+                        <div class='d-flex justify-content-end gap-2'>
+                            <button type='button' class='btn btn-outline-info' onclick='learnMore()'>Learn More</button>
+                            <button type='button' class='btn btn-success' onclick='verifyChallange()'>Ready</button>
+                        </div>
+                    </form>";
+
+                    return Content(html, "text/html");
+                }
+                catch (Exception ex)
+                {
+                    return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
+                }
+
+
+            }
+            else
+            {
+
+                try
+                {
+                    var html = $@"
                     <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
 
@@ -127,18 +239,19 @@ namespace SphereSSLv2.Pages
                             <p class='mb-0'>Once you've added the record, click <strong>Ready</strong>.</p>
                             <small class='text-muted'>Need help? Click <strong>Learn More</strong>.</small>
                         </div>
-
+                        
                         <div class='d-flex justify-content-end gap-2'>
                             <button type='button' class='btn btn-outline-info' onclick='learnMore()'>Learn More</button>
                             <button type='button' class='btn btn-success' onclick='verifyChallange()'>Ready</button>
                         </div>
                     </form>";
 
-                return Content(html, "text/html");
-            }
-            catch (Exception ex)
-            {
-                return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
+                    return Content(html, "text/html");
+                }
+                catch (Exception ex)
+                {
+                    return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
+                }
             }
         }
 
@@ -149,12 +262,62 @@ namespace SphereSSLv2.Pages
             return Page();
         }
 
-        public async Task<IActionResult> OnPostShowAddProviderModal([FromBody] DNSProvider provider)
+        public async Task<IActionResult> OnPostShowAddProviderModal()
         {
 
 
-            return Page();
+            var html = $@"
+            <form id='addProviderForm' class='p-4 bg-white rounded shadow-sm' style='max-width: 500px; margin: auto;'>
+                <h4 class='mb-3 text-center text-primary fw-bold'>Add New DNS Provider</h4>
+
+                <div class='mb-3'>
+                    <label for='providerName' class='form-label'>Name</label>
+                    <input type='text' id='providerName' name='providerName' class='form-control' placeholder='e.g., Cloudflare' required>
+                </div>
+                
+                
+                <div class='mb-3'>
+                    <label for='apiKey' class='form-label'>API Key</label>
+                    <input type='text' id='apiKey' name='apiKey' class='form-control' placeholder='Paste your API key here' required>
+                </div>
+
+                <div class='mb-3'>
+                    <label for='ttl' class='form-label'>TTL (Time to Live)</label>
+                    <input type='number' id='ttl' name='ttl' class='form-control' value='120' min='60'>
+                </div>
+
+                <div class='d-flex justify-content-end gap-2'>
+                    <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
+                    <button type='button' class='btn btn-primary' onclick='submitNewProvider()'>Add Provider</button>
+                </div>
+            </form>";
+
+            return Content(html, "text/html");
         }
+
+
+        public async Task<IActionResult> OnPostAddDNSProvider([FromBody] DNSProvider provider)
+        {
+
+
+            if (provider == null || string.IsNullOrWhiteSpace(provider.ProviderName) || string.IsNullOrWhiteSpace(provider.APIKey))
+            {
+                return BadRequest("Invalid provider data.");
+            }
+            // Check if provider already exists
+            if (Spheressl.DNSProviders.Any(p => p.ProviderName.Equals(provider.ProviderName, StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest("Provider already exists.");
+            }
+            // Add the new provider to the list
+            Spheressl.DNSProviders.Add(provider);
+         
+            await DatabaseManager.InsertDNSProvider(provider);
+
+
+            return new JsonResult(new { success = true, message = "Provider added successfully." });
+        }
+
 
         public async Task<IActionResult> OnGetExpiringRecordModal(string orderId)
         {

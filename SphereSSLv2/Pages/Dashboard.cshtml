@@ -63,7 +63,7 @@
                                                 }
                                             </select>
 
-                                            <button class="btn btn-outline-secondary" type="button" id="browseBtn">Add</button>
+                                            <button class="btn btn-outline-secondary" onclick="showAddProviderModal()" type="button" id="browseBtn">Add</button>
                                         </div>
                                     </div>
 
@@ -511,13 +511,30 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             autoRenew: document.getElementById("autoRenew").checked
         };
 
+            let provider = document.getElementById("dnsProvider")?.value || "";
+            let autoAdd = document.getElementById("autoAddRecord")?.checked || false;
+
+      const request = {
+      order: order,
+      provider: provider,
+      autoAdd: autoAdd
+    };
+
+
         const response = await fetch("/Dashboard?handler=QuickCreate", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(order)
+            body: JSON.stringify(request)
         });
+
+           if (!response.ok) {
+        const errorText = await response.text();
+        console.error("QuickCreate failed:", errorText);
+        alert("Failed to create order: " + errorText);
+        return;
+        }   
 
         const updatedOrder = await response.json();
         console.log("Updated Order Received:", updatedOrder);
@@ -593,5 +610,41 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
                 modalBody.innerHTML = `<p class="text-danger">Failed to load record.</p>`;
                 console.error(err);
             });
+    }
+</script>
+
+<script>
+    async function showAddProviderModal() {
+      const response = await fetch('/Dashboard?handler=ShowAddProviderModal', {
+        method: 'POST'
+      });
+
+      const html = await response.text();
+      document.getElementById('dnsChallengeModalBody').innerHTML = html;
+      const modal = new bootstrap.Modal(document.getElementById('dnsChallengeModal'));
+      modal.show();
+    }
+
+    async function submitNewProvider() {
+      const provider = {
+        providerName: document.getElementById('providerName').value,
+        provider: document.getElementById('provider').value,
+        apiKey: document.getElementById('apiKey').value,
+        ttl: parseInt(document.getElementById('ttl').value)
+      };
+
+      const response = await fetch('/Dashboard?handler=AddDNSProvider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(provider)
+      });
+
+      if (response.ok) {
+        alert("Provider added successfully!");
+        bootstrap.Modal.getInstance(document.getElementById('dnsChallengeModal')).hide();
+      } else {
+        const err = await response.text();
+        alert("Failed to add provider: " + err);
+      }
     }
 </script>

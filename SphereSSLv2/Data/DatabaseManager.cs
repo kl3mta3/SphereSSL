@@ -80,7 +80,7 @@ namespace SphereSSLv2.Data
                 CREATE TABLE IF NOT EXISTS DNSProviders (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ProviderName TEXT,
-                    ProviderBaseURL TEXT,
+                    Provider TEXT,
                     APIKey TEXT,
                     Ttl INTEGER
 
@@ -810,47 +810,49 @@ namespace SphereSSLv2.Data
 
 
         //DNSProvider Management
-        public static async Task InsertDNSProvider(DNSProvider provider)
+        public static async Task<bool> InsertDNSProvider(DNSProvider provider)
         {
             using var connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
             await connection.OpenAsync();
-
-            var command = connection.CreateCommand();
-            command.CommandText = @"
-        INSERT INTO DNSProviders (
-            ProviderName,
-            ProviderBaseURL,
-            APIKey,
-            Ttl,
-            UpdateAPI,
-            CreateAPI,
-            DeleteAPI
-        ) VALUES (
-            @ProviderName,
-            @ProviderBaseURL,
-            @APIKey,
-            @Ttl,
-            @UpdateAPI,
-            @CreateAPI,
-            @DeleteAPI
-        );
-    ";
-
-            command.Parameters.AddWithValue("@ProviderName", provider.ProviderName);
-            command.Parameters.AddWithValue("@ProviderBaseURL", provider.ProviderBaseURL);
-            command.Parameters.AddWithValue("@APIKey", provider.APIKey);
-            command.Parameters.AddWithValue("@Ttl", provider.Ttl);
-
-            await command.ExecuteNonQueryAsync();
-            await AdjustTotalDNSProvidersInDB(1);
-
-
-            if (!Spheressl.DNSProviders.Any(r => r.ProviderName == provider.ProviderName))
+            try
             {
-                Spheressl.DNSProviders.Add(provider);
+                var command = connection.CreateCommand();
+                command.CommandText = @"
+                INSERT INTO DNSProviders (
+                    ProviderName,
+                    Provider,
+                    APIKey,
+                    Ttl
+                ) VALUES (
+                @ProviderName,
+                @Provider,
+                @APIKey,
+                @Ttl
+                );
+                ";
+
+                command.Parameters.AddWithValue("@ProviderName", provider.ProviderName);
+                command.Parameters.AddWithValue("@Provider", provider.Provider);
+                command.Parameters.AddWithValue("@APIKey", provider.APIKey);
+                command.Parameters.AddWithValue("@Ttl", provider.Ttl);
+
+                await command.ExecuteNonQueryAsync();
+                await AdjustTotalDNSProvidersInDB(1);
+
+
+                if (!Spheressl.DNSProviders.Any(r => r.ProviderName == provider.ProviderName))
+                {
+                    Spheressl.DNSProviders.Add(provider);
+                }
+               
+                return true;
             }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to insert DNS provider: " + ex.Message);
+                return false;
 
-
+            }
         }
 
         public static async Task UpdateDNSProvider(DNSProvider updated)
@@ -862,17 +864,14 @@ namespace SphereSSLv2.Data
             command.CommandText = @"
         UPDATE DNSProviders
         SET 
-            ProviderBaseURL = @ProviderBaseURL,
+            Provider = @Provider,
             APIKey = @APIKey,
             Ttl = @Ttl,
-            UpdateAPI = @UpdateAPI,
-            CreateAPI = @CreateAPI,
-            DeleteAPI = @DeleteAPI
         WHERE ProviderName = @ProviderName;
-    ";
-
+        ";
+         
             command.Parameters.AddWithValue("@ProviderName", updated.ProviderName);
-            command.Parameters.AddWithValue("@ProviderBaseURL", updated.ProviderBaseURL);
+            command.Parameters.AddWithValue("@Provider", updated.Provider);
             command.Parameters.AddWithValue("@APIKey", updated.APIKey);
             command.Parameters.AddWithValue("@Ttl", updated.Ttl);
 
@@ -910,7 +909,7 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT ProviderName, ProviderBaseURL, APIKey, Ttl
+        SELECT ProviderName, Provider, APIKey, Ttl
         FROM DNSProviders
         WHERE ProviderName = @ProviderName;
     ";
@@ -923,7 +922,7 @@ namespace SphereSSLv2.Data
                 return new DNSProvider
                 {
                     ProviderName = reader["ProviderName"].ToString(),
-                    ProviderBaseURL = reader["ProviderBaseURL"].ToString(),
+                    Provider = reader["Provider"].ToString(),
                     APIKey = reader["APIKey"].ToString(),
                     Ttl = Convert.ToInt32(reader["Ttl"]),
 
@@ -942,9 +941,9 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT ProviderName, ProviderBaseURL, APIKey, Ttl
-        FROM DNSProviders;
-    ";
+            SELECT ProviderName, Provider, APIKey, Ttl
+            FROM DNSProviders;
+            ";
 
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -952,7 +951,7 @@ namespace SphereSSLv2.Data
                 var provider = new DNSProvider
                 {
                     ProviderName = reader["ProviderName"].ToString(),
-                    ProviderBaseURL = reader["ProviderBaseURL"].ToString(),
+                    Provider = reader["Provider"].ToString(),
                     APIKey = reader["APIKey"].ToString(),
                     Ttl = Convert.ToInt32(reader["Ttl"]),
 
