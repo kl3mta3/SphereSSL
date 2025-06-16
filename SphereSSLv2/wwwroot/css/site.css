@@ -259,3 +259,20 @@
     align-items: center;
    
 }
+
+
+.log-line.update {
+    color: limegreen;
+    font-weight: bold;
+}
+
+.log-line.info {
+    color: goldenrod;
+    font-weight: bold;
+}
+
+.log-line.debug {
+    color: red;
+    font-weight: bold;
+    font-style: italic;
+}

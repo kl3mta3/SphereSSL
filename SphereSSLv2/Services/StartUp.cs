@@ -3,11 +3,21 @@ using System.Net;
 using SphereSSLv2.Data;
 using System.Diagnostics;
 using SphereSSLv2.Testing;
+using Microsoft.AspNetCore.SignalR;
+using SphereSSL2.Model;
 
 namespace SphereSSLv2.Services
 {
     public class StartUp
     {
+        private readonly Logger _logger;
+        private readonly DatabaseManager _databaseManager;
+        public StartUp(Logger logger, DatabaseManager databaseManager)
+        {
+            _logger = logger;
+            _databaseManager = databaseManager;
+        }
+
         public static WebApplication CreateWebApp(string[] args, int port)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -15,7 +25,17 @@ namespace SphereSSLv2.Services
             builder.Logging.AddConsole();
             builder.Logging.SetMinimumLevel(LogLevel.Error);
             builder.Services.AddControllersWithViews();
-
+            builder.Services.AddSignalR();
+            builder.Services.AddSingleton<Spheressl>();
+            builder.Services.AddSingleton<Logger>(provider =>
+            {
+                var hubContext = provider.GetRequiredService<IHubContext<SignalHub>>();
+                return new Logger(hubContext);
+            });
+            //builder.Services.AddScoped<AcmeService>();
+            builder.Services.AddHostedService<ExpiryWatcherService>();
+            builder.Services.AddSingleton<DatabaseManager>();
+           
             // CORS Policy
             builder.Services.AddCors(options =>
             {
@@ -74,21 +94,15 @@ namespace SphereSSLv2.Services
                 await next();
             });
 
-
-
-
-
-
-
-            app.MapRazorPages();
-
-
             app.UseStaticFiles();
             app.UseSession();
             app.UseRouting();
             app.UseAuthorization();
+
             app.MapRazorPages();
             app.MapControllers();
+            app.MapHub<SignalHub>("/logHub");
+
 
             return app;
         }
@@ -108,10 +122,10 @@ namespace SphereSSLv2.Services
             {
                 File.Create(Logger.LogFilePath).Close();
             }
-
+           
             await InitilizeDatabase();
             await StartTrayApp();
-
+        
         }
 
         private static async Task StartTrayApp()
@@ -177,27 +191,8 @@ namespace SphereSSLv2.Services
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
             }
 
-            _ = Task.Run(RefreshExpiringCertListsLoop);
+
         }
 
-        private static async Task RefreshExpiringCertListsLoop()
-        {
-            while (true)
-            {
-                try
-                {
-                    var now = DateTime.UtcNow;
-
-                    Spheressl.ExpiringSoonCertRecords = Spheressl.CertRecords
-                        .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(Spheressl.ExpiringNoticePeriodInDays));
-                }
-                catch (Exception ex)
-                {
-                    Logger.Debug($"[ExpiringCertRefresher] Error: {ex.Message}");
-                }
-
-                await Task.Delay(TimeSpan.FromMinutes(Spheressl.RefreshExpiringSoonRateInMinutes)); 
-            }
-        }
     }
 }

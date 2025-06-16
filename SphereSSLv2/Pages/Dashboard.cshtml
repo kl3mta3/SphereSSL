@@ -1,6 +1,6 @@
 ﻿@page
 @model SphereSSLv2.Pages.DashboardModel
-@{
+
 }@{
     ViewData["Title"] = "Dashboard";
 }
@@ -59,7 +59,7 @@
                                             <select class="form-select" id="dnsProvider" name="dnsProvider" style="flex: 1;">
                                                 @foreach (var provider in Model.DNSProviders)
                                                 {
-                                                    <option value="@provider">@provider</option>
+                                                    <option value="@provider.ProviderName">@provider.ProviderName</option>
                                                 }
                                             </select>
 
@@ -90,7 +90,7 @@
                         <!-- Upcoming Renewals -->
                         <div class="col-lg-6 mb-4">
                             <h3 class="title mb-4">Upcoming Renewals</h3>
-                            <div class="card renewals shadow-sm p-3 " style="  min-width: 600px; min-height: 505px; max-height: 600px; overflow-y: hidden;">
+                            <div class="card renewals shadow-sm p-3 " style="  min-width: 600px; min-height: 535px; max-height: 600px; overflow-y: hidden;">
 
 
 
@@ -184,7 +184,11 @@
 
 <style>
 
-    
+    .log-line {
+        font-family: monospace;
+        padding: 2px 4px;
+        border-bottom: 1px solid #eee;
+    }
 
 
     .card {
@@ -457,6 +461,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
 @* Open Path location Window via task app *@
 
@@ -498,7 +503,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
       async function submitOrder() {
         const selectedFormat = document.querySelector('input[name="certFormat"]:checked');
         const useSeparateFiles = selectedFormat ? selectedFormat.value === "true" : false;
-
+        let currentOrder = null;
         let order = {
             orderId: "",
             domain: document.getElementById("domain").value,
@@ -510,10 +515,11 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             saveForRenewal: document.getElementById("saveForRenewal").checked,
             autoRenew: document.getElementById("autoRenew").checked
         };
-
             let provider = document.getElementById("dnsProvider")?.value || "";
             let autoAdd = document.getElementById("autoAddRecord")?.checked || false;
 
+        console.log("Order Object Created:", order);
+        currentOrder= order;
       const request = {
       order: order,
       provider: provider,
@@ -538,7 +544,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 
         const updatedOrder = await response.json();
         console.log("Updated Order Received:", updatedOrder);
-
+         currentOrder =updatedOrder;
         const modalResponse = await fetch(`/Dashboard?handler=ShowChallangeModal`, {
             method: "POST",
             headers: {
@@ -646,5 +652,62 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         const err = await response.text();
         alert("Failed to add provider: " + err);
       }
+    }
+</script>
+
+<script>
+    async function verifyChallange() {
+    const order = {
+        orderId: document.getElementById("orderId")?.value || "",
+        domain: document.getElementById("domainName")?.textContent.trim() || "",
+        dnsChallengeToken: document.getElementById("dnsToken")?.textContent.trim() || "",
+        email: document.getElementById("email")?.value || "",
+        useSeparateFiles: false,
+        saveForRenewal: false,
+        autoRenew: false,
+        savePath: document.getElementById("savePath")?.value || ""
+    };
+
+        const response = await fetch("/Dashboard?handler=ShowVerifyModal", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(order)
+        });
+
+        const modalHtml = await response.text();
+        document.getElementById("VerifyModalBody").innerHTML = modalHtml;
+
+
+            const prevModal = bootstrap.Modal.getInstance(document.getElementById("dnsChallengeModal"));
+            if (prevModal) {
+                prevModal.hide();
+            }
+
+        const modal = new bootstrap.Modal(document.getElementById("dnsVerifyModal"));
+        certDownloadReady = false;
+        certDownloadsReady = false;
+
+        const downloadPem = document.getElementById("downloadButton");
+        if (downloadPem) downloadPem.style.display = "none";
+
+        const downloadBoth = document.getElementById("downloadButtons");
+        if (downloadBoth) downloadBoth.style.display = "none";
+
+        modal.show();
+    }</script>
+
+
+
+
+
+<script>
+       function closeDnsModal() {
+        const modalEl = document.getElementById("dnsChallengeModal");
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+            modal.hide();
+        }
     }
 </script>

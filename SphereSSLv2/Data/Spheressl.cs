@@ -1,5 +1,8 @@
-﻿using DnsClient;
+﻿// Ignore Spelling: Spheressl
+
+using DnsClient;
 using DnsClient.Protocol;
+using Microsoft.AspNetCore.SignalR;
 using SphereSSL2.Model;
 using SphereSSL2.View;
 using SphereSSLv2.Services;
@@ -36,10 +39,15 @@ namespace SphereSSLv2.Data
         internal static List<CertRecord> CertRecords = new List<CertRecord>();
         internal static List<DNSProvider> DNSProviders = new List<DNSProvider>();
 
+        private readonly Logger _logger;
+
+        public Spheressl(Logger logger)
+        {
+            _logger = logger;
+        }
+
         //for testing
-        internal static bool GenerateFakeTestCerts=true;
-
-
+        internal static bool GenerateFakeTestCerts = true;
 
         internal static void OnProcessExit(object? sender, EventArgs e)
         {
@@ -246,24 +254,24 @@ namespace SphereSSLv2.Data
             if (parts.Length >= 2)
                 return (parts[^2], parts[^2] + "." + parts[^1]);
 
-            return ("Unknown","Unknown.com");
+            return ("Unknown", "Unknown.com");
         }
 
-        public static async Task<(string, string)> GetNameServersProvider(string domain)
+        public async Task<(string, string)> GetNameServersProvider(string domain)
         {
-            
+
             var results = await GetNameServers(domain);
 
             if (results == null || results.Count == 0)
             {
-                Logger.Info($"NameServer Provider Not Located for domain {domain}");
+                await _logger.Info($"NameServer Provider Not Located for domain {domain}");
                 return ("Unknown", "Unknown.com");
             }
-          
+
             return await ExtractDnsProvider(results[0]);
         }
+
+
     }
-
-
 
 }

@@ -6,6 +6,12 @@ namespace SphereSSLv2.Data
 {
     public class DatabaseManager
     {
+        private readonly Logger _logger;
+        public DatabaseManager(Logger logger)
+        {
+            _logger = logger;
+        }
+
         //start DB
         public static async Task Initialize()
         {
@@ -98,7 +104,8 @@ namespace SphereSSLv2.Data
             }
             catch (Exception ex)
             {
-                Logger.Error("Initialization failed: " + ex.Message);
+                
+               
 
             }
         }
@@ -810,7 +817,7 @@ namespace SphereSSLv2.Data
 
 
         //DNSProvider Management
-        public static async Task<bool> InsertDNSProvider(DNSProvider provider)
+        public async Task<bool> InsertDNSProvider(DNSProvider provider)
         {
             using var connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
             await connection.OpenAsync();
@@ -849,7 +856,7 @@ namespace SphereSSLv2.Data
             }
             catch (Exception ex)
             {
-                Logger.Error("Failed to insert DNS provider: " + ex.Message);
+                _= _logger.Error("Failed to insert DNS provider: " + ex.Message);
                 return false;
 
             }
@@ -909,10 +916,10 @@ namespace SphereSSLv2.Data
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT ProviderName, Provider, APIKey, Ttl
-        FROM DNSProviders
-        WHERE ProviderName = @ProviderName;
-    ";
+            SELECT ProviderName, Provider, APIKey, Ttl
+            FROM DNSProviders
+            WHERE ProviderName = @ProviderName;
+                ";
             command.Parameters.AddWithValue("@ProviderName", name);
 
             using var reader = await command.ExecuteReaderAsync();

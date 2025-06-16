@@ -9,24 +9,46 @@ using Org.BouncyCastle.Crypto;
 using System.Security.Cryptography;
 using Microsoft.VisualBasic.ApplicationServices;
 using SphereSSLv2.Services;
+using Microsoft.AspNetCore.SignalR;
+using DnsClient;
+using System.Net;
+using ACMESharp.Protocol;
+using Certes.Pkcs;
+using Certes;
+using SphereSSL2.View;
+using System.Diagnostics;
+using System.IO;
+using Org.BouncyCastle.Asn1.Ocsp;
 
 namespace SphereSSLv2.Pages
 {
     public class DashboardModel : PageModel
     {
-        private readonly ILogger<DashboardModel> _logger;
+        private readonly ILogger<DashboardModel> _Ilogger;
 
         public List<CertRecord> CertRecords = Spheressl.CertRecords;
         public List<CertRecord> ExpiringSoonRecords = Spheressl.ExpiringSoonCertRecords;
         public List<DNSProvider> DNSProviders = Spheressl.DNSProviders;
+        public List<string> Providers = Enum.GetValues(typeof(DNSProvider.ProviderType))
+            .Cast<DNSProvider.ProviderType>()
+            .Select(p => p.ToString())
+            .ToList();
 
-        [BindProperty]
         public DNSProvider SelectedDNSProvider { get; set; } = new DNSProvider();
+        private bool _runningCertGeneration = false;
+        private readonly DatabaseManager _databaseManager;
+        private readonly IHubContext<SignalHub> _hubContext;
+        private readonly Logger _logger;
+        private readonly Spheressl _spheressl;
 
-        public DashboardModel(ILogger<DashboardModel> logger)
+
+        public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, Spheressl spheressl, DatabaseManager database)
         {
+            _Ilogger = ilogger;
             _logger = logger;
-            
+            _spheressl = spheressl;
+
+            _databaseManager = database;
         }
 
         public async Task<IActionResult> OnGet()
@@ -46,56 +68,76 @@ namespace SphereSSLv2.Pages
         }
 
         public async Task<IActionResult> OnPostQuickCreate([FromBody] QuickCreateRequest request)
-{
-     if (request == null)
-     {
-         Logger.Debug("QuickCreateRequest was null.");
-         return BadRequest("Invalid request payload.");
-     }
-
-     
-       var order = request.Order;
-       var providerName = request.Provider;
-       DNSProvider provider = DNSProviders.FirstOrDefault(p => p.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
-
-
-    var autoAdd = request.AutoAdd;
-
-    AcmeService._acmeService = new AcmeService();
-    string orderID = AcmeService.GenerateCertRequestId();
-
-    var (dnsChallengeToken, domain) = await AcmeService._acmeService.CreateUserAccountForCert(order.Email, order.Domain);
-
-    order.OrderId = orderID;
-    order.DnsChallengeToken = dnsChallengeToken;
-    order.Domain = domain;
-    order.ChallengeType = "DNS-01";
-            bool added = false;
-
-    if (autoAdd)
-    {
-        Logger.Debug($"Auto-adding DNS record using provider: {provider.ProviderName}");
-        added = await DNSProvider.TryAutoAddDNS(provider, order.Domain, order.DnsChallengeToken);
-        if (!added)
         {
-            Logger.Debug($"Failed to auto-add DNS record for provider: {provider}");
+
+
+            if (!_runningCertGeneration)
+            {
+                _runningCertGeneration = true;
+
+                if (request == null)
+                {
+                    await _logger.Error("QuickCreateRequest was null.");
+                    return BadRequest("Invalid request payload.");
+                }
+                if (AcmeService._acmeService == null)
+                {
+                    AcmeService._acmeService = new AcmeService(_logger);
+                }
+
+                var acme = AcmeService._acmeService;
+
+                var order = request.Order;
+                var providerName = request.Provider;
+                DNSProvider provider = DNSProviders.FirstOrDefault(p => p.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
+
+                var autoAdd = request.AutoAdd;
+
+
+
+
+                var (dnsChallengeToken, domain) = await acme.CreateUserAccountForCert(order.Email, order.Domain);
+
+
+                string orderID = AcmeService.GenerateCertRequestId();
+
+                order.OrderId = orderID;
+                order.DnsChallengeToken = dnsChallengeToken;
+                order.Domain = domain;
+                order.ChallengeType = "DNS-01";
+                bool added = false;
+
+                if (autoAdd)
+                {
+                    await _logger.Info($"Auto-adding DNS record using provider: {provider.ProviderName}");
+                    added = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domain, order.DnsChallengeToken);
+                    if (!added)
+                    {
+                        await _logger.Info($"Failed to auto-add DNS record for provider: {provider}");
+                    }
+                }
+
+                QuickCreateResponse response = new QuickCreateResponse
+                {
+                    Order = order,
+                    AutoAdd = autoAdd,
+                    AutoAddedSuccessfully = added,
+                };
+                return new JsonResult(response);
+            }
+            else
+            {
+                await _logger.Error("A certificate generation is already in progress. Please wait until it completes.");
+                return BadRequest("A certificate generation is already in progress. Please wait until it completes.");
+            }
         }
-    }
-
-         QuickCreateResponse response = new QuickCreateResponse
-        {
-            Order = order,
-            AutoAdd = autoAdd,
-            AutoAddedSuccessfully = added,
-        };
-
-            return new JsonResult(response);
-}
 
         public async Task<IActionResult> OnPostShowChallangeModal([FromBody] QuickCreateResponse _order)
         {
+
             CertRecord order = _order.Order;
-            var (provider, link) = await Spheressl.GetNameServersProvider(order.Domain);
+
+            (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
             var nsList = await Spheressl.GetNameServers(order.Domain);
 
             using SHA256 algor = SHA256.Create();
@@ -125,13 +167,13 @@ namespace SphereSSLv2.Pages
 
             if (_order.AutoAdd)
             {
-
                 try
                 {
                     var html = $@"
                     <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
-
+                        <input type='hidden' id='orderId' value='{order.OrderId}' />
+                        <input type='hidden' id='email' value='{order.Email}' />
                        <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
                          <div class='form-control text-break px-3 py-2 bg-light border'>
@@ -197,7 +239,8 @@ namespace SphereSSLv2.Pages
                     var html = $@"
                     <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
-
+                            <input type='hidden' id='orderId' value='{order.OrderId}' />
+                            <input type='hidden' id='email' value='{order.Email}' />
                        <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
                          <div class='form-control text-break px-3 py-2 bg-light border'>
@@ -255,16 +298,11 @@ namespace SphereSSLv2.Pages
             }
         }
 
-        public async Task<IActionResult> OnPostVerifyChallenge([FromBody] CertRecord order)
-        {
-
-
-            return Page();
-        }
 
         public async Task<IActionResult> OnPostShowAddProviderModal()
         {
 
+            string optionsHtml = string.Join("", Providers.Select(p => $"<option value='{p}'>{p}</option>"));
 
             var html = $@"
             <form id='addProviderForm' class='p-4 bg-white rounded shadow-sm' style='max-width: 500px; margin: auto;'>
@@ -275,6 +313,14 @@ namespace SphereSSLv2.Pages
                     <input type='text' id='providerName' name='providerName' class='form-control' placeholder='e.g., Cloudflare' required>
                 </div>
                 
+
+                  <div class='mb-3'>
+                    <label for='provider' class='form-label'>Provider</label>
+                    <select id='provider' name='provider' class='form-select' required>
+                        <option disabled selected value=''>-- Select a Provider --</option>
+                        {optionsHtml}
+                    </select>
+                </div>
                 
                 <div class='mb-3'>
                     <label for='apiKey' class='form-label'>API Key</label>
@@ -299,6 +345,7 @@ namespace SphereSSLv2.Pages
         public async Task<IActionResult> OnPostAddDNSProvider([FromBody] DNSProvider provider)
         {
 
+            Console.WriteLine($"Adding DNS {provider.Provider}: {provider.ProviderName} with API Key: {provider.APIKey}");
 
             if (provider == null || string.IsNullOrWhiteSpace(provider.ProviderName) || string.IsNullOrWhiteSpace(provider.APIKey))
             {
@@ -311,8 +358,8 @@ namespace SphereSSLv2.Pages
             }
             // Add the new provider to the list
             Spheressl.DNSProviders.Add(provider);
-         
-            await DatabaseManager.InsertDNSProvider(provider);
+
+            await _databaseManager.InsertDNSProvider(provider);
 
 
             return new JsonResult(new { success = true, message = "Provider added successfully." });
@@ -333,7 +380,7 @@ namespace SphereSSLv2.Pages
             var directoryPath = Path.GetDirectoryName(record.SavePath)?.Replace("\\", "/") ?? string.Empty;
             var htmlSafePath = System.Net.WebUtility.HtmlEncode(record.SavePath);
             var fileUrl = "file:///" + directoryPath.Replace(" ", "%20");
-         
+
 
             var html = $@"
         <div class='container-fluid'>
@@ -352,7 +399,7 @@ namespace SphereSSLv2.Pages
 
                 <div class='col-md-12'>
                     <strong>Save Path:</strong><br>
-                <a href=""#"" onclick=""fetch('http://localhost:7172/open-location/?path=C:/Users/Kenny/Documents'); return false;"">
+                <a href=""#"" onclick=""fetch('http://localhost:7172/open-location/?{fileUrl}'); return false;"">
                     <code class=""small text-break text-danger"">{record.SavePath}</code>
                 </a>
                 </div>
@@ -366,19 +413,178 @@ namespace SphereSSLv2.Pages
             return Content(html, "text/html");
         }
 
-        
+
 
         public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord order)
         {
+            var acme = AcmeService._acmeService;
+            if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
+            {
+                await _logger.Error("Invalid order data received for verification.");
+                return BadRequest("Invalid order data.");
+            }
+
+            var  html = $@"
+                <form id='showVerifyForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; min-height: 400px; margin: auto;'>
+
+                    <h3 class='mb-2 text-center text-primary fw-bold'>Verify DNS Challenge</h3>
+
+                    <input type='hidden' id='orderId' value='{order.OrderId}' />
+                    <input type='hidden' id='dnsToken' value='{order.DnsChallengeToken}' />
+
+                    <div id='verifyModalBody' class='modal-body'>
+                        <div id='signalLogOutput' class='mt-3 p-2 bg-light border rounded text-monospace' style='max-height: 250px; overflow-y: auto;'></div>
+                    </div>
 
 
 
+                </form>";
 
 
+            _ = Task.Run(async () =>
+            {
+                const int maxAttempts = 5;
+                int attempt = 0;
+
+                while (attempt < maxAttempts)
+                {
+                    await _logger.Info($"Attempting DNS verification (try {attempt + 1} of {maxAttempts})...");
+
+                    bool verified = false;
+
+                    try
+                    {
+
+                        verified = await acme.CheckTXTRecordMultipleDNS(order.DnsChallengeToken, order.Domain);
+                    }
+                    catch (Exception ex)
+                    {
+                        await _logger.Error($"\n[ERROR] DNS verification failed: {ex.Message}");
+                        await _logger.Debug($"\n[ERROR] DNS verification failed: {ex.Message}");
+                        attempt++;
+                        if (attempt < maxAttempts)
+                        {
+                            await _logger.Info($"\nRetrying in 15 seconds... (attempt {attempt + 1} of {maxAttempts})");
+                            await Task.Delay(15000);
+                        }
+                        continue;
+                    }
+
+                    if (verified)
+                    {
+                        await _logger.Update("\nDNS verification successful! Starting certificate generation...");
+
+                        try
+                        {
+                           
+                            await acme.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domain);
+
+                            if (order.SaveForRenewal)
+                            {
+                                Console.WriteLine($"Saving order for renewal: {order.OrderId}");
+                                await DatabaseManager.InsertCertRecord(order);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Not saving order for renewal: {order.OrderId}");
+                            }
+
+                            if (!order.UseSeparateFiles)
+                            {
+                                await _logger.Update($"Certificate stored successfully!");
+                            }
+                            else
+                            {
+                                await _logger.Update($"Certificates stored successfully!");
+                            }
+           
+
+                        }
+                        catch (Exception ex)
+                        {
+                            await _logger.Error($"[ERROR] Certificate generation failed: {ex.Message}");
+                            await _logger.Debug($"[ERROR] Certificate generation failed: {ex.Message}");
+                            await _logger.Error($"Stack trace: {ex.StackTrace}");
+
+                            if (ex.Message.Contains("urn:ietf:params:acme:error:dns") ||
+                                ex.Message.Contains("urn:ietf:params:acme:error:connection"))
+                            {
+                                await _logger.Error("This appears to be a DNS propagation issue. Retrying might help.");
+                                await _logger.Debug("This appears to be a DNS propagation issue. Retrying might help.");
+                            }
+                            else
+                            {
+                                await _logger.Error("This appears to be a non-recoverable error.");
+                                await _logger.Debug("This appears to be a non-recoverable error.");
+                            }
+                        }
+
+                        return;
+                    }
+                    else
+                    {
+                        await _logger.Debug($"\nDNS verification failed (attempt {attempt + 1})");
+                        await _logger.Debug($"Expected TXT record at: _acme-challenge.{order.Domain}");
+                        await _logger.Debug($"Expected value: {order.DnsChallengeToken}");
+                        await _logger.Debug("Make sure:");
+                        await _logger.Debug("1. The TXT record is correctly added to your DNS");
+                        await _logger.Debug("2. The record name is exactly: _acme-challenge");
+                        await _logger.Debug("3. The record value matches exactly (case-sensitive)");
+                        await _logger.Debug("4. DNS changes have had time to propagate");
+                    }
+
+                    attempt++;
+
+                    if (attempt < maxAttempts)
+                    {
+                        await _logger.Info($"\nWaiting 15 seconds before next attempt...");
+                        await Task.Delay(15000);
+                    }
+                }
+
+                await _logger.Error($"All {maxAttempts} attempts failed.");
+                await _logger.Debug($"All {maxAttempts} attempts failed.");
+            });
+        
+            _runningCertGeneration = false;
 
 
-
-            return Page();
+            return Content(html, "text/html");  
         }
+
+
+        public IActionResult OnGetDownloadCertPem(string savePath)
+        {
+            string file = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempCert.pem");
+            if (!System.IO.File.Exists(file))
+                return NotFound();
+            var bytes = System.IO.File.ReadAllBytes(file);
+            System.IO.File.Delete(file);
+            return File(bytes, "application/x-pem-file", "certificate.pem");
+        }
+
+        public IActionResult OnGetDownloadCertCrt(string savePath)
+        {
+            string file = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempCert.crt");
+          
+            if (!System.IO.File.Exists(file))
+                return NotFound();
+
+            var bytes = System.IO.File.ReadAllBytes(file);
+            System.IO.File.Delete(file);
+            return File(bytes, "application/x-x509-ca-cert", "certificate.crt");
+        }
+
+        public IActionResult OnGetDownloadCertKey(string savePath)
+        {
+           string  file = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempKey.key");
+            if (!System.IO.File.Exists(file))
+                return NotFound();
+
+            var bytes = System.IO.File.ReadAllBytes(file);
+            System.IO.File.Delete(file);
+            return File(bytes, "application/x-pem-key", "private.key");
+        }
+
     }
 }

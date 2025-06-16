@@ -123,6 +123,40 @@
     </div>
 </div>
 
+<!-- DNS Verify Modal-->
+<div class="modal fade" id="dnsVerifyModal" tabindex="-1" aria-labelledby="dnsVerifyLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 650px; min-width: 400px;">
+        <div class="modal-content bg-light text-dark shadow-sm">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dnsVerifyLabel">Verify Challenge</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="VerifyModalBody">
+            </div>
+            <div class="modal-footer" id="verifyModalFooter">
+
+
+                <div id="downloadButton" style="display: none;" gap-2">
+                    <span class="me-2 text-success fw-semibold">Certificate saved! Download a copy?</span>
+                    <button class="btn btn-primary" onclick="window.location.href='/Dashboard?handler=DownloadCertPem&savePath=Temp'">
+                        Download PEM
+                    </button>
+                </div>
+
+                <div id="downloadButtons" style="display: none;" gap-2">
+                    <span class="me-2 text-success fw-semibold">Certificate saved! Download a copy?</span>
+                    <a href="@Url.Page("Dashboard", "DownloadCertKey", new { savePath = "Temp" })" class="btn btn-primary">Download KEY</a>
+                    <a href="@Url.Page("Dashboard", "DownloadCertCrt", new { savePath = "Temp" })" class="btn btn-primary">Download CRT</a>
+
+                </div>
+
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Cert Record Modal-->
 <div class="modal fade" id="certRecordModal" tabindex="-1" aria-labelledby="certRecordModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -171,6 +205,138 @@
     });
 </script>
 
+<script>
+    console.log("Starting Signal listener:");
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/logHub")
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+
+    connection.on("UpdateLog", msg => {
+         console.log("Received UpdateLog:", msg)
+        appendToLog(msg, "update");
+
+
+          if (msg.includes("Certificate stored successfully!")) {
+            certDownloadReady = true;
+            console.log("Certificate download ready:", certDownloadReady);
+            tryShowDownloadButton(); 
+        }
+
+
+        if (msg.includes("Certificates stored successfully!")) {
+            certDownloadsReady = true;
+             console.log("Certificates download ready:", certDownloadsReady);
+            tryShowDownloadButtons(); 
+        }
+
+    });
+
+    connection.on("InfoLog", msg => {
+        console.log("Received InfoLog:", msg);
+        appendToLog(msg, "info");
+
+
+    });
+
+    connection.on("DebugLog", msg => {
+        console.debug("Received DebugLog:", msg);
+        appendToLog(msg, "debug");
+    });
+
+    connection.start()
+        .then(() => {
+            console.log("SignalR connection successfully established!");
+        })
+        .catch(err => {
+            console.error("SignalR connection failed: ", err);
+        });
+        window.signalHub = connection;
+
+
+
+
+
+
+
+
+</script>
+
+<script>
+    function appendToLog(text, level) {
+          console.log("Signal Line Heard:");
+        const logLine = document.createElement("div");
+        logLine.textContent = text;
+        logLine.className = `log-line ${level}`;
+
+        const container = document.getElementById("signalLogOutput");
+
+        if (!container) {
+            setTimeout(() => appendToLog(text, level), 100); // Try again
+            return;
+        }
+
+        container.appendChild(logLine);
+        container.scrollTop = container.scrollHeight;
+
+        console.log("Appending log to:", container); // Already have the container here
+    }
+</script>
+
+
+<script>
+    let certDownloadReady = false;
+
+    function tryShowDownloadButton() {
+        const downloadSection = document.getElementById("downloadButton");
+        if (certDownloadReady && downloadSection) {
+            downloadSection.style.display = "block";
+        }
+    }
+
+    // DOM listener
+    const observer = new MutationObserver(() => {
+        if (certDownloadReady) {
+            tryShowDownloadButton();
+        }
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+
+
+</script>
+
+
+<script>
+    let certDownloadsReady = false;
+
+    function tryShowDownloadButtons() {
+        const downloadSections = document.getElementById("downloadButtons");
+        if (certDownloadsReady && downloadSections) {
+            downloadSection.style.display = "block";
+        }
+    }
+
+    // DOM listener
+    const observer = new MutationObserver(() => {
+        if (certDownloadsReady) {
+            tryShowDownloadButtons();
+        }
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+</script>
+
+
+
 <style>
     .main-container {
         height: 100%;
@@ -198,3 +364,4 @@
         padding: 20px;
         box-sizing: border-box;
     }</style>
+

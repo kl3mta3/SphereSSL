@@ -2,4 +2,21 @@
 @model SphereSSLv2.Pages.SettingsModel
 @{
     ViewData["Title"] = "Settings";
+
+
+
 }
+<script>
+    const tryRegisterErrorLog = () => {
+        if (window.signalHub && window.signalHub.connectionState === "Connected") {
+            window.signalHub.on("ErrorLog", msg => {
+                console.log("Received ErrorLog:", msg);
+                appendToLog(msg, "error");
+            });
+        } else {
+            setTimeout(tryRegisterErrorLog, 100); // wait until connection is ready
+        }
+    };
+
+    tryRegisterErrorLog();
+</script>

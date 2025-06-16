@@ -1,11 +1,14 @@
 ﻿using Newtonsoft.Json;
 using System.Configuration.Provider;
 using SphereSSLv2.Services.APISupportedProviders;
+using SphereSSLv2.Services;
 namespace SphereSSLv2.Data
 {
 
     public class DNSProvider
     {
+
+
         public enum ProviderType
         {
             Cloudflare,
@@ -32,7 +35,7 @@ namespace SphereSSLv2.Data
 
 
 
-        public static async  Task<bool> TryAutoAddDNS(DNSProvider dnsProvider, string domain, string DnsChallange)
+        public static async  Task<bool> TryAutoAddDNS(Logger _logger, DNSProvider dnsProvider, string domain, string DnsChallange)
         {
             if (dnsProvider == null)
             {
@@ -47,7 +50,10 @@ namespace SphereSSLv2.Data
             switch (providerType)
             {
                 case ProviderType.Cloudflare:
-                    success = await CloudflareHelper.AddOrUpdateDNSRecord(domain, dnsProvider.APIKey, DnsChallange);
+
+                   
+
+                    success = await CloudflareHelper.AddOrUpdateDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange);
                     break;
 
                 //case ProviderType.DigitalOcean:

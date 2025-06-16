@@ -2,20 +2,30 @@
 using SphereSSLv2.Data;
 using SphereSSLv2.Services;
 using System.Diagnostics;
+using System.Threading.Tasks;
 namespace SphereSSLv2.Controllers
 {
     [Route("Server/[action]")]
     public class ServerController : Controller
     {
+
+        private readonly Logger _logger;
+
+        public ServerController(Logger logger)
+        {
+            _logger = logger;
+        }
+
         [HttpPost]
         public IActionResult Restart()
         {
             if (!Spheressl.UseLogOn || Spheressl.IsLogIn)
             {
+                 
                 try
                 {
                     var exePath = Environment.ProcessPath;
-                    Logger.Debug($"[RESTART] Relaunching: {exePath}");
+                    _ = _logger.Debug($"[RESTART] Relaunching: {exePath}");
 
                     Process.Start(exePath);           // Relaunch the app
                     Environment.Exit(0);              // Kill this one
@@ -24,7 +34,7 @@ namespace SphereSSLv2.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Logger.Debug($"[RESTART ERROR] {ex.Message}");
+                    _ = _logger.Debug($"[RESTART ERROR] {ex.Message}");
                     return StatusCode(500, $"Restart failed: {ex.Message}");
                 }
             }
@@ -35,8 +45,8 @@ namespace SphereSSLv2.Controllers
         [HttpGet("/select-folder")]
         public async Task<string> GetFolderPath()
         {
-            Console.WriteLine("[WEB] Requesting folder from tray app...");
-
+           
+           
             using var client = new HttpClient();
 
             try
@@ -55,11 +65,12 @@ namespace SphereSSLv2.Controllers
 
 
         [HttpPost("/shutdown")]
-        public IActionResult Shutdown()
+        public async Task<IActionResult> Shutdown()
         {
-            Console.WriteLine($"Shutdown request received");
-            Logger.Info("Shutting down...");
-            Task.Run(() => Environment.Exit(0));
+          
+            await _logger.Info($"Shutdown request received");
+            await  _logger.Info("Shutting down...");
+            await Task.Run(() => Environment.Exit(0));
             return Ok("Shutting down.");
         }
     }
