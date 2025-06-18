@@ -88,7 +88,7 @@
 
 
 </body>
-
+</html>
 <!-- Power Confirmation Modal -->
 <div class="modal fade" id="powerConfirmModal" tabindex="-1" aria-labelledby="powerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -176,10 +176,45 @@
     </div>
 </div>
 
-</html>
+
+
+<!-- CSS styles-->
+<style>
+    .main-container {
+        height: 100%;
+        max-width: 100vw;
+        background: linear-gradient(100deg, #14083b 60%, #17395d );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: nowrap;
+
+    }
+
+    .inner-box {
+        background-image: repeating-linear-gradient( 45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 10px );
+        background: linear-gradient(90deg, #0f1a2b, #0b71a7 99% );
+        background-blend-mode: overlay;
+        transition: background 0.3s ease;
+        width: 100%;
+        height: 80%;
+        border-top-left-radius: 60px;
+        border-bottom-left-radius: 60px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        box-shadow: inset 8px 0 15px rgba(0, 0, 0, 0.25);
+        padding: 20px;
+        box-sizing: border-box;
+    }</style>
+
+
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signalr@6.0.0/dist/browser/signalr.min.js"></script>
 
+
+<!-- PowerIcon Listener -->
 <script>
     document.getElementById("power-icon").addEventListener("click", function () {
         const modal = new bootstrap.Modal(document.getElementById("powerConfirmModal"));
@@ -205,6 +240,8 @@
     });
 </script>
 
+
+<!-- starting Signal listener -->
 <script>
     console.log("Starting Signal listener:");
     const connection = new signalR.HubConnectionBuilder()
@@ -253,15 +290,10 @@
         });
         window.signalHub = connection;
 
-
-
-
-
-
-
-
 </script>
 
+
+<!-- append Signal Log -->
 <script>
     function appendToLog(text, level) {
           console.log("Signal Line Heard:");
@@ -279,11 +311,12 @@
         container.appendChild(logLine);
         container.scrollTop = container.scrollHeight;
 
-        console.log("Appending log to:", container); // Already have the container here
+        console.log("Appending log to:", container); 
     }
 </script>
 
 
+<!-- Toggle Single File Download Button -->
 <script>
     let certDownloadReady = false;
 
@@ -291,6 +324,15 @@
         const downloadSection = document.getElementById("downloadButton");
         if (certDownloadReady && downloadSection) {
             downloadSection.style.display = "block";
+
+                            const overlay = document.getElementById("waitingModalOverlay");
+            if (overlay) overlay.remove();
+
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
         }
     }
 
@@ -311,6 +353,7 @@
 </script>
 
 
+<!-- Toggle Multi File Download Buttons -->
 <script>
     let certDownloadsReady = false;
 
@@ -318,6 +361,15 @@
         const downloadSections = document.getElementById("downloadButtons");
         if (certDownloadsReady && downloadSections) {
             downloadSection.style.display = "block";
+
+             const overlay = document.getElementById("waitingModalOverlay");
+            if (overlay) overlay.remove();
+
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
         }
     }
 
@@ -336,32 +388,41 @@
 </script>
 
 
+<!--Toast-->
+<script>
+    function showToast(message, isError = false) {
+        const toast = document.createElement("div");
+        toast.textContent = message;
+        toast.style.position = "fixed";
+        toast.style.bottom = "20px";
+        toast.style.left = "50%";
+        toast.style.transform = "translateX(-50%)";
+        toast.style.background = isError ? "#dc3545" : "#198754"; // Red or green
+        toast.style.color = "#fff";
+        toast.style.padding = "10px 20px";
+        toast.style.borderRadius = "8px";
+        toast.style.boxShadow = "0 0 10px rgba(0,0,0,0.2)";
+        toast.style.zIndex = 9999;
+        toast.style.transition = "opacity 0.4s ease";
+        toast.style.opacity = "1";
+        document.body.appendChild(toast);
 
-<style>
-    .main-container {
-        height: 100%;
-        max-width: 100vw;
-        background: linear-gradient(100deg, #14083b 60%, #17395d );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-wrap: nowrap;
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 400);
+        }, 2500);
+    }</script>
 
-    }
 
-    .inner-box {
-        background-image: repeating-linear-gradient( 45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 10px );
-        background: linear-gradient(90deg, #0f1a2b, #0b71a7 99% );
-        background-blend-mode: overlay;
-        transition: background 0.3s ease;
-        width: 100%;
-        height: 80%;
-        border-top-left-radius: 60px;
-        border-bottom-left-radius: 60px;
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        box-shadow: inset 8px 0 15px rgba(0, 0, 0, 0.25);
-        padding: 20px;
-        box-sizing: border-box;
-    }</style>
+<!--Auto Select Save on Select AutoRenew-->
+<script>
+    document.getElementById("autoRenew").addEventListener("change", function () {
+        const autoRenew = this.checked;
+        const saveForRenewal = document.getElementById("saveForRenewal");
+
+        if (autoRenew && !saveForRenewal.checked) {
+            saveForRenewal.checked = true;
+        }
+    });
+</script>
 

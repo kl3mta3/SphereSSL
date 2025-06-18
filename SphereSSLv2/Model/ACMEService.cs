@@ -469,23 +469,25 @@ namespace SphereSSL2.Model
             }
 
             await Task.Delay(500);
-
+            string tempFolder = Path.Combine(AppContext.BaseDirectory, "Temp");
+            System.IO.Directory.CreateDirectory(tempFolder);
+           
             try
             {
                 if (!useSeperateFiles)
                 {
-                    string savefile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempCert.pem");
-                    System.IO.Directory.CreateDirectory(savefile);
+                    string savefile = Path.Combine(tempFolder, $"tempCert.pem");
                     File.WriteAllText(savefile, certFile);
+
                 }
                 else
                 {
-                    string saveCrtfile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempCert.crt");
-                    string saveKeyfile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempKey.key");
-                    System.IO.Directory.CreateDirectory(saveCrtfile);
-                    System.IO.Directory.CreateDirectory(saveKeyfile);
+                    string saveCrtfile = Path.Combine(tempFolder, $"tempCert.crt");
+                    string saveKeyfile = Path.Combine(tempFolder, $"tempKey.key");
+
                     File.WriteAllText(saveCrtfile, certFile);
                     File.WriteAllText(saveKeyfile, keyFile);
+
                 }
             }
             catch { /* silently fail if not Windows or explorer not available */ }

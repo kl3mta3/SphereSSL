@@ -51,7 +51,7 @@ namespace SphereSSLv2.Controllers
 
             try
             {
-                var result = await client.GetStringAsync("http://localhost:7172/select-folder/");
+                var result = await client.GetStringAsync("http://localhost:7172/api/select-folder/");
     
 
                 return result;

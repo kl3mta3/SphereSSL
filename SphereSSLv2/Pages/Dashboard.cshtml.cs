@@ -93,9 +93,6 @@ namespace SphereSSLv2.Pages
 
                 var autoAdd = request.AutoAdd;
 
-
-
-
                 var (dnsChallengeToken, domain) = await acme.CreateUserAccountForCert(order.Email, order.Domain);
 
 
@@ -137,6 +134,8 @@ namespace SphereSSLv2.Pages
 
             CertRecord order = _order.Order;
 
+
+
             (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
             var nsList = await Spheressl.GetNameServers(order.Domain);
 
@@ -174,6 +173,8 @@ namespace SphereSSLv2.Pages
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
                         <input type='hidden' id='orderId' value='{order.OrderId}' />
                         <input type='hidden' id='email' value='{order.Email}' />
+                        <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
+                        <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
                        <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
                          <div class='form-control text-break px-3 py-2 bg-light border'>
@@ -241,6 +242,8 @@ namespace SphereSSLv2.Pages
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
                             <input type='hidden' id='orderId' value='{order.OrderId}' />
                             <input type='hidden' id='email' value='{order.Email}' />
+                        <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
+                        <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
                        <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
                          <div class='form-control text-break px-3 py-2 bg-light border'>
@@ -366,6 +369,20 @@ namespace SphereSSLv2.Pages
         }
 
 
+        public async Task<JsonResult> OnGetGetDNSProvidersAsync()
+        {
+            DNSProviders = Spheressl.DNSProviders;
+
+            Providers = Enum.GetValues(typeof(DNSProvider.ProviderType))
+            .Cast<DNSProvider.ProviderType>()
+            .Select(p => p.ToString())
+            .ToList();
+
+            return new JsonResult(Spheressl.DNSProviders);
+  
+        }
+
+       
         public async Task<IActionResult> OnGetExpiringRecordModal(string orderId)
         {
 
@@ -414,9 +431,92 @@ namespace SphereSSLv2.Pages
         }
 
 
+        public async Task<IActionResult> OnGetShowWaitningModal()
+        {
+            var phrases = new[]
+            {
+                "Securing the domain... with extreme prejudice.",
+                "In a world of DNS, one SSL stood alone.",
+                "You've got certitude. We've got certificates.",
+                "This is the way... of encrypted domains.",
+                "I'll be back... once DNS propagates.",
+                "Say hello to my little lock icon",
+                "Why so secure? Because it's DNS over SSL, baby.",
+                "Domain Hard: With a Vengeance.",
+                "May the certs be with you.",
+                "Cert. James Cert. Licensed to encrypt."
+            };
 
+            var random = new Random();
+            var phrase = phrases[random.Next(phrases.Length)];
+
+            var html = $@"
+            <div id='waitingModalOverlay' style='
+                position: fixed;
+                top: 0; left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0,0,0,0.6);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                flex-direction: column;
+            '>
+
+            <div style='position: relative; width: 120px; height: 120px;'>
+                <img src='/img/SphereSSL_ICON.png' alt='SSL Icon' style='
+                    width: 80px;
+                    height: 80px;
+                    position: absolute;
+                    top: 20px;
+                    left: 20px;
+                    z-index: 10;
+                ' />
+                <div class='spinner-ring'></div>
+            </div>
+
+            <p style='margin-top: 20px; color: white; font-size: 1.1rem; text-align: center; max-width: 500px;'>{phrase}</p>
+            </div>
+
+            <style>
+            .spinner-ring {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 120px;
+                height: 120px;
+                border-radius: 50%;
+                animation: rotateRing 2s linear infinite;
+            }}
+
+            .spinner-ring::before {{
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 50%;
+                width: 12px;
+                height: 12px;
+                background-color: #198754;
+                border-radius: 50%;
+                transform: translateX(-50%);
+            }}
+
+            @keyframes rotateRing {{
+                0% {{ transform: rotate(0deg); }}
+                100% {{ transform: rotate(360deg); }}
+            }}
+            </style>
+            ";
+
+                return Content(html, "text/html");
+        }
+
+
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord order)
         {
+
             var acme = AcmeService._acmeService;
             if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
             {
@@ -431,7 +531,9 @@ namespace SphereSSLv2.Pages
 
                     <input type='hidden' id='orderId' value='{order.OrderId}' />
                     <input type='hidden' id='dnsToken' value='{order.DnsChallengeToken}' />
-
+                    <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal.ToString().ToLower()}' />
+                    <input type='hidden' id='autoRenew' value='{order.autoRenew.ToString().ToLower()}' />
+                    
                     <div id='verifyModalBody' class='modal-body'>
                         <div id='signalLogOutput' class='mt-3 p-2 bg-light border rounded text-monospace' style='max-height: 250px; overflow-y: auto;'></div>
                     </div>
@@ -479,6 +581,7 @@ namespace SphereSSLv2.Pages
                            
                             await acme.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domain);
 
+
                             if (order.SaveForRenewal)
                             {
                                 Console.WriteLine($"Saving order for renewal: {order.OrderId}");
@@ -488,6 +591,9 @@ namespace SphereSSLv2.Pages
                             {
                                 Console.WriteLine($"Not saving order for renewal: {order.OrderId}");
                             }
+
+
+
 
                             if (!order.UseSeparateFiles)
                             {
@@ -555,7 +661,7 @@ namespace SphereSSLv2.Pages
 
         public IActionResult OnGetDownloadCertPem(string savePath)
         {
-            string file = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempCert.pem");
+            string file = Path.Combine(AppContext.BaseDirectory, "Temp", $"tempCert.pem");
             if (!System.IO.File.Exists(file))
                 return NotFound();
             var bytes = System.IO.File.ReadAllBytes(file);
@@ -565,7 +671,7 @@ namespace SphereSSLv2.Pages
 
         public IActionResult OnGetDownloadCertCrt(string savePath)
         {
-            string file = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempCert.crt");
+            string file = Path.Combine(AppContext.BaseDirectory, "Temp", $"tempCert.crt");
           
             if (!System.IO.File.Exists(file))
                 return NotFound();
@@ -577,7 +683,7 @@ namespace SphereSSLv2.Pages
 
         public IActionResult OnGetDownloadCertKey(string savePath)
         {
-           string  file = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Temp", $"tempKey.key");
+            string file = Path.Combine(AppContext.BaseDirectory, "Temp", $"tempKey.key");
             if (!System.IO.File.Exists(file))
                 return NotFound();
 

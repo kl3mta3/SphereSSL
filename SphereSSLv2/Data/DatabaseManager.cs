@@ -1248,5 +1248,10 @@ namespace SphereSSLv2.Data
             var result = await command.ExecuteScalarAsync();
             return result == null ? 0 : Convert.ToInt32(result);
         }
+
+        internal string GetRestartScriptById(string orderid)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
