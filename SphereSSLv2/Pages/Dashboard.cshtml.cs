@@ -19,6 +19,7 @@ using SphereSSL2.View;
 using System.Diagnostics;
 using System.IO;
 using Org.BouncyCastle.Asn1.Ocsp;
+using System.Text.Json;
 
 namespace SphereSSLv2.Pages
 {
@@ -29,7 +30,7 @@ namespace SphereSSLv2.Pages
         public List<CertRecord> CertRecords = Spheressl.CertRecords;
         public List<CertRecord> ExpiringSoonRecords = Spheressl.ExpiringSoonCertRecords;
         public List<DNSProvider> DNSProviders = Spheressl.DNSProviders;
-        public List<string> Providers = Enum.GetValues(typeof(DNSProvider.ProviderType))
+        public List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
             .Cast<DNSProvider.ProviderType>()
             .Select(p => p.ToString())
             .ToList();
@@ -41,6 +42,7 @@ namespace SphereSSLv2.Pages
         private readonly Logger _logger;
         private readonly Spheressl _spheressl;
 
+        public static Dictionary<string, CertRecord> CachedRecords = new();
 
         public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, Spheressl spheressl, DatabaseManager database)
         {
@@ -69,7 +71,7 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostQuickCreate([FromBody] QuickCreateRequest request)
         {
-
+            Console.WriteLine($"QuickCreate Request");
 
             if (!_runningCertGeneration)
             {
@@ -97,22 +99,52 @@ namespace SphereSSLv2.Pages
 
 
                 string orderID = AcmeService.GenerateCertRequestId();
-
+                order.Provider = providerName;
                 order.OrderId = orderID;
                 order.DnsChallengeToken = dnsChallengeToken;
                 order.Domain = domain;
                 order.ChallengeType = "DNS-01";
+                string zoneID = String.Empty;
                 bool added = false;
-
                 if (autoAdd)
                 {
                     await _logger.Info($"Auto-adding DNS record using provider: {provider.ProviderName}");
-                    added = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domain, order.DnsChallengeToken);
-                    if (!added)
+                    zoneID = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domain, order.DnsChallengeToken);
+
+                    if (String.IsNullOrWhiteSpace(zoneID))
                     {
                         await _logger.Info($"Failed to auto-add DNS record for provider: {provider}");
+                        added = false;
+                    }
+                    else
+                    {
+                        added = true;
+                        order.ZoneId = zoneID;
                     }
                 }
+
+
+
+                var options1 = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+                };
+                Console.WriteLine($"Exit Order from QuickCert: {System.Text.Json.JsonSerializer.Serialize(order, options1)}");
+
+
+
+                //if (!CachedRecords.ContainsKey(order.OrderId))
+                //{
+                //    CachedRecords.Add(order.OrderId, order);
+                //}
+                //else
+                //{
+                //    CachedRecords[order.OrderId] = order;
+                //}
+
+
+
 
                 QuickCreateResponse response = new QuickCreateResponse
                 {
@@ -129,46 +161,53 @@ namespace SphereSSLv2.Pages
             }
         }
 
+
         public async Task<IActionResult> OnPostShowChallangeModal([FromBody] QuickCreateResponse _order)
         {
-
             CertRecord order = _order.Order;
+            //if (CachedRecords.TryGetValue(_order.Order.OrderId, out var order))
+            //{
 
-
-
-            (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
-            var nsList = await Spheressl.GetNameServers(order.Domain);
-
-            using SHA256 algor = SHA256.Create();
-            var thumbprintBytes = JwsHelper.ComputeThumbprint(AcmeService._signer, algor);
-            var thumbprint = AcmeService.Base64UrlEncode(thumbprintBytes);
-
-            order.Provider = provider;
-            order.Signer = AcmeService._signer.Export();
-            order.Thumbprint = thumbprint;
-            order.AccountID = AcmeService._account.Kid;
-            order.OrderUrl = AcmeService._order.OrderUrl;
-            order.AuthorizationUrls = AcmeService._order.Payload.Authorizations.ToList();
-            order.CreationDate = DateTime.UtcNow;
-            order.ExpiryDate = DateTime.UtcNow.AddDays(90);
-            string fullLink = "https://" + link;
-            string fullDomainName = "_acme-challenge." + order.Domain;
-
-            string addedStatus = "";
-            if (_order.AutoAddedSuccessfully)
-            {
-                addedStatus = "The Record was added to the DNS successfully.";
-            }
-            else if (!_order.AutoAddedSuccessfully)
-            {
-                addedStatus = "Failed to add the record to the DNS. Please add it manually.";
-            }
-
-            if (_order.AutoAdd)
-            {
-                try
+            var options1 = new JsonSerializerOptions
                 {
-                    var html = $@"
+                WriteIndented = true,
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+                };
+                Console.WriteLine($"INC Order to ShowChallangeModal: {System.Text.Json.JsonSerializer.Serialize(order, options1)}");
+
+                (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
+                var nsList = await Spheressl.GetNameServers(order.Domain);
+
+                using SHA256 algor = SHA256.Create();
+                var thumbprintBytes = JwsHelper.ComputeThumbprint(AcmeService._signer, algor);
+                var thumbprint = AcmeService.Base64UrlEncode(thumbprintBytes);
+
+                order.Provider = provider;
+                order.Signer = AcmeService._signer.Export();
+                order.Thumbprint = thumbprint;
+                order.AccountID = AcmeService._account.Kid;
+                order.OrderUrl = AcmeService._order.OrderUrl;
+                order.AuthorizationUrls = AcmeService._order.Payload.Authorizations.ToList();
+                order.CreationDate = DateTime.UtcNow;
+                order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+                string fullLink = "https://" + link;
+                string fullDomainName = "_acme-challenge." + order.Domain;
+
+                string addedStatus = "";
+                if (_order.AutoAddedSuccessfully)
+                {
+                    addedStatus = "The Record was added to the DNS successfully.";
+                }
+                else if (!_order.AutoAddedSuccessfully)
+                {
+                addedStatus = "Failed to add the record to the DNS. Please add it manually.";
+                }
+
+                if (_order.AutoAdd)
+                {
+                    try
+                    {
+                        var html = $@"
                     <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
                         <input type='hidden' id='orderId' value='{order.OrderId}' />
@@ -223,21 +262,21 @@ namespace SphereSSLv2.Pages
                         </div>
                     </form>";
 
-                    return Content(html, "text/html");
+                        return Content(html, "text/html");
+                    }
+                    catch (Exception ex)
+                    {
+                        return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
+                    }
+
+
                 }
-                catch (Exception ex)
+                else
                 {
-                    return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
-                }
 
-
-            }
-            else
-            {
-
-                try
-                {
-                    var html = $@"
+                    try
+                    {
+                        var html = $@"
                     <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
                             <input type='hidden' id='orderId' value='{order.OrderId}' />
@@ -292,20 +331,50 @@ namespace SphereSSLv2.Pages
                         </div>
                     </form>";
 
-                    return Content(html, "text/html");
-                }
-                catch (Exception ex)
-                {
-                    return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
-                }
-            }
-        }
 
+
+
+                        if (!CachedRecords.ContainsKey(order.OrderId))
+                        {
+                            CachedRecords.Add(order.OrderId, order);
+                        }
+                        else
+                        {
+                            CachedRecords[order.OrderId] = order;
+                        }
+
+
+
+                        var options = new JsonSerializerOptions
+                        {
+                            WriteIndented = true,
+                            ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+                        };
+                        Console.WriteLine($"Exit Order to ShowVerifyModal: {System.Text.Json.JsonSerializer.Serialize(order, options)}");
+
+
+
+                        return Content(html, "text/html");
+
+                    }
+                    catch (Exception ex)
+                    {
+                        return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
+                    }
+                }
+
+            //}
+            //else
+            //{
+            //        // Handle case where it's not found
+            //        return BadRequest("Order not found in cache.");
+            //}
+        }
 
         public async Task<IActionResult> OnPostShowAddProviderModal()
         {
 
-            string optionsHtml = string.Join("", Providers.Select(p => $"<option value='{p}'>{p}</option>"));
+            string optionsHtml = string.Join("", SupportedAutoProviders.Select(p => $"<option value='{p}'>{p}</option>"));
 
             var html = $@"
             <form id='addProviderForm' class='p-4 bg-white rounded shadow-sm' style='max-width: 500px; margin: auto;'>
@@ -373,7 +442,7 @@ namespace SphereSSLv2.Pages
         {
             DNSProviders = Spheressl.DNSProviders;
 
-            Providers = Enum.GetValues(typeof(DNSProvider.ProviderType))
+            SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
             .Cast<DNSProvider.ProviderType>()
             .Select(p => p.ToString())
             .ToList();
@@ -497,7 +566,7 @@ namespace SphereSSLv2.Pages
                 left: 50%;
                 width: 12px;
                 height: 12px;
-                background-color: #198754;
+                background-color: #93ca78;
                 border-radius: 50%;
                 transform: translateX(-50%);
             }}
@@ -512,11 +581,21 @@ namespace SphereSSLv2.Pages
                 return Content(html, "text/html");
         }
 
-
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord order)
         {
 
+
+            //if (CachedRecords.TryGetValue(_order.OrderId, out var order))
+            //{
+
+
+                var options1 = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+            };
+            Console.WriteLine($"INC Order to ShowVerifyModal: {System.Text.Json.JsonSerializer.Serialize(order, options1)}");
             var acme = AcmeService._acmeService;
             if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
             {
@@ -584,13 +663,30 @@ namespace SphereSSLv2.Pages
 
                             if (order.SaveForRenewal)
                             {
-                                Console.WriteLine($"Saving order for renewal: {order.OrderId}");
+                                await _logger.Update($"Saving order for renewal!");
                                 await DatabaseManager.InsertCertRecord(order);
+
+
+                                if (!CachedRecords.ContainsKey(order.OrderId))
+                                {
+                                    CachedRecords.Add(order.OrderId, order);
+                                }
+                                else
+                                {
+                                    CachedRecords[order.OrderId] = order;
+                                }
+
+
+                                var options = new JsonSerializerOptions
+                                {
+                                    WriteIndented = true,
+                                    ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+                                };
+
+                                Console.WriteLine($"Saved Order to DB: {System.Text.Json.JsonSerializer.Serialize(order, options)}");
+                                CertRecords = Spheressl.CertRecords;
                             }
-                            else
-                            {
-                                Console.WriteLine($"Not saving order for renewal: {order.OrderId}");
-                            }
+                           
 
 
 
@@ -654,9 +750,34 @@ namespace SphereSSLv2.Pages
         
             _runningCertGeneration = false;
 
+                 return Content(html, "text/html");  
+            //}
+            //else
+            //{
+            //    // Handle case where it's not found
+            //    return BadRequest("Order not found in cache.");
+            //}
 
-            return Content(html, "text/html");  
         }
+
+
+
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnPostCachedCert([FromBody] CertRecord order)
+        {
+            CachedRecords[order.OrderId] = order;
+            return new JsonResult(true);
+        }
+
+        [IgnoreAntiforgeryToken]
+        public JsonResult OnGetCachedCert(string orderId)
+        {
+            if (CachedRecords.TryGetValue(orderId, out var cert))
+                return new JsonResult(cert);
+
+            return new JsonResult(null);
+        }
+
 
 
         public IActionResult OnGetDownloadCertPem(string savePath)

@@ -114,6 +114,8 @@ namespace SphereSSLv2.Data
         //CertRecord Management
         public static async Task InsertCertRecord(CertRecord record)
         {
+            Console.WriteLine($"Inserting cert record for OrderId: {record.OrderId}"); // Debug log
+
             using var connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
             await connection.OpenAsync();
 
@@ -160,6 +162,8 @@ namespace SphereSSLv2.Data
             if (!Spheressl.CertRecords.Any(r => r.OrderId == record.OrderId))
             {
                 Spheressl.CertRecords.Add(record);
+
+                Console.WriteLine($"Cert record for OrderId: {record.OrderId} inserted successfully."); // Debug log
             }
         }
 

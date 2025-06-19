@@ -1,4 +1,5 @@
-﻿using SphereSSLv2.Data;
+﻿using SphereSSL2.Model;
+using SphereSSLv2.Data;
 
 namespace SphereSSLv2.Testing
 {
@@ -9,17 +10,27 @@ namespace SphereSSLv2.Testing
         {
             var now = DateTime.UtcNow;
 
+             List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
+            .Cast<DNSProvider.ProviderType>()
+            .Select(p => p.ToString())
+            .ToList();
+
+            
+           
+
+
             for (int i = 0; i < 12; i++)
             {
+
+                string fakeProvider = SupportedAutoProviders[Random.Shared.Next(SupportedAutoProviders.Count)];
                 var cert = new CertRecord
                 {
-                    OrderId = $"ORD-{Guid.NewGuid()}",
+                    OrderId = AcmeService.GenerateCertRequestId(),
                     Domain = $"test{i}.example.com",
                     Email = $"user{i}@example.com",
                     DnsChallengeToken = $"token-{i}",
                     SavePath = $"/fake/path/cert{i}.pem",
-                    Provider = "FakeCA",
-                    CreationDate = now.AddDays(-Random.Shared.Next(1, 365)),
+                    Provider = Spheressl.CapitalizeFirstLetter(fakeProvider),
                     UseSeparateFiles = i % 2 == 0,
                     SaveForRenewal = i % 3 == 0,
                     autoRenew = i % 2 == 0,
@@ -37,20 +48,23 @@ namespace SphereSSLv2.Testing
                 // Set the expiry date based on index to create a mix
                 if (i < 3)
                 {
-                    // Expired
+                    // Expired (1–29 days ago)
                     cert.ExpiryDate = now.AddDays(-Random.Shared.Next(1, 30));
+                    cert.CreationDate = cert.ExpiryDate.AddDays(-90);
                     await DatabaseManager.InsertExpiredCert(cert);
                 }
                 else if (i < 7)
                 {
-                    // Expiring soon (within 30 days)
-                    cert.ExpiryDate = now.AddDays(Random.Shared.Next(1, 30));
+                    // Expiring soon (1–30 days from now)
+                    cert.ExpiryDate = now.AddDays(Random.Shared.Next(1, 31));
+                    cert.CreationDate = cert.ExpiryDate.AddDays(-90);
                     Spheressl.ExpiringSoonCertRecords.Add(cert);
                 }
                 else
                 {
-                    // Valid for longer than 30 days
-                    cert.ExpiryDate = now.AddDays(Random.Shared.Next(31, 365));
+                    // Valid (31–90 days from now)
+                    cert.ExpiryDate = now.AddDays(Random.Shared.Next(31, 91));
+                    cert.CreationDate = cert.ExpiryDate.AddDays(-90);
                 }
 
 

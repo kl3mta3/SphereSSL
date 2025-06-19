@@ -106,22 +106,27 @@ namespace SphereSSLv2.Services.APISupportedProviders
             return null;
         }
 
-        public static async Task<bool> AddOrUpdateDNSRecord(Logger _logger, string domain, string apiToken, string content)
+        public static async Task<string> AddOrUpdateDNSRecord(Logger _logger, string domain, string apiToken, string content)
         {
             string zoneId = await GetZoneId(_logger, apiToken, domain);
-            if (string.IsNullOrEmpty(zoneId)) return false;
+            if (string.IsNullOrEmpty(zoneId)) return String.Empty;
 
             string name = $"_acme-challenge.{domain}";
             string recordId = await GetDnsRecordId(_logger, apiToken, zoneId, name);
 
+
             if (string.IsNullOrEmpty(recordId))
             {
 
-                return await AddDNSRecord(_logger, domain, apiToken, content);
+                await AddDNSRecord(_logger, domain, apiToken, content);
+                return zoneId;
             }
             else
             {
-                return await UpdateDNSRecord(_logger, domain, apiToken, content);
+               
+                
+                await UpdateDNSRecord(_logger, domain, apiToken, content);
+                return zoneId;
             }
         }
 

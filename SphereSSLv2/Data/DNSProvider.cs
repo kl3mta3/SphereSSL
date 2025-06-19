@@ -35,25 +35,26 @@ namespace SphereSSLv2.Data
 
 
 
-        public static async  Task<bool> TryAutoAddDNS(Logger _logger, DNSProvider dnsProvider, string domain, string DnsChallange)
+        public static async  Task<string> TryAutoAddDNS(Logger _logger, DNSProvider dnsProvider, string domain, string DnsChallange)
         {
             if (dnsProvider == null)
             {
                 throw new ArgumentNullException(nameof(dnsProvider));
             }
-            bool success = false;
+     
 
             ProviderType providerType;
 
             Enum.TryParse(dnsProvider.Provider, out providerType);
+            string zoneID = String.Empty;
 
             switch (providerType)
             {
                 case ProviderType.Cloudflare:
 
-                   
 
-                    success = await CloudflareHelper.AddOrUpdateDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange);
+
+                    zoneID = await CloudflareHelper.AddOrUpdateDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange);
                     break;
 
                 //case ProviderType.DigitalOcean:
@@ -88,7 +89,7 @@ namespace SphereSSLv2.Data
                     break;
             }
 
-            return success;
+            return zoneID;
         }
     }
 }

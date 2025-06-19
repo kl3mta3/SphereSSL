@@ -89,6 +89,7 @@
 
 </body>
 </html>
+
 <!-- Power Confirmation Modal -->
 <div class="modal fade" id="powerConfirmModal" tabindex="-1" aria-labelledby="powerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -114,7 +115,10 @@
         <div class="modal-content bg-light text-dark shadow-sm">
             <div class="modal-header">
                 <h5 class="modal-title" id="dnsChallengeLabel">DNS Challenge</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+                        aria-label="Close" onclick="closeDnsModal()"
+                        data-bs-toggle="tooltip" title="Close this window">
+                </button>
             </div>
             <div class="modal-body" id="dnsChallengeModalBody">
            
@@ -192,12 +196,14 @@
     }
 
     .inner-box {
-        background-image: repeating-linear-gradient( 45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 10px );
-        background: linear-gradient(90deg, #0f1a2b, #0b71a7 99% );
+        background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 10px);
+        background: linear-gradient(90deg, #0f1a2b, #0b71a7 99%);
         background-blend-mode: overlay;
         transition: background 0.3s ease;
         width: 100%;
-        height: 80%;
+        height: 80vh; /* changed from 80% to 80vh for viewport-based sizing */
+        overflow-y: auto; /* added */
+        overflow-x: hidden;
         border-top-left-radius: 60px;
         border-bottom-left-radius: 60px;
         border-top-right-radius: 0;
@@ -205,7 +211,9 @@
         box-shadow: inset 8px 0 15px rgba(0, 0, 0, 0.25);
         padding: 20px;
         box-sizing: border-box;
-    }</style>
+    }
+    
+</style>
 
 
 
@@ -325,7 +333,7 @@
         if (certDownloadReady && downloadSection) {
             downloadSection.style.display = "block";
 
-                            const overlay = document.getElementById("waitingModalOverlay");
+            const overlay = document.getElementById("waitingModalOverlay");
             if (overlay) overlay.remove();
 
             const startButton = document.getElementById("startButton");
@@ -425,4 +433,6 @@
         }
     });
 </script>
+
+
 

@@ -10,6 +10,7 @@
             <div class="container text-center ">
 
                 <div class="container-fluid px-4">
+
                     <div class="row">
 
                         <!-- Quick Create -->
@@ -87,66 +88,248 @@
                             </div>
                         </div>
 
-                        <!-- Upcoming Renewals -->
-                        <div class="col-lg-6 mb-4">
-                            <h3 class="title mb-4">Upcoming Renewals</h3>
-                            <div class="card renewals shadow-sm p-3 " style="  min-width: 600px; min-height: 535px; max-height: 600px; overflow-y: hidden;">
+
+
+                        <!-- Certificates Section -->
+                        <div class="col-lg-5 col-md-12 col-sm-12 mb-4">
+                            <div class="row gx-3">
+                                <h3 class="title text-center mb-3">Certificates</h3>
+
+
+                                <div class="accordion" id="certAccordion">
+                                    <!-- Active -->
+                                    <div class="accordion" id="certAccordion">
+
+
+                                        <!-- Active Certs Column -->
+                                        <h5 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapseActive" aria-expanded="false" aria-controls="collapseActive">
+                                                <span class="w-100 text-center title-cert-dropdown">Active</span>
+                                            </button>
+                                        </h5>
+
+                                        <div id="collapseActive" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
+                                            <div class="accordion-body p-0 scroll-pane">
+
+
+                                                <div class="card renewals shadow-sm p-3">
+
+                                                    <div class="list-group">
+                                                        @if (Model.CertRecords != null && Model.CertRecords.Any())
+                                                        {
 
 
 
 
-                                <div class="d-flex align-items-center" px-3 mb-2 fw-bold text-secondary small">
-                                    <span style="width: 42%;"> Domain</span>
-                                    <span style="width: 13%;">Expires In</span>
-                                    <span style="width: 32%;">Provider</span>
-                                    <span style="width: 10%;">Auto Renew</span>
-                                </div>
 
-                                <div class="list-group overflow-auto" style=" height: 100%; overflow-y: scroll;">
-                                    @if (Model.ExpiringSoonRecords != null && Model.ExpiringSoonRecords.Any())
-                                    {
+                                                            foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow.AddDays(60))
+                                                            .OrderByDescending(r => r.CreationDate))
+                                                            {
+
+                                                                var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
+
+                                                                var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
+                                                                <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
+                                                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                                                        <div class="d-flex flex-column text-start">
+
+                                                                            <a href="https://@record.Domain"
+                                                                            target="_blank"
+                                                                            title="Go to @record.Domain"
+                                                                            class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
+                                                                                @record.Domain
+                                                                            </a>
+
+                                                                            <div class="provider"><strong>@record.Provider</strong></div>
+
+                                                                            <div class="d-flex align-items-center gap-2 ">
+                                                                                <small class="expires-in text-dark text-start">
+                                                                                    <strong>Expires in @ExpiresIn</strong>
+                                                                                </small>
 
 
-                                        foreach (var record in Model.ExpiringSoonRecords)
-                                        {
+                                                                                <div class="auto-renew d-flex align-items-center">
+                                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
+                                                                                    title="@autorenewString"></i>
+                                                                                </div>
+                                                                            </div>
 
-
-                                            var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
-                                            <div class="card mb-2 shadow-sm"
-                                                 role="button"
-                                                 onclick="showCertRecordModal('@record.OrderId')"
-                                                 style="cursor: pointer; width: 100%;">
-                                                <div class="card-body d-flex align-items-center justify-content-between" style="max-height: 1px;">
-                                                    <div class="renewal-row">
-                                                        <a href="https://@record.Domain"
-                                                           target="_blank"
-                                                           title="Go to @record.Domain"
-                                                           class="fw-semibold text-primary text-decoration-underline domain-link">
-                                                            @record.Domain
-                                                        </a>
-
-                                                        <span class="text-dark expires-in">@ExpiresIn</span>
-                                                        <span class="text-muted provider">@record.Provider</span>
-                                                        <span class="text-center auto-renew">
-                                                            <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger")"></i>
-                                                        </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="list-group-item disabled text-muted">No Certs found.</div>
+                                                        }
                                                     </div>
                                                 </div>
+
                                             </div>
+                                        </div>
+                                    </div>
+
+
+
+                                    <!-- Expiring Certs Column -->
+                                    <div class="accordion-item">
+
+                                        <h5 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapseExpiring" aria-expanded="false" aria-controls="collapseExpiring">
+                                                <span class="w-100 text-center title-cert-dropdown">Expiring</span>
+                                            </button>
+                                        </h5>
+
+                                        <div id="collapseExpiring" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
+                                            <div class="accordion-body p-0 scroll-pane">
+
+                                
+                                                <div class="card renewals shadow-sm p-3">
+
+                                                    <div class="list-group">
+                                                        @if (Model.ExpiringSoonRecords != null && Model.ExpiringSoonRecords.Any())
+                                                        {
+
+
+                                                            foreach (var record in Model.ExpiringSoonRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow)
+                                                            .OrderBy(r => r.ExpiryDate))
+                                                            {
+                                                                var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
+                                                                var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
+                                                                <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
+                                                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                                                        <div class="d-flex flex-column text-start">
+
+                                                                            <a href="https://@record.Domain"
+                                                                            target="_blank"
+                                                                            title="Go to @record.Domain"
+                                                                            class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
+                                                                                @record.Domain
+                                                                            </a>
+
+                                                                            <div class="provider"><strong>@record.Provider</strong></div>
+
+
+                                                                            <div class="d-flex align-items-center gap-2 mt-1">
+                                                                                <small class="expires-in text-dark text-start">
+                                                                                    <strong> Expires in @ExpiresIn</strong>
+                                                                                </small>
+
+
+
+                                                                                <div class="auto-renew d-flex align-items-center">
+                                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
+                                                                                    title="@autorenewString"></i>
+                                                                                </div>
+                                                                            </div>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="list-group-item disabled text-muted">No Certs found.</div>
+                                                        }
+                                                    </div>
+
+                                                </div>
+
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    <!-- Expired Certs Column -->
+                                    <div class="accordion-item">
+
+                                        <h5 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapseExpired" aria-expanded="false" aria-controls="collapseExpired">
+                                                <span class="w-100 text-center title-cert-dropdown">Expired</span>
+                                            </button>
+                                        </h5>
+
+                                        <div id="collapseExpired" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
+                                            <div class="accordion-body p-0 scroll-pane">
+
+                                                <div class="card renewals shadow-sm p-3">
+                                                    
+                                                    <div class="list-group">
+                                                        @if (Model.CertRecords != null && Model.CertRecords.Any())
+                                                        {
+                                                            foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate < DateTime.UtcNow)
+                                                            .OrderByDescending(r => r.ExpiryDate))
+                                                            {
+                                                         
+                                                                var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
+
+                                                                var expiresRaw = (record.ExpiryDate - DateTime.UtcNow).TotalDays;
+                                                                var ExpiresIn = $"{Math.Abs(expiresRaw):N0} days ago";
+                                                            
+                                                                                                              
+                                                                <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
+                                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                                        <div class="d-flex flex-column text-start">
+
+                                                            <a href="https://@record.Domain"
+                                                               target="_blank"
+                                                               title="Go to @record.Domain"
+                                                               class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
+                                                                @record.Domain
+                                                            </a>
+
+                                                            <div class="provider"><strong>@record.Provider</strong></div>
+
+                                                            <div class="d-flex align-items-center gap-2 ">
+                                                                <small class="expires-in text-dark text-start">
+                                                                    <strong>Expired @ExpiresIn</strong>
+                                                                </small>
+
+
+                                                                <div class="auto-renew d-flex align-items-center">
+                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
+                                                                       title="@autorenewString"></i>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
                                         }
-                                    }
-                                    else
-                                    {
-                                        <div class="list-group-item disabled text-muted">No Certs found.</div>
-                                    }
+                                        else
+                                        {
+                                            <div class="list-group-item disabled text-muted">No Certs found.</div>
+                                        }
+                                    </div>
                                 </div>
+
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+
+
 
 
                             </div>
                         </div>
 
+
+
+
                         <!-- Helpful Links -->
-                        <div class="col-lg-2 mb-4">
+                        <div class="col-lg-1 mb-4">
                             <h3 class="title mb-4" style="  min-width: 250px; ">Helpful Links</h3>
                             <div class="card useful-links shadow-sm p-3" style="  min-width: 250px; ">
                                 <a href="https://www.cloudflare.com/" target="_blank">
@@ -171,7 +354,9 @@
                                 </a>
                             </div>
                         </div>
+
                     </div>
+
                 </div>
 
 
@@ -183,6 +368,17 @@
 </div>
 
 <style>
+
+    .cert-accordion-container {
+        max-height: 70vh; /* controls total certificate card height */
+        overflow-y: auto;
+        padding-right: 8px; /* for visual spacing from scrollbar */
+    }
+
+    .scroll-pane {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
 
     .log-line {
         font-family: monospace;
@@ -240,6 +436,12 @@
             cursor: pointer;
         }
 
+            .card.mb-2 {
+                margin-bottom: 6px !important;
+                margin-top: 6px !important;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
 
     .useful-links {
         display: flex;
@@ -327,6 +529,21 @@
 
 
 
+    .title-cert-dropdown{
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: black;
+        text-align: center;
+
+
+    }
+
+    .accordion-body {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
     .btn-glow {
         background: linear-gradient(to right, #007bff, #00c6ff); 
         border: none;
@@ -371,9 +588,8 @@
     }
 
     .list-group {
-        overflow-y: scroll;
-        overflow-x: visible;
-        padding-top: 10px;
+        padding-top: 0px;
+        padding-bottom: 0px;
         padding-left: 5px;
         padding-right: 5px;
 
@@ -385,45 +601,57 @@
         justify-content: space-between;
         align-items: center; 
         gap: 8px;
-        text-align: center;
-    }
-
-    .domain-link {
-        flex: 3 1 auto;
-        white-space: nowrap;
-        overflow: hidden;
         text-align: left;
-        font-weight: 600;
-        text-overflow: ellipsis;
-
     }
 
-    .expires-in {
-        flex: 3 1 auto;
-        white-space: nowrap;
-        text-align: center;
-        margin-left: 25px;
-        margin-right: 0px;
-        font-weight: 600;
+        .provider,
+        .expires-in,
+        .domain-link {
+            margin-bottom: 2px !important;
+        }
 
-    }
+        .domain-link {
+            margin-top: 0 !important;
+            margin-bottom: 4px !important;
+        }
 
-    .provider {
-        flex: 3 1 auto;
-        white-space: nowrap;
-        text-align: left;
-        margin-left: 35px;
-        margin-right: 0px;
+        .domain-link,
+        .expires-in,
+        .provider,
+        .auto-renew {
+            text-align: left;
+            margin: 0;
+            padding: 0;
+        }
 
-        font-weight: 600;
+        .provider {
+            font-weight: 600;
+            font-size: 1rem;
+        }
 
-    }
+        .expires-in {
+            font-weight: 600;
+            font-size: 1rem;
+            font-style: italic;
+        }
 
-    .auto-renew {
-        flex: 0 0 10px;
-        text-align: center;
-    
-    }
+        .domain-link {
+            font-size: 1.5rem;
+          
+            font-weight: 900;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .auto-renew {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-top: 0.25rem;
+            padding: 0;
+            background-color: transparent;
+        }
 
 
     .form-check-input {
@@ -463,6 +691,35 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
+
+<!-- Cache certRecords -->
+<script>
+       // Save cert to frontend cache and backend
+    async function cacheCert(cert) {
+        CachedRecords[cert.OrderId] = cert;
+
+        await fetch("/Dashboard?handler=CachedCert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(cert)
+        });
+    }
+
+    // Pull cert from frontend cache first, fallback to backend if needed
+    async function getCachedCert(orderId) {
+        if (cachedCerts[orderId])
+            return CachedRecords[orderId];
+
+        const response = await fetch(`/Dashboard?handler=CachedCert&orderId=${orderId}`);
+        if (!response.ok) return null;
+
+        const cert = await response.json();
+        if (cert && cert.OrderId)
+            cachedCerts[cert.OrderId] = cert;
+
+        return cert || null;
+    }
+</script>
 
 
 <!-- Toggle Preview Dropdown -->
@@ -506,6 +763,9 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 
 <!-- Submit Quick Connect -->
 <script>
+
+
+
     async function submitOrder() {
         const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
         const modalHtml = await waitModalResponse.text();
@@ -534,8 +794,9 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         let provider = document.getElementById("dnsProvider")?.value || "";
         let autoAdd = document.getElementById("autoAddRecord")?.checked || false;
 
-        console.log("Order Object Created:", order);
         currentOrder = order;
+        //await cacheCert(currentOrder);
+   
 
         const request = {
             order: order,
@@ -550,6 +811,8 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             },
             body: JSON.stringify(request)
         });
+
+           
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -569,8 +832,9 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         }
 
         const updatedOrder = await response.json();
-        console.log("Updated Order Received:", updatedOrder);
-        currentOrder = updatedOrder;
+        console.log("UpdatedOrder from QuickCreate:", updatedOrder);
+           // await cacheCert(updatedOrder.Order); 
+            currentOrder = updatedOrder.Order;
 
         const overlay = document.getElementById("waitingModalOverlay");
         if (overlay) overlay.remove();
@@ -583,8 +847,11 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             body: JSON.stringify(updatedOrder)
         });
 
+
         const challengeHtml = await modalResponse.text();
+
         document.getElementById("dnsChallengeModalBody").innerHTML = challengeHtml;
+
 
         const modal = new bootstrap.Modal(document.getElementById("dnsChallengeModal"));
         modal.show();
@@ -735,6 +1002,9 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         savePath: document.getElementById("savePath")?.value || ""
     };
 
+    // const cached = await getCachedCert(order.orderId);
+    // order = cached;
+
         const response = await fetch("/Dashboard?handler=ShowVerifyModal", {
             method: "POST",
             headers: {
@@ -776,6 +1046,14 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         const modalEl = document.getElementById("dnsChallengeModal");
         const modal = bootstrap.Modal.getInstance(modalEl);
 
+        const overlay = document.getElementById("waitingModalOverlay");
+        if (overlay) overlay.remove();
+
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
 
 
         if (modal) {
