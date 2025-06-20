@@ -31,7 +31,9 @@
   </ItemGroup>
     
 <ItemGroup>
-      <None Include="C:\Users\Kenny\source\repos\SphereSSLv2\TrayApp\publish\SphereSSL.exe" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="SphereSSL.exe">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
         <None Update="SphereSSL.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory> 
     </None>

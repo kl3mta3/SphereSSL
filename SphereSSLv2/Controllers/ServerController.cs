@@ -2,6 +2,8 @@
 using SphereSSLv2.Data;
 using SphereSSLv2.Services;
 using System.Diagnostics;
+using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 namespace SphereSSLv2.Controllers
 {
@@ -27,8 +29,8 @@ namespace SphereSSLv2.Controllers
                     var exePath = Environment.ProcessPath;
                     _ = _logger.Debug($"[RESTART] Relaunching: {exePath}");
 
-                    Process.Start(exePath);           // Relaunch the app
-                    Environment.Exit(0);              // Kill this one
+                    Process.Start(exePath); 
+                    Environment.Exit(0);  
 
                     return Ok("Restart triggered.");
                 }
@@ -45,8 +47,8 @@ namespace SphereSSLv2.Controllers
         [HttpGet("/select-folder")]
         public async Task<string> GetFolderPath()
         {
-           
-           
+           Console.WriteLine("GetFolderPath called");
+
             using var client = new HttpClient();
 
             try
@@ -63,11 +65,28 @@ namespace SphereSSLv2.Controllers
             }
         }
 
+        [HttpGet("/open-location")]
+        public async Task OpenFolderPath([FromQuery] string path)
+        {
+
+            Console.WriteLine($"OpenFolderPath called with path: {path}");
+            using var client = new HttpClient();
+
+            try
+            {
+                var result = await client.GetStringAsync($"http://localhost:7172/open-location/?path={WebUtility.UrlEncode(path)}");
+                return ;
+            }
+            catch
+            {
+                return;
+            }
+        }
+
 
         [HttpPost("/shutdown")]
         public async Task<IActionResult> Shutdown()
         {
-          
             await _logger.Info($"Shutdown request received");
             await  _logger.Info("Shutting down...");
             await Task.Run(() => Environment.Exit(0));

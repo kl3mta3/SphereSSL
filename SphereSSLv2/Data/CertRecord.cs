@@ -62,10 +62,6 @@ namespace SphereSSLv2.Data
         [JsonProperty("thumbprint")]
         public string Thumbprint { get; set; } = string.Empty;
 
-        [JsonProperty("authorizationUrls")]
-        public List<string> AuthorizationUrls { get; set; } = new();
-
-
        
     }
  }

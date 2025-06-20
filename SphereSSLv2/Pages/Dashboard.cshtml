@@ -763,9 +763,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 
 <!-- Submit Quick Connect -->
 <script>
-
-
-
     async function submitOrder() {
         const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
         const modalHtml = await waitModalResponse.text();
@@ -899,6 +896,62 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
+<!-- Copy OrderUrl to Clipboard -->
+<script>
+    function copyOderUrl(button) {
+        const token = document.getElementById("orderUrl").innerText;
+        navigator.clipboard.writeText(token).then(() => {
+            const icon = button.querySelector('i');
+            icon.classList.remove("bi-clipboard");
+            icon.classList.add("bi-clipboard-check");
+
+            setTimeout(() => {
+                icon.classList.remove("bi-clipboard-check");
+                icon.classList.add("bi-clipboard");
+            }, 1500);
+        }).catch(err => {
+            alert("Failed to copy token.");
+            console.error(err);
+        });
+    }
+</script>
+
+
+<!-- Copy AccountID to Clipboard -->
+<script>
+    function copyAccountID(button) {
+        const token = document.getElementById("accountID").innerText;
+        navigator.clipboard.writeText(token).then(() => {
+            const icon = button.querySelector('i');
+            icon.classList.remove("bi-clipboard");
+            icon.classList.add("bi-clipboard-check");
+
+            setTimeout(() => {
+                icon.classList.remove("bi-clipboard-check");
+                icon.classList.add("bi-clipboard");
+            }, 1500);
+        }).catch(err => {
+            alert("Failed to copy token.");
+            console.error(err);
+        });
+    }
+</script>
+
+<!--Toggle DNS Visibility-->
+
+<script>
+    function toggleDnsVisibility() {
+      const field = document.getElementById("dnsTokenField");
+      field.type = field.type === "password" ? "text" : "password";
+    }
+
+    function copyToClipboard(inputId) {
+      const input = document.getElementById(inputId);
+      navigator.clipboard.writeText(input.value);
+    }
+</script>
+
+
 
 <!-- Show Cert Modal -->
 <script>
@@ -906,7 +959,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         const modalBody = document.getElementById("certRecordModalBody");
         modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
 
-        fetch(`/Dashboard?handler=ExpiringRecordModal&orderId=${encodeURIComponent(orderId)}`)
+        fetch(`/Dashboard?handler=GetRecordModal&orderId=${encodeURIComponent(orderId)}`)
             .then(res => res.text())
             .then(html => {
                 modalBody.innerHTML = html;
@@ -997,9 +1050,20 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         dnsChallengeToken: document.getElementById("dnsToken")?.textContent.trim() || "",
         email: document.getElementById("email")?.value || "",
         useSeparateFiles: false,
-            saveForRenewal: document.getElementById("saveForRenewal").checked || false ,
-            autoRenew: document.getElementById("autoRenew").checked || false,
-        savePath: document.getElementById("savePath")?.value || ""
+        saveForRenewal: document.getElementById("saveForRenewal").checked || false ,
+        autoRenew: document.getElementById("autoRenew").checked || false,
+        savePath: document.getElementById("savePath")?.value || "",
+        zoneId: document.getElementById("zoneID")?.value || "",
+        provider: document.getElementById("provider")?.value || "",
+        provider: document.getElementById("provider")?.value || "",
+        signer: document.getElementById("signer")?.value || "",
+        accountID: document.getElementById("accountID")?.value || "",
+        orderUrl: document.getElementById("orderUrl")?.value || "",
+        thumbprint: document.getElementById("thumbprint")?.value || "",
+        challengeType: document.getElementById("challengeType")?.value || "",
+        creationDate: document.getElementById("creationDate")?.value || "",
+        expiryDate: document.getElementById("expiryDate")?.value || "",
+      
     };
 
     // const cached = await getCachedCert(order.orderId);

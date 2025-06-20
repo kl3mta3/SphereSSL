@@ -53,7 +53,7 @@ namespace SphereSSLv2.Services
             });
 
             builder.Services.AddAuthorization();
-            // builder.Services.AddScoped<DatabaseManager>();
+            builder.Services.AddScoped<DatabaseManager>();
 
             builder.WebHost.ConfigureKestrel(options =>
             {
@@ -73,13 +73,19 @@ namespace SphereSSLv2.Services
 
             var app = builder.Build();
 
+            app.UseStaticFiles();
+            app.UseSession();
+            app.UseRouting();
             app.UseCors();
+            app.UseAuthorization();
 
 
 
             app.Use(async (context, next) =>
             {
                 var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+
+
 
                 if (string.IsNullOrWhiteSpace(remoteIp) ||
                     (!remoteIp.StartsWith("10.") &&
@@ -93,11 +99,6 @@ namespace SphereSSLv2.Services
 
                 await next();
             });
-
-            app.UseStaticFiles();
-            app.UseSession();
-            app.UseRouting();
-            app.UseAuthorization();
 
             app.MapRazorPages();
             app.MapControllers();

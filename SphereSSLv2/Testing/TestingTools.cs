@@ -42,7 +42,6 @@ namespace SphereSSLv2.Testing
                     OrderUrl = $"https://acme.fake/{i}",
                     ChallengeType = "dns-01",
                     Thumbprint = $"thumb-{i}",
-                    AuthorizationUrls = new List<string> { $"https://auth.fake/{i}" }
                 };
 
                 // Set the expiry date based on index to create a mix

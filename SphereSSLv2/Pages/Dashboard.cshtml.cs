@@ -42,8 +42,6 @@ namespace SphereSSLv2.Pages
         private readonly Logger _logger;
         private readonly Spheressl _spheressl;
 
-        public static Dictionary<string, CertRecord> CachedRecords = new();
-
         public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, Spheressl spheressl, DatabaseManager database)
         {
             _Ilogger = ilogger;
@@ -71,7 +69,7 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostQuickCreate([FromBody] QuickCreateRequest request)
         {
-            Console.WriteLine($"QuickCreate Request");
+           
 
             if (!_runningCertGeneration)
             {
@@ -123,29 +121,6 @@ namespace SphereSSLv2.Pages
                     }
                 }
 
-
-
-                var options1 = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
-                };
-                Console.WriteLine($"Exit Order from QuickCert: {System.Text.Json.JsonSerializer.Serialize(order, options1)}");
-
-
-
-                //if (!CachedRecords.ContainsKey(order.OrderId))
-                //{
-                //    CachedRecords.Add(order.OrderId, order);
-                //}
-                //else
-                //{
-                //    CachedRecords[order.OrderId] = order;
-                //}
-
-
-
-
                 QuickCreateResponse response = new QuickCreateResponse
                 {
                     Order = order,
@@ -161,20 +136,10 @@ namespace SphereSSLv2.Pages
             }
         }
 
-
         public async Task<IActionResult> OnPostShowChallangeModal([FromBody] QuickCreateResponse _order)
         {
             CertRecord order = _order.Order;
-            //if (CachedRecords.TryGetValue(_order.Order.OrderId, out var order))
-            //{
-
-            var options1 = new JsonSerializerOptions
-                {
-                WriteIndented = true,
-                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
-                };
-                Console.WriteLine($"INC Order to ShowChallangeModal: {System.Text.Json.JsonSerializer.Serialize(order, options1)}");
-
+           
                 (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
                 var nsList = await Spheressl.GetNameServers(order.Domain);
 
@@ -187,7 +152,6 @@ namespace SphereSSLv2.Pages
                 order.Thumbprint = thumbprint;
                 order.AccountID = AcmeService._account.Kid;
                 order.OrderUrl = AcmeService._order.OrderUrl;
-                order.AuthorizationUrls = AcmeService._order.Payload.Authorizations.ToList();
                 order.CreationDate = DateTime.UtcNow;
                 order.ExpiryDate = DateTime.UtcNow.AddDays(90);
                 string fullLink = "https://" + link;
@@ -214,6 +178,16 @@ namespace SphereSSLv2.Pages
                         <input type='hidden' id='email' value='{order.Email}' />
                         <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
                         <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
+                        <input type='hidden' id='zoneID' value='{order.ZoneId}' />
+                        <input type='hidden' id='provider' value='{order.Provider}' />
+                        <input type='hidden' id='signer' value='{order.Signer}' />
+                        <input type='hidden' id='accountID' value='{order.AccountID}' />
+                        <input type='hidden' id='orderUrl' value='{order.OrderUrl}' />
+                        <input type='hidden' id='thumbprint' value='{order.Thumbprint}' />
+                        <input type='hidden' id='challengeType' value='{order.ChallengeType}' />
+                        <input type='hidden' id='creationDate' value='{order.CreationDate.ToString("o")}' />
+                        <input type='hidden' id='expiryDate' value='{order.ExpiryDate.ToString("o")}' />
+
                        <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
                          <div class='form-control text-break px-3 py-2 bg-light border'>
@@ -279,14 +253,25 @@ namespace SphereSSLv2.Pages
                         var html = $@"
                     <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
+
                             <input type='hidden' id='orderId' value='{order.OrderId}' />
                             <input type='hidden' id='email' value='{order.Email}' />
-                        <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
-                        <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
-                       <div class='mb-3'>
+                            <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
+                            <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
+                            <input type='hidden' id='zoneID' value='{order.ZoneId}' />
+                            <input type='hidden' id='provider' value='{order.Provider}' />
+                            <input type='hidden' id='signer' value='{order.Signer}' />
+                            <input type='hidden' id='accountID' value='{order.AccountID}' />
+                            <input type='hidden' id='orderUrl' value='{order.OrderUrl}' />
+                            <input type='hidden' id='thumbprint' value='{order.Thumbprint}' />
+                            <input type='hidden' id='challengeType' value='{order.ChallengeType}' />
+                            <input type='hidden' id='creationDate' value='{order.CreationDate.ToString("o")}' />
+                            <input type='hidden' id='expiryDate' value='{order.ExpiryDate.ToString("o")}' />
+
+                            <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
-                         <div class='form-control text-break px-3 py-2 bg-light border'>
-                             <div> Domain: <a href='{order.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
+                            <div class='form-control text-break px-3 py-2 bg-light border'>
+                            <div> Domain: <a href='{order.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
                                 {order.Domain} </a>  </div>   
                             
                            <div> Provider: {Spheressl.CapitalizeFirstLetter(order.Provider)} </div>
@@ -332,28 +317,6 @@ namespace SphereSSLv2.Pages
                     </form>";
 
 
-
-
-                        if (!CachedRecords.ContainsKey(order.OrderId))
-                        {
-                            CachedRecords.Add(order.OrderId, order);
-                        }
-                        else
-                        {
-                            CachedRecords[order.OrderId] = order;
-                        }
-
-
-
-                        var options = new JsonSerializerOptions
-                        {
-                            WriteIndented = true,
-                            ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
-                        };
-                        Console.WriteLine($"Exit Order to ShowVerifyModal: {System.Text.Json.JsonSerializer.Serialize(order, options)}");
-
-
-
                         return Content(html, "text/html");
 
                     }
@@ -363,12 +326,6 @@ namespace SphereSSLv2.Pages
                     }
                 }
 
-            //}
-            //else
-            //{
-            //        // Handle case where it's not found
-            //        return BadRequest("Order not found in cache.");
-            //}
         }
 
         public async Task<IActionResult> OnPostShowAddProviderModal()
@@ -413,7 +370,6 @@ namespace SphereSSLv2.Pages
             return Content(html, "text/html");
         }
 
-
         public async Task<IActionResult> OnPostAddDNSProvider([FromBody] DNSProvider provider)
         {
 
@@ -437,7 +393,6 @@ namespace SphereSSLv2.Pages
             return new JsonResult(new { success = true, message = "Provider added successfully." });
         }
 
-
         public async Task<JsonResult> OnGetGetDNSProvidersAsync()
         {
             DNSProviders = Spheressl.DNSProviders;
@@ -450,13 +405,12 @@ namespace SphereSSLv2.Pages
             return new JsonResult(Spheressl.DNSProviders);
   
         }
-
        
-        public async Task<IActionResult> OnGetExpiringRecordModal(string orderId)
+        public async Task<IActionResult> OnGetGetRecordModal(string orderId)
         {
 
 
-            var record = Spheressl.ExpiringSoonCertRecords.FirstOrDefault(r => r.OrderId == orderId);
+            var record = Spheressl.CertRecords.FirstOrDefault(r => r.OrderId == orderId);
 
             if (record == null)
             {
@@ -466,39 +420,75 @@ namespace SphereSSLv2.Pages
             var directoryPath = Path.GetDirectoryName(record.SavePath)?.Replace("\\", "/") ?? string.Empty;
             var htmlSafePath = System.Net.WebUtility.HtmlEncode(record.SavePath);
             var fileUrl = "file:///" + directoryPath.Replace(" ", "%20");
-
+            var escapedPath = Uri.EscapeDataString(fileUrl);
+            var openLink = $@"<a href='#' onclick='fetch(""/open-location?path={escapedPath}""); return false;'>
+                    <code class='small text-break text-danger'>{htmlSafePath}</code>
+                 </a>";
 
             var html = $@"
-        <div class='container-fluid'>
+                <div class='container-fluid'>
             <div class='row g-3'>
-                <div class='col-md-6'><strong>Domain:</strong><br> <a href='{record.Domain}' target='_blank'>{record.Domain}</a></div>
+                <div class='col-md-6'><strong>Domain:</strong><br> <a href='https://{record.Domain}' target='_blank'>{record.Domain}</a></div>
                 <div class='col-md-6'><strong>Email:</strong> <span>{record.Email}</span></div>
                 <div class='col-md-6'><strong>Provider:</strong> <span>{record.Provider}</span></div>
                 <div class='col-md-6'><strong>Challenge Type:</strong> <span>{record.ChallengeType}</span></div>
                 <div class='col-md-6'><strong>Created:</strong> <span>{record.CreationDate:g}</span></div>
-                <div class='col-md-6'><strong>Expires:</strong> <span>{record.ExpiryDate:g}</span></div>
+                <div class='col-md-6'>
+                  <strong>Expires:</strong> 
+                  <span>{record.ExpiryDate:g}</span><br>
+                  <small class='text-muted'>({(record.ExpiryDate - DateTime.UtcNow).Days} days remaining)</small>
+                </div>
                 <div class='col-md-6'><strong>Auto Renew:</strong> <span class='badge bg-{(record.autoRenew ? "success" : "danger")}'>{(record.autoRenew ? "Enabled" : "Disabled")}</span></div>
                 <div class='col-md-6'><strong>Save for Renewal:</strong> <span class='badge bg-{(record.SaveForRenewal ? "info" : "secondary")}'>{(record.SaveForRenewal ? "Yes" : "No")}</span></div>
                 <div class='col-md-6'><strong>Successful Renewals:</strong> <span class='text-success fw-bold'>{record.SuccessfulRenewals}</span></div>
                 <div class='col-md-6'><strong>Failed Renewals:</strong> <span class='text-danger fw-bold'>{record.FailedRenewals}</span></div>
 
-
                 <div class='col-md-12'>
                     <strong>Save Path:</strong><br>
-                <a href=""#"" onclick=""fetch('http://localhost:7172/open-location/?{fileUrl}'); return false;"">
-                    <code class=""small text-break text-danger"">{record.SavePath}</code>
-                </a>
+                          {openLink}
+
+                </div>
+                <div class='col-md-12'>
+                  <strong>DNS Token:</strong><br>
+                      <div class='input-group'>
+
+                        <input type=""password"" class=""form-control text-monospace"" id=""dnsTokenField"" value=""{record.DnsChallengeToken}"" readonly />
+                        <button class=""btn btn-outline-secondary"" type=""button"" onclick=""toggleDnsVisibility()"">
+                          <i class=""bi bi-eye""></i>
+                        </button>
+
+                        <button class=""btn btn-outline-secondary"" type=""button"" onclick=""copyToClipboard('dnsTokenField')"">
+                          <i class=""bi bi-clipboard""></i>
+                        </button>
+
+                      </div>
                 </div>
 
-                <div class='col-md-12'><strong>DNS Token:</strong><br><code class='small text-break'>{record.DnsChallengeToken}</code></div>
-                <div class='col-md-12'><strong>Order URL:</strong><br><span>{record.OrderUrl}</span></div>
-                <div class='col-md-12'><strong>Account ID:</strong><br><code class='small text-break'>{record.AccountID}</code></div>
+              <div class='col-md-12'>
+                  <strong>Order URL:</strong><br>
+                  <div class='input-group'>
+                    <input type=""text"" id=""orderUrlField"" class=""form-control"" value=""{record.OrderUrl}"" readonly />
+                    <button class=""btn btn-outline-secondary"" type=""button"" onclick=""copyToClipboard('orderUrlField')"">
+                      <i class=""bi bi-clipboard""></i>
+                    </button>
+                  </div>
+              </div>
+
+               <div class='col-md-12'>
+                  <strong>Account ID:</strong><br>
+                  <div class='input-group'>
+                    <input type=""text"" id=""accountIdField"" class=""form-control"" value=""{record.AccountID}"" readonly />
+                    <button class=""btn btn-outline-secondary"" type=""button"" onclick=""copyToClipboard('accountIdField')"">
+                      <i class=""bi bi-clipboard""></i>
+                    </button>
+                  </div>
+               </div>
+
             </div>
         </div>";
 
             return Content(html, "text/html");
         }
-
 
         public async Task<IActionResult> OnGetShowWaitningModal()
         {
@@ -580,22 +570,10 @@ namespace SphereSSLv2.Pages
 
                 return Content(html, "text/html");
         }
-
-        [IgnoreAntiforgeryToken]
+   
         public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord order)
         {
 
-
-            //if (CachedRecords.TryGetValue(_order.OrderId, out var order))
-            //{
-
-
-                var options1 = new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
-            };
-            Console.WriteLine($"INC Order to ShowVerifyModal: {System.Text.Json.JsonSerializer.Serialize(order, options1)}");
             var acme = AcmeService._acmeService;
             if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
             {
@@ -612,7 +590,15 @@ namespace SphereSSLv2.Pages
                     <input type='hidden' id='dnsToken' value='{order.DnsChallengeToken}' />
                     <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal.ToString().ToLower()}' />
                     <input type='hidden' id='autoRenew' value='{order.autoRenew.ToString().ToLower()}' />
-                    
+                    <input type='hidden' id='zoneID' value='{order.ZoneId}' />
+                    <input type='hidden' id='provider' value='{order.Provider}' />
+                    <input type='hidden' id='signer' value='{order.Signer}' />
+                    <input type='hidden' id='accountID' value='{order.AccountID}' />
+                    <input type='hidden' id='orderUrl' value='{order.OrderUrl}' />
+                    <input type='hidden' id='thumbprint' value='{order.Thumbprint}' />
+                    <input type='hidden' id='challengeType' value='{order.ChallengeType}' />
+                    <input type='hidden' id='creationDate' value='{order.CreationDate.ToString("o")}' />
+                    <input type='hidden' id='expiryDate' value='{order.ExpiryDate.ToString("o")}' />
                     <div id='verifyModalBody' class='modal-body'>
                         <div id='signalLogOutput' class='mt-3 p-2 bg-light border rounded text-monospace' style='max-height: 250px; overflow-y: auto;'></div>
                     </div>
@@ -660,30 +646,14 @@ namespace SphereSSLv2.Pages
                            
                             await acme.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domain);
 
+                            order.Domain =  order.Domain.StartsWith("_acme-challenge.") ? order.Domain.Substring(16) : order.Domain;
+
 
                             if (order.SaveForRenewal)
                             {
                                 await _logger.Update($"Saving order for renewal!");
                                 await DatabaseManager.InsertCertRecord(order);
 
-
-                                if (!CachedRecords.ContainsKey(order.OrderId))
-                                {
-                                    CachedRecords.Add(order.OrderId, order);
-                                }
-                                else
-                                {
-                                    CachedRecords[order.OrderId] = order;
-                                }
-
-
-                                var options = new JsonSerializerOptions
-                                {
-                                    WriteIndented = true,
-                                    ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
-                                };
-
-                                Console.WriteLine($"Saved Order to DB: {System.Text.Json.JsonSerializer.Serialize(order, options)}");
                                 CertRecords = Spheressl.CertRecords;
                             }
                            
@@ -751,35 +721,9 @@ namespace SphereSSLv2.Pages
             _runningCertGeneration = false;
 
                  return Content(html, "text/html");  
-            //}
-            //else
-            //{
-            //    // Handle case where it's not found
-            //    return BadRequest("Order not found in cache.");
-            //}
-
         }
 
-
-
-        [IgnoreAntiforgeryToken]
-        public JsonResult OnPostCachedCert([FromBody] CertRecord order)
-        {
-            CachedRecords[order.OrderId] = order;
-            return new JsonResult(true);
-        }
-
-        [IgnoreAntiforgeryToken]
-        public JsonResult OnGetCachedCert(string orderId)
-        {
-            if (CachedRecords.TryGetValue(orderId, out var cert))
-                return new JsonResult(cert);
-
-            return new JsonResult(null);
-        }
-
-
-
+ 
         public IActionResult OnGetDownloadCertPem(string savePath)
         {
             string file = Path.Combine(AppContext.BaseDirectory, "Temp", $"tempCert.pem");

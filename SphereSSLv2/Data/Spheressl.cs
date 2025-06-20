@@ -24,7 +24,7 @@ namespace SphereSSLv2.Data
         internal static bool IsLogIn = false;
         internal static string ConfigFilePath = "app.config";
         internal static Process TrayAppProcess;
-        internal static string TrayAppPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SphereSSL.exe");
+        internal static string TrayAppPath = Path.Combine(AppContext.BaseDirectory, "SphereSSL.exe");
         internal static string ServerIP { get; set; } = "127.0.0.1";
         internal static int ServerPort { get; set; } = 7171;
         public static double RefreshExpiringSoonRateInMinutes { get; } = 5;

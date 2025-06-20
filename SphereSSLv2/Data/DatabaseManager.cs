@@ -42,8 +42,7 @@ namespace SphereSSLv2.Data
                     OrderUrl TEXT,
                     ChallengeType TEXT,
                     Thumbprint TEXT,
-                    ZoneId TEXT,
-                    AuthorizationUrls TEXT
+                    ZoneId TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS ExpiredCerts (
@@ -114,7 +113,7 @@ namespace SphereSSLv2.Data
         //CertRecord Management
         public static async Task InsertCertRecord(CertRecord record)
         {
-            Console.WriteLine($"Inserting cert record for OrderId: {record.OrderId}"); // Debug log
+      
 
             using var connection = new SqliteConnection($"Data Source={Spheressl.dbPath}");
             await connection.OpenAsync();
@@ -126,13 +125,13 @@ namespace SphereSSLv2.Data
             OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-            ChallengeType, Thumbprint, ZoneId, AuthorizationUrls
+            ChallengeType, Thumbprint, ZoneId
         )
         VALUES (
             @OrderId, @Domain, @Email, @DnsChallengeToken, @SavePath, @Provider,
             @CreationTime, @ExpiryDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
             @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl,
-            @ChallengeType, @Thumbprint, @ZoneId, @AuthorizationUrls
+            @ChallengeType, @Thumbprint, @ZoneId
         );";
 
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
@@ -154,7 +153,6 @@ namespace SphereSSLv2.Data
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
             command.Parameters.AddWithValue("@ZoneId", record.ZoneId ?? string.Empty);
-            command.Parameters.AddWithValue("@AuthorizationUrls", string.Join(";", record.AuthorizationUrls ?? new List<string>()));
 
             await command.ExecuteNonQueryAsync();
             await AdjustTotalCertsInDB(1);
@@ -163,7 +161,7 @@ namespace SphereSSLv2.Data
             {
                 Spheressl.CertRecords.Add(record);
 
-                Console.WriteLine($"Cert record for OrderId: {record.OrderId} inserted successfully."); // Debug log
+             
             }
         }
 
@@ -193,8 +191,8 @@ namespace SphereSSLv2.Data
             OrderUrl = @OrderUrl,
             ChallengeType = @ChallengeType,
             Thumbprint = @Thumbprint,
-            ZoneId = @ZoneId,
-            AuthorizationUrls = @AuthorizationUrls
+            ZoneId = @ZoneId
+
         WHERE OrderId = @OrderId";
 
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
@@ -216,7 +214,6 @@ namespace SphereSSLv2.Data
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
             command.Parameters.AddWithValue("@ZoneId", record.ZoneId ?? string.Empty);
-            command.Parameters.AddWithValue("@AuthorizationUrls", string.Join(";", record.AuthorizationUrls ?? new List<string>()));
 
             await command.ExecuteNonQueryAsync();
         }
@@ -292,10 +289,7 @@ namespace SphereSSLv2.Data
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString(),
-                    AuthorizationUrls = reader["AuthorizationUrls"].ToString()
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                        .ToList()
+                    ZoneId = reader["ZoneId"].ToString()
                 };
             }
 
@@ -339,10 +333,7 @@ namespace SphereSSLv2.Data
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString(),
-                    AuthorizationUrls = reader["AuthorizationUrls"].ToString()
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                        .ToList()
+                    ZoneId = reader["ZoneId"].ToString()
                 };
             }
 
@@ -362,7 +353,7 @@ namespace SphereSSLv2.Data
             OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-            ChallengeType, Thumbprint, ZoneId, AuthorizationUrls
+            ChallengeType, Thumbprint, ZoneId
         FROM CertRecords;
     ";
 
@@ -390,9 +381,6 @@ namespace SphereSSLv2.Data
                     ChallengeType = reader.IsDBNull(16) ? "" : reader.GetString(16),
                     Thumbprint = reader.IsDBNull(17) ? "" : reader.GetString(17),
                     ZoneId = reader.IsDBNull(18) ? "" : reader.GetString(18),
-                    AuthorizationUrls = reader.IsDBNull(19)
-                        ? new List<string>()
-                        : reader.GetString(19).Split(',').ToList()
                 };
 
                 records.Add(record);
@@ -450,10 +438,7 @@ namespace SphereSSLv2.Data
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString(),
-                    AuthorizationUrls = reader["AuthorizationUrls"].ToString()
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                        .ToList()
+                    ZoneId = reader["ZoneId"].ToString()
                 };
                 records.Add(cert);
             }
@@ -499,10 +484,7 @@ namespace SphereSSLv2.Data
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString(),
-                    AuthorizationUrls = reader["AuthorizationUrls"].ToString()
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                        .ToList()
+                    ZoneId = reader["ZoneId"].ToString()
                 };
 
                 records.Add(record);
@@ -545,10 +527,7 @@ namespace SphereSSLv2.Data
                     OrderUrl = reader.IsDBNull(16) ? "" : reader.GetString(16),
                     ChallengeType = reader.IsDBNull(17) ? "" : reader.GetString(17),
                     Thumbprint = reader.IsDBNull(18) ? "" : reader.GetString(18),
-                    ZoneId = reader.IsDBNull(19) ? "" : reader.GetString(19),
-                    AuthorizationUrls = reader.IsDBNull(20)
-                        ? new List<string>()
-                        : reader.GetString(20).Split(';').ToList()
+                    ZoneId = reader.IsDBNull(19) ? "" : reader.GetString(19)
                 };
                 records.Add(record);
             }
@@ -599,13 +578,13 @@ namespace SphereSSLv2.Data
             OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-            ChallengeType, Thumbprint, ZoneId, AuthorizationUrls
+            ChallengeType, Thumbprint, ZoneId
         )
         VALUES (
             @OrderId, @Domain, @Email, @DnsChallengeToken, @SavePath, @Provider,
             @CreationTime, @ExpiryDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
             @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl,
-            @ChallengeType, @Thumbprint, @ZoneId, @AuthorizationUrls
+            @ChallengeType, @Thumbprint, @ZoneId
         );";
 
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
@@ -627,7 +606,6 @@ namespace SphereSSLv2.Data
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
             command.Parameters.AddWithValue("@ZoneId", record.ZoneId ?? string.Empty);
-            command.Parameters.AddWithValue("@AuthorizationUrls", string.Join(";", record.AuthorizationUrls ?? new List<string>()));
 
             await command.ExecuteNonQueryAsync();
             await AdjustExpiredCertCountInDB(1);
@@ -700,10 +678,7 @@ namespace SphereSSLv2.Data
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString(),
-                    AuthorizationUrls = reader["AuthorizationUrls"].ToString()
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                        .ToList()
+                    ZoneId = reader["ZoneId"].ToString()
                 };
             }
 
@@ -747,10 +722,7 @@ namespace SphereSSLv2.Data
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString(),
-                    AuthorizationUrls = reader["AuthorizationUrls"].ToString()
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                        .ToList()
+                    ZoneId = reader["ZoneId"].ToString()
                 };
             }
 
@@ -795,10 +767,8 @@ namespace SphereSSLv2.Data
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString(),
-                    AuthorizationUrls = reader["AuthorizationUrls"].ToString()
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                        .ToList()
+                    ZoneId = reader["ZoneId"].ToString()
+
                 };
 
                 records.Add(record);
