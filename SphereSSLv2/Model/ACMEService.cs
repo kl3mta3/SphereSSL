@@ -27,31 +27,34 @@ using SphereSSLv2.Services;
 using Microsoft.AspNetCore.SignalR;
 using Certes.Acme.Resource;
 using Org.BouncyCastle.Tls;
+using System;
 
 
 namespace SphereSSL2.Model
 {
     public class AcmeService
     {
-        internal static AcmeProtocolClient _client;
-        internal static ESJwsTool _signer;
-        internal static AccountDetails _account;
-        internal static ServiceDirectory _directory;
-        internal static OrderDetails _order;
-        internal static string _domain;
-        internal static string _challangeDomain;
-        internal static bool _UseStaging = true; // Set to true for testing with Let's Encrypt staging environment
-        internal static AcmeService _acmeService;
-        private readonly Logger _logger;
+        internal AcmeProtocolClient _client;
+        internal ESJwsTool _signer;
+        internal  AccountDetails _account;
+        internal  ServiceDirectory _directory;
+        internal  OrderDetails _order;
+        internal  string _domain;
+        internal  string _challangeDomain;
+        internal bool _UseStaging = true; // Set to true for testing with Let's Encrypt staging environment
+        //internal  AcmeService _acmeService;
+        internal  Logger _logger;
 
         public AcmeService(Logger logger)
         {
             _logger = logger;
-            _signer = LoadOrCreateSigner();
+            _signer = LoadOrCreateSigner(this);
+            //_UseStaging = useStaging;
 
 
 
             string _baseAddress = _UseStaging
+
                 ? "https://acme-staging-v02.api.letsencrypt.org/"
                 : "https://acme-v02.api.letsencrypt.org/";
 
@@ -65,7 +68,7 @@ namespace SphereSSL2.Model
 
         }
 
-        public async Task<bool> InitAsync(string email)
+        public async Task<bool> InitAsync( string email)
         {
             try
             {
@@ -110,8 +113,8 @@ namespace SphereSSL2.Model
             }
             catch (Exception ex)
             {
-                _= _logger.Info($"[ERROR] Order creation failed: {ex.Message}");
-                _= _logger.Info($"Error- {ex.StackTrace}");
+                _ = _logger.Info($"[ERROR] Order creation failed: {ex.Message}");
+                _ = _logger.Info($"Error- {ex.StackTrace}");
                 return null;
             }
         }
@@ -145,33 +148,41 @@ namespace SphereSSL2.Model
             _order = new OrderDetails();
             _domain = "";
 
+            Console.WriteLine($"Creating account for {email} with Request domain {requestDomain}...");
 
             if (string.IsNullOrWhiteSpace(requestDomain))
             {
-                await _logger.Debug("Domain name is empty.");
+                await _logger.Error("Domain name is empty.");
                 return (null, null);
             }
-            _domain = requestDomain;
+           _domain = requestDomain;
+
+
             try
             {
-                var account = await _acmeService.InitAsync(email);
+                Console.WriteLine($"Initilize account for email {email}...");
+                var account = await InitAsync(email);
                 if (!account)
                 {
-                    _= _logger.Debug("Account creation failed. Please check your email.");
+
+                    _ = _logger.Debug("Account creation failed. Please check your email.");
                     return (null, null);
                 }
             }
             catch (Exception ex)
             {
                 _ = _logger.Debug("Unexpected error during account creation.");
-                _= _logger.Error(ex.Message);
+
+                _ = _logger.Error(ex.Message);
+                _ = _logger.Error(ex.StackTrace);
                 return (null, null);
             }
 
             try
             {
-
-                _order = await _acmeService.BeginOrder(_domain);
+                Console.WriteLine($"Begin Order for _domain {_domain}...");
+                _order = await BeginOrder(_domain);
+                Console.WriteLine($"End Order with OrderURL of  {_order.OrderUrl}...");
 
                 if (_order.Payload.Status == "invalid")
                 {
@@ -187,14 +198,17 @@ namespace SphereSSL2.Model
                 return (null, null);
             }
 
-           
+            Console.WriteLine($"Get token for challemge {_order.OrderUrl}...");
 
-            var (domain, dnsValue) = await _acmeService.GetDnsChallengeToken(_order);
+            var (domain, dnsValue) = await GetDnsChallengeToken(_order);
+
+            Console.WriteLine($"Challenge token for domain {domain} is {dnsValue}...");
+
             return (dnsValue, domain);
         }
 
        
-        internal  async Task<bool> ProcessCertificateGeneration(bool useSeperateFiles, string savePath, string dnsChallengeToken, string domain)
+        internal  async Task<bool> ProcessCertificateGeneration( bool useSeperateFiles, string savePath, string dnsChallengeToken, string domain)
         {
 
             
@@ -392,7 +406,7 @@ namespace SphereSSL2.Model
             return false;
         }
 
-        public async Task RequestCertAsync(string domain)
+        public async Task RequestCertAsync(AcmeService acme, string domain)
         {
             string authUrl = _order.Payload.Authorizations[0];
             ACMESharp.Protocol.Resources.Authorization authz;
@@ -493,7 +507,7 @@ namespace SphereSSL2.Model
             catch { /* silently fail if not Windows or explorer not available */ }
         }
 
-        private ESJwsTool LoadOrCreateSigner(string path = "signer.pem")
+        internal static  ESJwsTool LoadOrCreateSigner( AcmeService acme, string path = "signer.pem")
         {
             var signer = new ESJwsTool();
 
@@ -509,7 +523,7 @@ namespace SphereSSL2.Model
                 File.WriteAllText(path, exported); 
             }
 
-            _signer = signer;
+            acme._signer = signer;
             return signer;
         }
 

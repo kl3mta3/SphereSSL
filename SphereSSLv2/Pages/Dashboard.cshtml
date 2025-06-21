@@ -83,6 +83,18 @@
                                     </div>
 
                                     <button type="submit" id="startButton" class="btn-glow w-40">Start</button>
+
+
+                                    <div class="d-flex align-items-center justify-content-between mb-0">
+                                    
+                                        <div class="form-check form-switch ms-3">
+                                            <input class="form-check-input" type="checkbox" id="useStaging" />
+                                            <label class="form-check-label" for="useStaging" title="Use Let's Encrypt Staging (for testing)">
+                                                Staging
+                                            </label>
+                                        </div>
+                                    </div>
+
                                 </form>
 
                             </div>
@@ -368,6 +380,11 @@
 </div>
 
 <style>
+
+    .form-switch {
+        margin-bottom: 0;
+        margin-left: 1rem;
+    }
 
     .cert-accordion-container {
         max-height: 70vh; /* controls total certificate card height */
@@ -692,35 +709,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
 
-<!-- Cache certRecords -->
-<script>
-       // Save cert to frontend cache and backend
-    async function cacheCert(cert) {
-        CachedRecords[cert.OrderId] = cert;
-
-        await fetch("/Dashboard?handler=CachedCert", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(cert)
-        });
-    }
-
-    // Pull cert from frontend cache first, fallback to backend if needed
-    async function getCachedCert(orderId) {
-        if (cachedCerts[orderId])
-            return CachedRecords[orderId];
-
-        const response = await fetch(`/Dashboard?handler=CachedCert&orderId=${orderId}`);
-        if (!response.ok) return null;
-
-        const cert = await response.json();
-        if (cert && cert.OrderId)
-            cachedCerts[cert.OrderId] = cert;
-
-        return cert || null;
-    }
-</script>
-
 
 <!-- Toggle Preview Dropdown -->
 <script>
@@ -764,19 +752,26 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 <!-- Submit Quick Connect -->
 <script>
     async function submitOrder() {
+        // Show waiting modal
         const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
         const modalHtml = await waitModalResponse.text();
         document.body.insertAdjacentHTML("beforeend", modalHtml);
 
+        // Disable Start button
         const startButton = document.getElementById("startButton");
         if (startButton) {
             startButton.disabled = true;
             startButton.hidden = true;
         }
 
+        // Get cert format
         const selectedFormat = document.querySelector('input[name="certFormat"]:checked');
         const useSeparateFiles = selectedFormat ? selectedFormat.value === "true" : false;
-        let currentOrder = null;
+
+        // Get useStaging toggle
+        const useStaging = document.getElementById('useStaging').checked;
+
+        // Build order object
         let order = {
             orderId: "",
             domain: document.getElementById("domain").value,
@@ -791,16 +786,15 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         let provider = document.getElementById("dnsProvider")?.value || "";
         let autoAdd = document.getElementById("autoAddRecord")?.checked || false;
 
-        currentOrder = order;
-        //await cacheCert(currentOrder);
-   
-
+        // Main request object
         const request = {
             order: order,
             provider: provider,
-            autoAdd: autoAdd
+            autoAdd: autoAdd,
+            useStaging: useStaging
         };
 
+        // Submit order
         const response = await fetch("/Dashboard?handler=QuickCreate", {
             method: "POST",
             headers: {
@@ -809,8 +803,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             body: JSON.stringify(request)
         });
 
-           
-
+        // Error handling
         if (!response.ok) {
             const errorText = await response.text();
             console.error("QuickCreate failed:", errorText);
@@ -828,14 +821,15 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             return;
         }
 
+        // Success
         const updatedOrder = await response.json();
         console.log("UpdatedOrder from QuickCreate:", updatedOrder);
-           // await cacheCert(updatedOrder.Order); 
-            currentOrder = updatedOrder.Order;
 
+        // Remove waiting modal
         const overlay = document.getElementById("waitingModalOverlay");
         if (overlay) overlay.remove();
 
+        // Show challenge modal
         const modalResponse = await fetch(`/Dashboard?handler=ShowChallangeModal`, {
             method: "POST",
             headers: {
@@ -844,11 +838,8 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             body: JSON.stringify(updatedOrder)
         });
 
-
         const challengeHtml = await modalResponse.text();
-
         document.getElementById("dnsChallengeModalBody").innerHTML = challengeHtml;
-
 
         const modal = new bootstrap.Modal(document.getElementById("dnsChallengeModal"));
         modal.show();
@@ -1039,35 +1030,30 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 <script>
     async function verifyChallange() {
 
-            console.log({
-        saveForRenewal: document.getElementById("saveForRenewal")?.value,
-        autoRenew: document.getElementById("autoRenew")?.value
-    });
+        console.log({
+            saveForRenewal: document.getElementById("saveForRenewal")?.value,
+            autoRenew: document.getElementById("autoRenew")?.value
+        });
 
-    const order = {
-        orderId: document.getElementById("orderId")?.value || "",
-        domain: document.getElementById("domainName")?.textContent.trim() || "",
-        dnsChallengeToken: document.getElementById("dnsToken")?.textContent.trim() || "",
-        email: document.getElementById("email")?.value || "",
-        useSeparateFiles: false,
-        saveForRenewal: document.getElementById("saveForRenewal").checked || false ,
-        autoRenew: document.getElementById("autoRenew").checked || false,
-        savePath: document.getElementById("savePath")?.value || "",
-        zoneId: document.getElementById("zoneID")?.value || "",
-        provider: document.getElementById("provider")?.value || "",
-        provider: document.getElementById("provider")?.value || "",
-        signer: document.getElementById("signer")?.value || "",
-        accountID: document.getElementById("accountID")?.value || "",
-        orderUrl: document.getElementById("orderUrl")?.value || "",
-        thumbprint: document.getElementById("thumbprint")?.value || "",
-        challengeType: document.getElementById("challengeType")?.value || "",
-        creationDate: document.getElementById("creationDate")?.value || "",
-        expiryDate: document.getElementById("expiryDate")?.value || "",
-      
-    };
-
-    // const cached = await getCachedCert(order.orderId);
-    // order = cached;
+        const order = {
+            orderId: document.getElementById("orderId")?.value || "",
+            domain: document.getElementById("domainName")?.textContent.trim() || "",
+            dnsChallengeToken: document.getElementById("dnsToken")?.textContent.trim() || "",
+            email: document.getElementById("email")?.value || "",
+            useSeparateFiles: false,
+            saveForRenewal: document.getElementById("saveForRenewal").checked || false,
+            autoRenew: document.getElementById("autoRenew").checked || false,
+            savePath: document.getElementById("savePath")?.value || "",
+            zoneId: document.getElementById("zoneID")?.value || "",
+            provider: document.getElementById("provider")?.value || "",
+            signer: document.getElementById("signer")?.value || "",
+            accountID: document.getElementById("accountID")?.value || "",
+            orderUrl: document.getElementById("orderUrl")?.value || "",
+            thumbprint: document.getElementById("thumbprint")?.value || "",
+            challengeType: document.getElementById("challengeType")?.value || "",
+            creationDate: document.getElementById("creationDate")?.value || "",
+            expiryDate: document.getElementById("expiryDate")?.value || "",
+        };
 
         const response = await fetch("/Dashboard?handler=ShowVerifyModal", {
             method: "POST",
@@ -1080,11 +1066,10 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         const modalHtml = await response.text();
         document.getElementById("VerifyModalBody").innerHTML = modalHtml;
 
-
-            const prevModal = bootstrap.Modal.getInstance(document.getElementById("dnsChallengeModal"));
-            if (prevModal) {
-                prevModal.hide();
-            }
+        const prevModal = bootstrap.Modal.getInstance(document.getElementById("dnsChallengeModal"));
+        if (prevModal) {
+            prevModal.hide();
+        }
 
         const modal = new bootstrap.Modal(document.getElementById("dnsVerifyModal"));
         certDownloadReady = false;
@@ -1095,13 +1080,17 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 
         const downloadBoth = document.getElementById("downloadButtons");
         if (downloadBoth) downloadBoth.style.display = "none";
-
-
-
-
-
         modal.show();
-    }</script>
+
+        // Self-removing reload event
+        const verifyModal = document.getElementById("dnsVerifyModal");
+        function reloadOnHide() {
+            location.reload();
+            verifyModal.removeEventListener('hidden.bs.modal', reloadOnHide);
+        }
+        verifyModal.addEventListener('hidden.bs.modal', reloadOnHide);
+    }
+</script>
 
 
 <!-- Close DNS Challenge Modal -->
@@ -1125,3 +1114,4 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         }
     }
 </script>
+

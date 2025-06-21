@@ -7,7 +7,7 @@ namespace SphereSSLv2.Model
     {
         internal DatabaseManager dbRecord;
 
-     
+
         public async Task LoadCertRecordServiceBat(string orderId)
         {
             string batContent = dbRecord.GetRestartScriptById(orderId); // Get from DB
@@ -37,12 +37,42 @@ namespace SphereSSLv2.Model
 
             string output = await process.StandardOutput.ReadToEndAsync();
             string error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync(); 
+            await process.WaitForExitAsync();
 
             if (!string.IsNullOrWhiteSpace(error))
                 throw new Exception($"Error executing .bat file:\n{error}");
 
-           
+
+        }
+
+
+        public async Task AutoRenewCertRecord(string orderId)
+        {
+
+            //get Order from cache if its there,  if not get from DB
+            // CertRecord order = dbRecord.GetCertRecordById(orderId);
+
+
+
+
+
+
+
+        }
+
+
+
+
+        public async Task ManualRenewCertRecord(string orderId)
+        {
+
+
+
+
+
+
+
+
         }
     }
 }

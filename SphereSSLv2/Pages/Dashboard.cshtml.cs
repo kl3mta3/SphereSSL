@@ -20,6 +20,8 @@ using System.Diagnostics;
 using System.IO;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System.Text.Json;
+using ACMESharp.Crypto.JOSE.Impl;
+using Microsoft.Extensions.Logging.Console;
 
 namespace SphereSSLv2.Pages
 {
@@ -41,6 +43,8 @@ namespace SphereSSLv2.Pages
         private readonly IHubContext<SignalHub> _hubContext;
         private readonly Logger _logger;
         private readonly Spheressl _spheressl;
+        public static  Dictionary<string,AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
+
 
         public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, Spheressl spheressl, DatabaseManager database)
         {
@@ -80,25 +84,60 @@ namespace SphereSSLv2.Pages
                     await _logger.Error("QuickCreateRequest was null.");
                     return BadRequest("Invalid request payload.");
                 }
-                if (AcmeService._acmeService == null)
-                {
-                    AcmeService._acmeService = new AcmeService(_logger);
-                }
-
-                var acme = AcmeService._acmeService;
 
                 var order = request.Order;
                 var providerName = request.Provider;
+                string orderID = AcmeService.GenerateCertRequestId();
+                order.Provider = providerName;
+                order.OrderId = orderID;
+
+                string _baseAddress = request.UseStaging
+
+                     ? "https://acme-staging-v02.api.letsencrypt.org/"
+                     : "https://acme-v02.api.letsencrypt.org/";
+
+                    var http = new HttpClient
+                    {
+                        BaseAddress = new Uri(_baseAddress),
+                    };
+
+
+                ESJwsTool signer = AcmeService.LoadOrCreateSigner(new AcmeService(_logger));
+
+                var ACME = new AcmeService(_logger)
+                {
+                    _logger = _logger,
+                    _signer = signer,
+                    _client = new AcmeProtocolClient(http, null, null, signer),
+
+                    
+                };
+               
+
+
+                AcmeServiceCache.Add(request.Order.OrderId, ACME);
+                Console.WriteLine($"Adding to cache: {orderID} => {ACME}");
+
+
                 DNSProvider provider = DNSProviders.FirstOrDefault(p => p.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
 
                 var autoAdd = request.AutoAdd;
 
-                var (dnsChallengeToken, domain) = await acme.CreateUserAccountForCert(order.Email, order.Domain);
+                Console.WriteLine($"Creating user account for email: {order.Email} and domain: {order.Domain} using provider: {providerName}");
+
+                var (dnsChallengeToken, domain) = await ACME.CreateUserAccountForCert( order.Email, order.Domain);
+
+                if (string.IsNullOrWhiteSpace(domain))
+                {
+
+                    Console.WriteLine($"Domain is null or empty for email: {order.Email} and domain: {order.Domain}");
+                    await _logger.Error("Returned domain is null or empty after CreateUserAccountForCert!");
+
+                    return BadRequest("Failed to create ACME order: domain is empty/null.");
+                }
 
 
-                string orderID = AcmeService.GenerateCertRequestId();
-                order.Provider = providerName;
-                order.OrderId = orderID;
+
                 order.DnsChallengeToken = dnsChallengeToken;
                 order.Domain = domain;
                 order.ChallengeType = "DNS-01";
@@ -139,19 +178,27 @@ namespace SphereSSLv2.Pages
         public async Task<IActionResult> OnPostShowChallangeModal([FromBody] QuickCreateResponse _order)
         {
             CertRecord order = _order.Order;
-           
-                (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
+
+
+            AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService Acme);
+            if(Acme == null)
+            {
+                await _logger.Error($"No ACME service found for Order ID: {order.OrderId}");
+                return BadRequest("ACME service not found for the specified order.");
+            }
+            Console.WriteLine($"Getting ACME for Order: {_order.Order.OrderId}");
+            (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
                 var nsList = await Spheressl.GetNameServers(order.Domain);
 
                 using SHA256 algor = SHA256.Create();
-                var thumbprintBytes = JwsHelper.ComputeThumbprint(AcmeService._signer, algor);
+                var thumbprintBytes = JwsHelper.ComputeThumbprint(Acme._signer, algor);
                 var thumbprint = AcmeService.Base64UrlEncode(thumbprintBytes);
 
                 order.Provider = provider;
-                order.Signer = AcmeService._signer.Export();
+                order.Signer = Acme._signer.Export();
                 order.Thumbprint = thumbprint;
-                order.AccountID = AcmeService._account.Kid;
-                order.OrderUrl = AcmeService._order.OrderUrl;
+                order.AccountID = Acme._account.Kid;
+                order.OrderUrl = Acme._order.OrderUrl;
                 order.CreationDate = DateTime.UtcNow;
                 order.ExpiryDate = DateTime.UtcNow.AddDays(90);
                 string fullLink = "https://" + link;
@@ -492,22 +539,10 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnGetShowWaitningModal()
         {
-            var phrases = new[]
-            {
-                "Securing the domain... with extreme prejudice.",
-                "In a world of DNS, one SSL stood alone.",
-                "You've got certitude. We've got certificates.",
-                "This is the way... of encrypted domains.",
-                "I'll be back... once DNS propagates.",
-                "Say hello to my little lock icon",
-                "Why so secure? Because it's DNS over SSL, baby.",
-                "Domain Hard: With a Vengeance.",
-                "May the certs be with you.",
-                "Cert. James Cert. Licensed to encrypt."
-            };
-
+           
+            
             var random = new Random();
-            var phrase = phrases[random.Next(phrases.Length)];
+            var phrase = SphereSSLTaglines.TaglineArray[random.Next(SphereSSLTaglines.TaglineArray.Length)];
 
             var html = $@"
             <div id='waitingModalOverlay' style='
@@ -573,8 +608,10 @@ namespace SphereSSLv2.Pages
    
         public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord order)
         {
+            AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService ACME);
 
-            var acme = AcmeService._acmeService;
+            var acme = ACME;
+
             if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
             {
                 await _logger.Error("Invalid order data received for verification.");
@@ -622,7 +659,7 @@ namespace SphereSSLv2.Pages
                     try
                     {
 
-                        verified = await acme.CheckTXTRecordMultipleDNS(order.DnsChallengeToken, order.Domain);
+                        verified = await acme.CheckTXTRecordMultipleDNS( order.DnsChallengeToken, order.Domain);
                     }
                     catch (Exception ex)
                     {
@@ -644,7 +681,7 @@ namespace SphereSSLv2.Pages
                         try
                         {
                            
-                            await acme.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domain);
+                            await acme.ProcessCertificateGeneration( order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domain);
 
                             order.Domain =  order.Domain.StartsWith("_acme-challenge.") ? order.Domain.Substring(16) : order.Domain;
 
@@ -723,7 +760,6 @@ namespace SphereSSLv2.Pages
                  return Content(html, "text/html");  
         }
 
- 
         public IActionResult OnGetDownloadCertPem(string savePath)
         {
             string file = Path.Combine(AppContext.BaseDirectory, "Temp", $"tempCert.pem");

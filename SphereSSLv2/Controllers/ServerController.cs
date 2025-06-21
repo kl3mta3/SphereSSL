@@ -47,13 +47,13 @@ namespace SphereSSLv2.Controllers
         [HttpGet("/select-folder")]
         public async Task<string> GetFolderPath()
         {
-           Console.WriteLine("GetFolderPath called");
+       
 
             using var client = new HttpClient();
 
             try
             {
-                var result = await client.GetStringAsync("http://localhost:7172/api/select-folder/");
+                var result = await client.GetStringAsync("http://localhost:7172/select-folder/");
     
 
                 return result;
@@ -69,7 +69,7 @@ namespace SphereSSLv2.Controllers
         public async Task OpenFolderPath([FromQuery] string path)
         {
 
-            Console.WriteLine($"OpenFolderPath called with path: {path}");
+         
             using var client = new HttpClient();
 
             try
