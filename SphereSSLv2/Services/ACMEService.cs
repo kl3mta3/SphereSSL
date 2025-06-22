@@ -23,14 +23,13 @@ using Org.BouncyCastle.Crypto;
 using System.Diagnostics;
 using SphereSSL2.View;
 using SphereSSLv2.Data;
-using SphereSSLv2.Services;
 using Microsoft.AspNetCore.SignalR;
 using Certes.Acme.Resource;
 using Org.BouncyCastle.Tls;
 using System;
 
 
-namespace SphereSSL2.Model
+namespace SphereSSLv2.Services
 {
     public class AcmeService
     {

@@ -1,4 +1,4 @@
-﻿namespace SphereSSLv2.Data
+﻿namespace SphereSSLv2.Models
 {
 
     public class DeviceConfig

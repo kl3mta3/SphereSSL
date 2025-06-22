@@ -3,8 +3,9 @@
 using DnsClient;
 using DnsClient.Protocol;
 using Microsoft.AspNetCore.SignalR;
-using SphereSSL2.Model;
+using SphereSSLv2.Models;
 using SphereSSL2.View;
+
 using SphereSSLv2.Services;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using CertRecord = SphereSSLv2.Models.CertRecord;
 
 namespace SphereSSLv2.Data
 {
@@ -214,7 +216,6 @@ namespace SphereSSLv2.Data
                 return null;
             }
         }
-
 
 
         public static string CapitalizeFirstLetter(string input)

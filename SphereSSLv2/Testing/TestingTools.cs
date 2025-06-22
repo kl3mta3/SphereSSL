@@ -1,5 +1,6 @@
-﻿using SphereSSL2.Model;
-using SphereSSLv2.Data;
+﻿using SphereSSLv2.Data;
+using SphereSSLv2.Models;
+using SphereSSLv2.Services;
 
 namespace SphereSSLv2.Testing
 {

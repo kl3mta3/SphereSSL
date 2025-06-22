@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using SphereSSL2.Model;
+using SphereSSLv2.Models;
 using SphereSSLv2.Data;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;

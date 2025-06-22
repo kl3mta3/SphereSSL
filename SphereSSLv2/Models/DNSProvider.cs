@@ -2,7 +2,7 @@
 using System.Configuration.Provider;
 using SphereSSLv2.Services.APISupportedProviders;
 using SphereSSLv2.Services;
-namespace SphereSSLv2.Data
+namespace SphereSSLv2.Models
 {
 
     public class DNSProvider
@@ -46,7 +46,7 @@ namespace SphereSSLv2.Data
             ProviderType providerType;
 
             Enum.TryParse(dnsProvider.Provider, out providerType);
-            string zoneID = String.Empty;
+            string zoneID = string.Empty;
 
             switch (providerType)
             {

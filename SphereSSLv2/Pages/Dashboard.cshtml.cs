@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SphereSSLv2.Data;
-using SphereSSL2.Model;
 using System.DirectoryServices.ActiveDirectory;
 using Newtonsoft.Json;
 using ACMESharp.Crypto.JOSE;
@@ -22,6 +21,7 @@ using Org.BouncyCastle.Asn1.Ocsp;
 using System.Text.Json;
 using ACMESharp.Crypto.JOSE.Impl;
 using Microsoft.Extensions.Logging.Console;
+using SphereSSLv2.Models;
 
 namespace SphereSSLv2.Pages
 {

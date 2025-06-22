@@ -1,4 +1,5 @@
 ﻿using SphereSSLv2.Data;
+using SphereSSLv2.Models;
 
 namespace SphereSSLv2.Services
 {

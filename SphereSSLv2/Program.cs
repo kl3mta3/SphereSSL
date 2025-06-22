@@ -1,7 +1,7 @@
 ﻿using SphereSSL2.View;
 using SphereSSLv2.Services;
 using SphereSSLv2.Data;
-using SphereSSL2.Model;
+using SphereSSLv2.Models;
 public class Program
 {
     [STAThread]

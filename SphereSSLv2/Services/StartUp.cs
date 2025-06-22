@@ -4,7 +4,7 @@ using SphereSSLv2.Data;
 using System.Diagnostics;
 using SphereSSLv2.Testing;
 using Microsoft.AspNetCore.SignalR;
-using SphereSSL2.Model;
+using SphereSSLv2.Models;
 
 namespace SphereSSLv2.Services
 {

@@ -1,21 +1,21 @@
 ﻿using SphereSSLv2.Data;
 using System.Diagnostics;
 
-namespace SphereSSLv2.Model
+namespace SphereSSLv2.Services
 {
     public class CertRecordServiceManager
     {
         internal DatabaseManager dbRecord;
 
 
-        public async Task LoadCertRecordServiceBat(string orderId)
-        {
-            string batContent = dbRecord.GetRestartScriptById(orderId); // Get from DB
-            string filePath = Path.Combine(AppContext.BaseDirectory, "Temp", "restart_script.bat");
+        //public async Task LoadCertRecordServiceBat(string orderId)
+        //{
+        //    string batContent = dbRecord.GetRestartScriptById(orderId); // Get from DB
+        //    string filePath = Path.Combine(AppContext.BaseDirectory, "Temp", "restart_script.bat");
 
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!); // Ensure Temp exists
-            await File.WriteAllTextAsync(filePath, batContent); // Async write
-        }
+        //    Directory.CreateDirectory(Path.GetDirectoryName(filePath)!); // Ensure Temp exists
+        //    await File.WriteAllTextAsync(filePath, batContent); // Async write
+        //}
 
         public async Task ExecuteCertRecordServiceBat(string batFilePath)
         {

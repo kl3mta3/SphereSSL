@@ -3,9 +3,6 @@
     public class SphereSSLTaglines
     {
 
-
-
-
         public static readonly string[] TaglineArray = new[]
           {
                 "Securing the domain... with extreme prejudice.",
