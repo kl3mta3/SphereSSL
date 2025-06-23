@@ -5,8 +5,8 @@ namespace SphereSSLv2.Models.ConfigModels
 {
     public class LogEntry
     {
-        [JsonProperty("userId")]
-        public string UserId { get; set; }
+        [JsonProperty("username")]
+        public string Username { get; set; }
 
         [JsonProperty("logId")]
         public string LogId { get; set; }

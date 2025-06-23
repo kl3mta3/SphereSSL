@@ -40,7 +40,7 @@ namespace SphereSSLv2.Models.DNSModels
 
 
 
-        public static async  Task<string> TryAutoAddDNS(Logger _logger, DNSProvider dnsProvider, string domain, string DnsChallange)
+        public static async  Task<string> TryAutoAddDNS(Logger _logger, DNSProvider dnsProvider, string domain, string DnsChallange, string username)
         {
             if (dnsProvider == null)
             {
@@ -59,7 +59,7 @@ namespace SphereSSLv2.Models.DNSModels
 
 
 
-                    zoneID = await CloudflareHelper.AddOrUpdateDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange);
+                    zoneID = await CloudflareHelper.AddOrUpdateDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                     break;
 
                 //case ProviderType.DigitalOcean:

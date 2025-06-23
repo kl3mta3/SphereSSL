@@ -2,6 +2,99 @@
 @model SphereSSLv2.Pages.SettingsModel
 @{
     ViewData["Title"] = "Settings";
+    }
+
+@{
+    bool isSuperadmin = Model.CurrentUser.Role == "Superadmin";
+    bool isAdmin = Model.CurrentUser.IsAdmin || isSuperadmin;
+}
+
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-grow-1">
+        <div class="flex-grow-1 ">
+            <div class="container text-center ">
+
+                <div class="container-fluid px-4">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
+                            <h3 class="title text-center mb-3">Settings</h3>
+                            <div class="card shadow-sm p-4">
+
+                                <!-- Tabs Navigation -->
+                                <ul class="nav nav-tabs mb-4" id="settingsTab" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="cert-tab" data-bs-toggle="tab" data-bs-target="#cert" type="button" role="tab" aria-controls="cert" aria-selected="true">Cert</button>
+                                    </li>
+
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="dns-tab" data-bs-toggle="tab" data-bs-target="#dns" type="button" role="tab" aria-controls="dns" aria-selected="false">DNS </button>
+                                    </li>
+
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="device-tab" data-bs-toggle="tab" data-bs-target="#device" type="button" role="tab" aria-controls="device" aria-selected="false">Device </button>
+                                    </li>
+
+                                    @if (isAdmin)
+                                    {
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="logon-tab" data-bs-toggle="tab" data-bs-target="#logon" type="button" role="tab" aria-controls="logon" aria-selected="false">Log On </button>
+                                        </li>
+                                    }
+                                </ul>
+
+                                <!-- Tab Content -->
+                                <div class="tab-content" id="settingsTabContent">
+                                    <div class="tab-pane fade show active" id="cert" role="tabpanel" aria-labelledby="cert-tab">
+                                        <!-- Section 1 Content Here -->
+                                    </div>
+
+                                    <!-- Device Settings Content Here -->
+                                    <div class="tab-pane fade" id="dns" role="tabpanel" aria-labelledby=dns-tab">
+
+
+
+                                    </div>
+
+                                        <!-- Device Settings Content Here -->
+                                    <div class="tab-pane fade" id="device" role="tabpanel" aria-labelledby="device-tab">
+
+
+
+                                    </div>
+
+
+
+                                            <!-- Log On Settings Content Here -->
+                                    @if (isAdmin)
+                                    {
+                                        <div class="tab-pane fade" id="logon" role="tabpanel" aria-labelledby="logon-tab">
+                                            @if (isSuperadmin)
+                                            {
+
+                                                <!--Show toggle-->
+                                                <!-- Show adminUsername and password inputs here for superadmin -->
+
+
+
+
+
+                                            }
+                                            <!-- Show list of users, add/edit/delete buttons, etc. -->
+                                        </div>
+                                    }
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
 
 
 

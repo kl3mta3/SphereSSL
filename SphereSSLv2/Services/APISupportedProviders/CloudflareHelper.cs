@@ -4,6 +4,7 @@ using System.DirectoryServices.ActiveDirectory;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace SphereSSLv2.Services.APISupportedProviders
 {
@@ -107,7 +108,7 @@ namespace SphereSSLv2.Services.APISupportedProviders
             return null;
         }
 
-        public static async Task<string> AddOrUpdateDNSRecord(Logger _logger, string domain, string apiToken, string content)
+        public static async Task<string> AddOrUpdateDNSRecord(Logger _logger, string domain, string apiToken, string content, string username)
         {
             string zoneId = await GetZoneId(_logger, apiToken, domain);
             if (string.IsNullOrEmpty(zoneId)) return String.Empty;
@@ -126,7 +127,7 @@ namespace SphereSSLv2.Services.APISupportedProviders
             {
                
                 
-                await UpdateDNSRecord(_logger, domain, apiToken, content);
+                await UpdateDNSRecord(_logger, domain, apiToken, content, username);
                 return zoneId;
             }
         }
@@ -174,9 +175,7 @@ namespace SphereSSLv2.Services.APISupportedProviders
             }
         }
 
-        private static async Task<bool> UpdateDNSRecord(Logger _logger, string domain, string apiToken, string content)
-
-
+        private static async Task<bool> UpdateDNSRecord(Logger _logger, string domain, string apiToken, string content, string username)
         {
             int ttl = 120;
             bool proxied = false;
@@ -216,12 +215,12 @@ namespace SphereSSLv2.Services.APISupportedProviders
             }
             else
             {
-                _= _logger.Debug($"Failed to update DNS record:\n{response.StatusCode}\n{responseText}");
+                _= _logger.Debug($"[{username}]: Failed to update DNS record:\n{response.StatusCode}\n{responseText}");
                 return false;
             }
         }
 
-        public  async Task<bool> DeleteDNSRecord(Logger _logger, string apiToken, string domain)
+        public  async Task<bool> DeleteDNSRecord(Logger _logger, string apiToken, string domain, string username)
         {
             string zoneId = await GetZoneId(_logger, apiToken, domain);
             if (string.IsNullOrEmpty(zoneId))
@@ -246,12 +245,12 @@ namespace SphereSSLv2.Services.APISupportedProviders
 
             if (response.IsSuccessStatusCode)
             {
-                _= _logger.Info("DNS record deleted successfully.");
+                _= _logger.Info($"[{username}]: DNS record deleted successfully.");
                 return true;
             }
             else
             {
-                _= _logger.Debug($"Failed to delete DNS record:\n{response.StatusCode}\n{responseText}");
+                _= _logger.Debug($"[{username}]: Failed to delete DNS record:\n{response.StatusCode}\n{responseText}");
                 return false;
             }
         }

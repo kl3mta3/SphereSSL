@@ -148,7 +148,7 @@ namespace SphereSSLv2.Services.AcmeServices
             _order = new OrderDetails();
             _domain = "";
 
-            Console.WriteLine($"Creating account for {email} with Request domain {requestDomain}...");
+
 
             if (string.IsNullOrWhiteSpace(requestDomain))
             {
@@ -160,7 +160,7 @@ namespace SphereSSLv2.Services.AcmeServices
 
             try
             {
-                Console.WriteLine($"Initilize account for email {email}...");
+
                 var account = await InitAsync(email);
                 if (!account)
                 {
@@ -180,9 +180,9 @@ namespace SphereSSLv2.Services.AcmeServices
 
             try
             {
-                Console.WriteLine($"Begin Order for _domain {_domain}...");
+
                 _order = await BeginOrder(_domain);
-                Console.WriteLine($"End Order with OrderURL of  {_order.OrderUrl}...");
+
 
                 if (_order.Payload.Status == "invalid")
                 {
@@ -198,17 +198,16 @@ namespace SphereSSLv2.Services.AcmeServices
                 return (null, null);
             }
 
-            Console.WriteLine($"Get token for challemge {_order.OrderUrl}...");
+
 
             var (domain, dnsValue) = await GetDnsChallengeToken(_order);
 
-            Console.WriteLine($"Challenge token for domain {domain} is {dnsValue}...");
 
             return (dnsValue, domain);
         }
 
        
-        internal  async Task<bool> ProcessCertificateGeneration( bool useSeperateFiles, string savePath, string dnsChallengeToken, string domain)
+        internal  async Task<bool> ProcessCertificateGeneration( bool useSeperateFiles, string savePath, string dnsChallengeToken, string domain, string username)
         {
 
             
@@ -226,9 +225,9 @@ namespace SphereSSLv2.Services.AcmeServices
             var authz = await _client.GetAuthorizationDetailsAsync(authUrl);
             var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
 
-            _= _logger.Info($"Domain: {authz.Identifier.Value}");
-            _= _logger.Info($"Challenge URL: {dnsChallenge.Url}");
-            _= _logger.Info($"Challenge status: {dnsChallenge.Status}");
+            _= _logger.Info($"[{username}]: Domain: {authz.Identifier.Value}");
+            _= _logger.Info($"[{username}]: Challenge URL: {dnsChallenge.Url}");
+            _= _logger.Info($"[{username}]: Challenge status: {dnsChallenge.Status}");
 
             // Only submit challenge if it's pending
             if (dnsChallenge.Status == "pending")
@@ -242,11 +241,11 @@ namespace SphereSSLv2.Services.AcmeServices
 
                 await _client.GetNonceAsync();
                 await _client.AnswerChallengeAsync(dnsChallenge.Url);
-                _= _logger.Info("Challenge submitted, waiting for validation...");
+                _= _logger.Info("[{username}]: Challenge submitted, waiting for validation...");
             }
             else
             {
-                _= _logger.Info($"Challenge already in status: {dnsChallenge.Status}");
+                _= _logger.Info($"[{username}]: Challenge already in status: {dnsChallenge.Status}");
               
             }
 
@@ -261,13 +260,13 @@ namespace SphereSSLv2.Services.AcmeServices
                     var updatedAuthz = await _client.GetAuthorizationDetailsAsync(authUrl);
                     var updatedChallenge = updatedAuthz.Challenges.First(c => c.Type == "dns-01");
 
-                    _ = _logger.Info("Polling ACME challenge validation status...");
-                    _ = _logger.Debug($"Polling attempt {i + 1}: Challenge = {updatedChallenge.Status}, Authz = {updatedAuthz.Status}");
+                    _ = _logger.Info($"[{username}]: Polling ACME challenge validation status...");
+                    _ = _logger.Debug($"[{username}]: Polling attempt {i + 1}: Challenge = {updatedChallenge.Status}, Authz = {updatedAuthz.Status}");
 
                     if (updatedAuthz.Status == "valid" && updatedChallenge.Status == "valid")
                     {
                         challengeValid = true;
-                        _= _logger.Info("Challenge validated successfully!");
+                        _= _logger.Info($"[{username}]: Challenge validated successfully!");
 
                         break;
                     }
@@ -287,18 +286,18 @@ namespace SphereSSLv2.Services.AcmeServices
 
                     if (updatedAuthz.Status == "pending" || updatedChallenge.Status == "pending")
                     {
-                        _= _logger.Info("Still pending, waiting 5 seconds...");
+                        _= _logger.Info($"[{username}]: Still pending, waiting 5 seconds...");
                         await Task.Delay(5000);
                         continue;
                     }
 
                     // Handle other statuses
-                    _= _logger.Info($"Unexpected status - Auth: {updatedAuthz.Status}, Challenge: {updatedChallenge.Status}");
+                    _= _logger.Info($"[{username}]: Unexpected status - Auth: {updatedAuthz.Status}, Challenge: {updatedChallenge.Status}");
                     await Task.Delay(5000);
                 }
                 catch (Exception ex)
                 {
-                    _= _logger.Info($"Error during polling attempt {i + 1}: {ex.Message}");
+                    _= _logger.Info($"[{username}]: Error during polling attempt {i + 1}: {ex.Message}");
                     if (i == maxPollingAttempts - 1) throw; // Re-throw on last attempt
                     await Task.Delay(5000);
                 }
@@ -310,13 +309,13 @@ namespace SphereSSLv2.Services.AcmeServices
                
             }
 
-            _ = _logger.Info("Finalizing certificate order...");
+            _ = _logger.Info($"[{username}]: Finalizing certificate order...");
 
             // Finalize the order
             await _client.FinalizeOrderAsync(_order.Payload.Finalize, csr);
 
             // Wait for certificate to be ready
-            _= _logger.Info("Waiting for certificate to be issued...");
+            _= _logger.Info($"[{username}]: Waiting for certificate to be issued...");
 
             OrderDetails finalizedOrder;
             int certWaitAttempts = 0;
@@ -326,7 +325,7 @@ namespace SphereSSLv2.Services.AcmeServices
             {
                 await Task.Delay(3000);
                 finalizedOrder = await _client.GetOrderDetailsAsync(_order.OrderUrl);
-                _= _logger.Info($"Certificate status: {finalizedOrder.Payload.Status}");
+                _= _logger.Info($"[{username}]: Certificate status: {finalizedOrder.Payload.Status}");
 
                 certWaitAttempts++;
                 if (certWaitAttempts >= maxCertWaitAttempts)
@@ -338,7 +337,7 @@ namespace SphereSSLv2.Services.AcmeServices
 
             if (finalizedOrder.Payload.Status != "valid")
             {
-                throw new Exception($"Certificate order failed with status: {finalizedOrder.Payload.Status}");
+                throw new Exception($"[{username}]: Certificate order failed with status: {finalizedOrder.Payload.Status}");
                 
             }
 
@@ -350,17 +349,17 @@ namespace SphereSSLv2.Services.AcmeServices
                 
             }
 
-            _= _logger.Info("Downloading certificate...");
+            _= _logger.Info($"[{username}]: Downloading certificate...");
             using var http = new HttpClient();
             var certPem = await http.GetStringAsync(certUrl);
 
-            await DownloadCertificateAsync(useSeperateFiles,  savePath, certPem, key.ToPem());
+            await DownloadCertificateAsync(useSeperateFiles,  savePath, certPem, key.ToPem(), username);
 
-            _= _logger.Info("SSL Certificate successfully generated and downloaded!");
+            _= _logger.Info($"[{username}]: SSL Certificate successfully generated and downloaded!");
             return true;
         }
 
-        internal async Task<bool> CheckTXTRecordMultipleDNS(string dnsChallengeToken, string domain)
+        internal async Task<bool> CheckTXTRecordMultipleDNS(string dnsChallengeToken, string domain, string username)
         {
             string fullRecordName = $"{domain}";
 
@@ -378,7 +377,7 @@ namespace SphereSSLv2.Services.AcmeServices
                 try
                 {
                     var lookup = new LookupClient(dnsServer);
-                    _= _logger.Info($"Checking DNS server {dnsServer} for TXT record at {fullRecordName}");
+                    _= _logger.Info($"[{username}]: Checking DNS server {dnsServer} for TXT record at {fullRecordName}");
 
                     var result = await lookup.QueryAsync(fullRecordName, QueryType.TXT);
                     var txtRecords = result.Answers.TxtRecords();
@@ -387,10 +386,10 @@ namespace SphereSSLv2.Services.AcmeServices
                     {
                         foreach (var txt in record.Text)
                         {
-                            _= _logger.Info($"Found TXT record: {txt}");
+                            _= _logger.Info($"[{username}]: Found TXT record: {txt}");
                             if (txt.Trim('"') == dnsChallengeToken.Trim('"'))
                             {
-                                _= _logger.Info($"Match found on DNS server {dnsServer}!");
+                                _= _logger.Info($"[{username}]: Match found on DNS server {dnsServer}!");
                                 return true;
                             }
                         }
@@ -398,7 +397,7 @@ namespace SphereSSLv2.Services.AcmeServices
                 }
                 catch (Exception ex)
                 {
-                    await _logger.Info($"DNS server {dnsServer} failed: {ex.Message}");
+                    await _logger.Info($"[{username}]: DNS server {dnsServer} failed: {ex.Message}");
                     continue; // Try next DNS server
                 }
             }
@@ -422,15 +421,15 @@ namespace SphereSSLv2.Services.AcmeServices
             }
         }
 
-        private async Task DownloadCertificateAsync(bool useSeperateFiles, string savePath, string certPem, string keyPem)
+        private async Task DownloadCertificateAsync(bool useSeperateFiles, string savePath, string certPem, string keyPem, string username)
         {
     
-            _= _logger.Info($"Getting ready for Download  Path:{savePath}!");
+            _= _logger.Info($"[{username}]: Getting ready for Download  Path:{savePath}!");
 
 
             if (Path.GetPathRoot(savePath)?.TrimEnd('\\') == savePath.TrimEnd('\\'))
             {
-                _= _logger.Error("Cannot save directly to the root of a drive. Please choose a subfolder.");
+                _= _logger.Error($"[{username}]: Cannot save directly to the root of a drive. Please choose a subfolder.");
                 return;
             }
 
@@ -461,7 +460,7 @@ namespace SphereSSLv2.Services.AcmeServices
 
                     string combinedPath = Path.Combine(savePath, $"{prefix}.pem");
                     File.WriteAllText(combinedPath, certPem + "\n" + keyPem);
-                    _ = _logger.Info($"Saved combined PEM: {combinedPath}");
+                    _ = _logger.Info($"[{username}]: Saved combined PEM: {combinedPath}");
                     certFile = certPem + "\n" + keyPem;
                 }
                 else if (useSeperateFiles)
@@ -470,8 +469,8 @@ namespace SphereSSLv2.Services.AcmeServices
                     string keyPath = Path.Combine(savePath, $"{prefix}.key");
                     File.WriteAllText(certPath, certPem);
                     File.WriteAllText(keyPath, keyPem);
-                    _= _logger.Info($"Saved certificate: {certPath}");
-                    _ = _logger.Info($"Saved private key: {keyPath}");
+                    _= _logger.Info($"[{username}]: Saved certificate: {certPath}");
+                    _ = _logger.Info($"[{username}]: Saved private key: {keyPath}");
                     certFile = certPem ;
                     keyFile = keyPem;
                 }
@@ -479,7 +478,7 @@ namespace SphereSSLv2.Services.AcmeServices
             }
             catch (Exception ex)
             {
-                _ = _logger.Error($"Error saving files: {ex.Message}");
+                _ = _logger.Error($"[{username}]: Error saving files: {ex.Message}");
             }
 
             await Task.Delay(500);

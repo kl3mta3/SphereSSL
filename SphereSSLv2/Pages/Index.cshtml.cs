@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.VisualBasic.ApplicationServices;
 using Newtonsoft.Json;
+using SphereSSLv2.Data;
 using SphereSSLv2.Data.Database;
 using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Services.Config;
@@ -29,8 +31,34 @@ namespace SphereSSLv2.Pages
         [BindProperty]
         public string Password { get; set; } = "";
 
-        public IActionResult OnGet()
+        public async Task<IActionResult> OnGet()
         {
+
+            var random = new Random();
+            ViewData["TitleTag"] = SphereSSLTaglines.TaglineArray[random.Next(SphereSSLTaglines.TaglineArray.Length)];
+
+
+            if (!ConfigureService.UseLogOn)
+            {
+                // Auto-login logic: fetch admin or default user, set session, then redirect
+                string username = ConfigureService.Username ?? "Masterlocke";
+                var user = await _userRepository.GetUserByUsernameAsync(username);
+                if (user != null)
+                {
+                    var role = await _userRepository.GetUserRoleByIdAsync(user.UserId);
+                    var sessionUser = new UserSession
+                    {
+                        UserId = user.UserId,
+                        Username = user.Username,
+                        DisplayName = user.Name,
+                        Role = role?.Role ?? "User",
+                        IsEnabled = role?.IsEnabled ?? false,
+                        IsAdmin = role?.IsAdmin ?? false,
+                    };
+                    HttpContext.Session.SetString("UserSession", JsonConvert.SerializeObject(sessionUser));
+                    return RedirectToPage("/Dashboard");
+                }
+            }
             return Page();
 
         }
@@ -41,19 +69,13 @@ namespace SphereSSLv2.Pages
             if (string.IsNullOrEmpty(targetUsername))
                 targetUsername = "Masterlocke";
 
-            if (!ConfigureService.UseLogOn)
+            if (ConfigureService.UseLogOn)
             {
-                if (!await SetSessionForUser(targetUsername))
-                    return RedirectToPage("/Index");
-
-                HttpContext.Session.SetString("IsLoggedIn", "true");
-                return RedirectToPage("/Dashboard");
-            }
-            else
-            {
+          
                 HttpContext.Session.SetString("Username", Username);
 
                 var user = await _userRepository.GetUserByUsernameAsync(Username);
+
                 if (user == null)
                 {
                     ModelState.AddModelError(string.Empty, "Invalid Username or Password.");
@@ -67,7 +89,6 @@ namespace SphereSSLv2.Pages
                     return Page();
                 }
 
-                var role = await _userRepository.GetUserRoleByIdAsync(user.UserId);
                 string prehashedPass = Convert.ToBase64String(SHA512.HashData(Encoding.UTF8.GetBytes(Password)));
 
                 if (!PasswordService.VerifyPassword(prehashedPass, user.PasswordHash))
@@ -76,33 +97,42 @@ namespace SphereSSLv2.Pages
                     return Page();
                 }
 
-                HttpContext.Session.SetString("IsLoggedIn", "true");
+                var role = await _userRepository.GetUserRoleByIdAsync(user.UserId);
                 var sessionUser = new UserSession
                 {
                     UserId = user.UserId,
                     Username = user.Username,
                     DisplayName = user.Name,
-                    Role = role?.Role ?? "User"
+                    Role = role?.Role ?? "User",
+                    IsEnabled = role?.IsEnabled ?? false,
+                    IsAdmin = role?.IsAdmin ?? false,
+
                 };
                 HttpContext.Session.SetString("UserSession", JsonConvert.SerializeObject(sessionUser));
 
                 return RedirectToPage("/Dashboard");
             }
-
+            return Page();
         }
 
         private async Task<bool> SetSessionForUser(string username)
         {
             var user = await _userRepository.GetUserByUsernameAsync(username);
+
             if (user == null) return false;
+
             var role = await _userRepository.GetUserRoleByIdAsync(user.UserId);
+
             var sessionUser = new UserSession
             {
                 UserId = user.UserId,
                 Username = user.Username,
                 DisplayName = user.Name,
-                Role = role?.Role ?? "User"
+                Role = role?.Role ?? "User",
+                IsEnabled = role?.IsEnabled ?? false,
+                IsAdmin = role?.IsAdmin ?? false,
             };
+
             HttpContext.Session.SetString("UserSession", JsonConvert.SerializeObject(sessionUser));
             return true;
         }

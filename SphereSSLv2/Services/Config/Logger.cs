@@ -3,6 +3,9 @@ using SphereSSLv2.Models;
 using SphereSSLv2.Data;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using SphereSSLv2.Data.Database;
+using System.Text.RegularExpressions;
+using SphereSSLv2.Models.ConfigModels;
 
 namespace SphereSSLv2.Services.Config
 {
@@ -20,13 +23,14 @@ namespace SphereSSLv2.Services.Config
             _hubContext = hubContext;
         }
 
-
+        private LogRepository _logRepository
+            ;
         internal static readonly string LogFilePath = Path.Combine(AppContext.BaseDirectory, "log.txt");
 
         public async Task Info(string message)
         {
             await Log("INFO", message);
-           
+
         }
 
         public async Task Error(string message)
@@ -50,22 +54,38 @@ namespace SphereSSLv2.Services.Config
         {
             var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
 
-            lock (InMemoryLog)
+            var username = ExtractUsername(message);
+
+            LogEntry logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                AlertLevel = level,
+                Message = message,
+                Username = username
+            };
+
+            if (ConfigureService.IsSetup)
+            {
+                await LogRepository.InsertLog(logEntry);
+            }
+
+                lock (InMemoryLog)
             {
                 InMemoryLog.Add(entry);
                 if (InMemoryLog.Count > 100)
-                    InMemoryLog.RemoveAt(0); 
+                    InMemoryLog.RemoveAt(0);
             }
 
             try
             {
-               
+
                 File.AppendAllText(LogFilePath, entry + Environment.NewLine);
 
                 if (level == "UPDATE")
                 {
                     await _hubContext.Clients.All.SendAsync("UpdateLog", $"{entry}");
 
+                  
 
                 }
 
@@ -73,19 +93,19 @@ namespace SphereSSLv2.Services.Config
                 {
                     await _hubContext.Clients.All.SendAsync("ErrorLog", $"{entry}");
                     if (HasConsole())
-                    Console.WriteLine(entry);
+                        Console.WriteLine(entry);
 
                 }
                 if (level == "INFO")
                 {
                     await _hubContext.Clients.All.SendAsync("InfoLog", $"{entry}");
-                 
+
                 }
                 if (level == "Debug" && HasConsole())
                 {
                     await _hubContext.Clients.All.SendAsync("DebugLog", $"{entry}");
                     if (HasConsole())
-                    Console.WriteLine(entry);
+                        Console.WriteLine(entry);
                 }
 
             }
@@ -96,7 +116,7 @@ namespace SphereSSLv2.Services.Config
 
                     await _hubContext.Clients.All.SendAsync("ErrorLog", $"[LOGGER ERROR] Failed to write to log file: {ex.Message}");
                     if (HasConsole())
-                    Console.WriteLine($"Failed to log message: {ex.Message}");
+                        Console.WriteLine($"Failed to log message: {ex.Message}");
                 }
                 catch
                 {
@@ -109,7 +129,7 @@ namespace SphereSSLv2.Services.Config
         {
             try
             {
-               
+
                 return Console.OpenStandardOutput(1) != Stream.Null;
             }
             catch
@@ -117,6 +137,15 @@ namespace SphereSSLv2.Services.Config
                 return false;
             }
         }
+
+        private string ExtractUsername(string message)
+        {
+            // Message format: [username]:rest of message
+            // Regex to grab anything between the first [ and ] before the colon
+            var match = Regex.Match(message, @"^\[(.*?)\]:");
+            return match.Success ? match.Groups[1].Value : "Unknown";
+        }
+
     }
 
 

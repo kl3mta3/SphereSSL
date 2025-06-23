@@ -36,7 +36,12 @@ namespace SphereSSLv2.Services.Config
 
             builder.Services.AddHostedService<ExpiryWatcherService>();
             builder.Services.AddSingleton<DatabaseManager>();
-           
+            builder.Services.AddScoped<UserRepository>();
+            builder.Services.AddScoped<HealthRepository>();
+            builder.Services.AddScoped<CertRepository>();
+            builder.Services.AddScoped<DnsProviderRepository>();
+            builder.Services.AddScoped<ApiRepository>();
+
             // CORS Policy
             builder.Services.AddCors(options =>
             {
@@ -89,8 +94,6 @@ namespace SphereSSLv2.Services.Config
             {
                 var remoteIp = context.Connection.RemoteIpAddress?.ToString();
                 
-
-
                 if (string.IsNullOrWhiteSpace(remoteIp) ||
                     !remoteIp.StartsWith("10.") &&
                      !remoteIp.StartsWith("192.168.") &&
@@ -130,7 +133,7 @@ namespace SphereSSLv2.Services.Config
            
             await InitilizeDatabase();
             await StartTrayApp();
-        
+          
         }
 
         private static async Task StartTrayApp()
@@ -171,17 +174,15 @@ namespace SphereSSLv2.Services.Config
 
         private static async Task InitilizeDatabase()
         {
+     
             var now = DateTime.UtcNow;
 
             await DatabaseManager.Initialize();
             await HealthRepository.RecalculateHealthStats();
 
-            //ConfigureService.DNSProviders = await DnsProviderRepository.GetAllDNSProviders();
-            //ConfigureService.CertRecords = await DatabaseManager.GetAllCertRecords();
-
-
             //for testing (remove later)
-            if (!ConfigureService.CertRecords.Any() && ConfigureService.GenerateFakeTestCerts)
+            int dbSize = await HealthRepository.GetTotalCertsInDB();
+            if (dbSize==0 && ConfigureService.GenerateFakeTestCerts)
             {
 
                 await TestingTools.GenerateFakeCertRecords();
@@ -196,7 +197,7 @@ namespace SphereSSLv2.Services.Config
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
             }
 
-
+       
         }
 
     }

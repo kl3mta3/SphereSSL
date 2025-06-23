@@ -165,7 +165,7 @@ namespace SphereSSLv2.Data.Database
             await connection.OpenAsync();
 
             var command = connection.CreateCommand();
-            command.CommandText = "SELECT TotalCertsInDB FROM Health WHERE Id = 1";
+            command.CommandText = "SELECT COUNT(*) FROM CertRecords";
 
             var result = await command.ExecuteScalarAsync();
             return result is DBNull or null ? 0 : Convert.ToInt32(result);

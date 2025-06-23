@@ -41,7 +41,7 @@ namespace SphereSSLv2.Services.Config
         internal static List<CertRecord> ExpiringSoonCertRecords = new List<CertRecord>();
         internal static List<CertRecord> CertRecords = new List<CertRecord>();
         internal static List<DNSProvider> DNSProviders = new List<DNSProvider>();
-
+        internal static bool IsSetup = false;
         private readonly Logger _logger;
 
         public ConfigureService(Logger logger)
@@ -63,7 +63,7 @@ namespace SphereSSLv2.Services.Config
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to kill tray app: {ex.Message}");
+                    throw new InvalidOperationException($"Failed to kill TrayAppProcess: {ex.Message}");
                 }
             }
         }
@@ -112,14 +112,11 @@ namespace SphereSSLv2.Services.Config
                 }
                 else if(storedConfig.UseLogOn == "true")
                 {
-
-                   UseLogOn = true;
-
+                    UseLogOn = true;
                 }
                 else
                 {
                     UseLogOn = false; 
-
                 }
 
                 Username = storedConfig.AdminUsername ?? string.Empty;

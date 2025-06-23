@@ -212,6 +212,25 @@
     margin-top: 10px;
     margin-left: 30px;
 }
+.minititleText {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    width: 50%;
+    margin-top: 40px;
+    margin-right: -5px;
+}
+
+.minititleTag {
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    width: 50%;
+    margin-bottom: 00px;
+    margin-left: 90px;
+}
 
 .titleIndex {
     margin: 0 auto;
@@ -225,7 +244,7 @@
 
 .footer-text {
     position: absolute;
-    bottom: -7px;
+    bottom: 10px;
     width: 100%;
     text-align: center;
     color: white;
@@ -259,7 +278,13 @@
     align-items: center;
    
 }
-
+.left-footer{
+    flex: 1;
+    display: flex;
+    margin-top: 0px;
+    justify-content:left;
+    align-items: start;
+}
 
 .log-line.update {
     color: limegreen;

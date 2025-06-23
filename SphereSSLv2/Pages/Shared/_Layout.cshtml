@@ -22,12 +22,13 @@
                     <span>Sphere</span>
                     <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo" />
                 </h2>
+                <div><p class="minititleText">@ViewData["Title"]</p></div>
             </div>
 
 
-            <div class="center-title">
-                <h1 class="titleText">@ViewData["Title"]</h1>
-            </div>
+@*             <div class="center-title">
+                <h1 class="minititleTag">@ViewData["TitleTag"]</h1>
+            </div> *@
 
            
             <div class="top-bar-icons">
@@ -38,9 +39,9 @@
                 <a href="/Settings" class="settings-link">
                     <i class="bi bi-gear-fill settings-icon"></i>
                 </a>
+
             </div>
         </div>
-
         <div class="sidebar-box">
             <nav class="sidebar-nav">
                 <a asp-page="/Dashboard" class="sidebar-link">
@@ -65,27 +66,39 @@
                     <span class="sidebar-text">Settings</span>
                 </a>
             </nav>
+
+
+
         </div>
+
 
         <div class="inner-box ">
             @RenderBody()
         </div>
 
+            <footer class="footer-text">
+@*                      <div class="left-footer">
+                        <h1 class="minititleTag">@ViewData["TitleTag"]</h1>
+                    </div> *@
+                <div class="row align-items-center">
 
-        <footer class="footer-text">
-            <div class="footer-title">
-                <h2 class="titleFooter mb-0 d-flex align-items-center justify-content-center">
-                    <span>Sphere</span>
-                    <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo-footer" />
-                </h2>
-            </div>
-            <p>©2025– Kenneth Lasyone</p>
-        </footer>
+                        <div class="footer-title">
+                            <h2 class="titleFooter mb-0 d-flex align-items-center justify-content-center">
+                                <span>Sphere</span>
+                                <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo-footer" />
+                            </h2>
+                        </div>
+                        <p>©2025– Kenneth Lasyone</p>
+                
+                </div>
+            </footer>
+
 
 
     </div>
 
 </body>
+
 </html>
 
 <!-- Power Confirmation Modal -->
@@ -145,8 +158,8 @@
                     </button>
                 </div>
 
-                <div id="downloadButtons" style="display: none;" gap-2">
-                    <span class="me-2 text-success fw-semibold">Certificate saved! Download a copy?</span>
+                <div id="multiDownloadButtons" style="display: none;" gap-2">
+                    <span class="me-2 text-success fw-semibold">Certificates saved! Download copies?</span>
                     <a href="@Url.Page("Dashboard", "DownloadCertKey", new { savePath = "Temp" })" class="btn btn-primary">Download KEY</a>
                     <a href="@Url.Page("Dashboard", "DownloadCertCrt", new { savePath = "Temp" })" class="btn btn-primary">Download CRT</a>
 
@@ -177,7 +190,6 @@
         </div>
     </div>
 </div>
-
 
 
 <!-- CSS styles-->
@@ -243,81 +255,6 @@
 </script>
 
 
-<!-- starting Signal listener -->
-<script>
-    console.log("Starting Signal listener:");
-    const connection = new signalR.HubConnectionBuilder()
-        .withUrl("/logHub")
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
-
-    connection.on("UpdateLog", msg => {
-         console.log("Received UpdateLog:", msg)
-        appendToLog(msg, "update");
-
-
-          if (msg.includes("Certificate stored successfully!")) {
-            certDownloadReady = true;
-            console.log("Certificate download ready:", certDownloadReady);
-            tryShowDownloadButton(); 
-        }
-
-
-        if (msg.includes("Certificates stored successfully!")) {
-            certDownloadsReady = true;
-             console.log("Certificates download ready:", certDownloadsReady);
-            tryShowDownloadButtons(); 
-        }
-
-    });
-
-    connection.on("InfoLog", msg => {
-        console.log("Received InfoLog:", msg);
-        appendToLog(msg, "info");
-
-
-    });
-
-    connection.on("DebugLog", msg => {
-        console.debug("Received DebugLog:", msg);
-        appendToLog(msg, "debug");
-    });
-
-    connection.start()
-        .then(() => {
-            console.log("SignalR connection successfully established!");
-        })
-        .catch(err => {
-            console.error("SignalR connection failed: ", err);
-        });
-        window.signalHub = connection;
-
-</script>
-
-
-<!-- append Signal Log -->
-<script>
-    function appendToLog(text, level) {
-          console.log("Signal Line Heard:");
-        const logLine = document.createElement("div");
-        logLine.textContent = text;
-        logLine.className = `log-line ${level}`;
-
-        const container = document.getElementById("signalLogOutput");
-
-        if (!container) {
-            setTimeout(() => appendToLog(text, level), 100); // Try again
-            return;
-        }
-
-        container.appendChild(logLine);
-        container.scrollTop = container.scrollHeight;
-
-        console.log("Appending log to:", container); 
-    }
-</script>
-
-
 <!-- Toggle Single File Download Button -->
 <script>
     let certDownloadReady = false;
@@ -350,8 +287,6 @@
         subtree: true
     });
 
-
-
 </script>
 
 
@@ -360,11 +295,11 @@
     let certDownloadsReady = false;
 
     function tryShowDownloadButtons() {
-        const downloadSections = document.getElementById("downloadButtons");
+        const downloadSections = document.getElementById("multiDownloadButtons");
         if (certDownloadsReady && downloadSections) {
-            downloadSection.style.display = "block";
+            downloadSections.style.display = "block"; // <-- fixed!
 
-             const overlay = document.getElementById("waitingModalOverlay");
+            const overlay = document.getElementById("waitingModalOverlay");
             if (overlay) overlay.remove();
 
             const startButton = document.getElementById("startButton");
@@ -376,13 +311,13 @@
     }
 
     // DOM listener
-    const observer = new MutationObserver(() => {
+    const observer2 = new MutationObserver(() => {
         if (certDownloadsReady) {
             tryShowDownloadButtons();
         }
     });
 
-    observer.observe(document.body, {
+    observer2.observe(document.body, {
         childList: true,
         subtree: true
     });

@@ -28,6 +28,7 @@ namespace SphereSSLv2.Testing
                 string fakeProvider = SupportedAutoProviders[Random.Shared.Next(SupportedAutoProviders.Count)];
                 var cert = new CertRecord
                 {
+                    UserId = $"{i}{i}{i}{i}{i}{i}{i}{i}{i}{i}{i}{i}",
                     OrderId = AcmeService.GenerateCertRequestId(),
                     Domain = $"test{i}.example.com",
                     Email = $"user{i}@example.com",

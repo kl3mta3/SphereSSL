@@ -34,9 +34,9 @@ namespace SphereSSLv2.Pages
     {
         private readonly ILogger<DashboardModel> _Ilogger;
 
-        public List<CertRecord> CertRecords = ConfigureService.CertRecords;
-        public List<CertRecord> ExpiringSoonRecords = ConfigureService.ExpiringSoonCertRecords;
-        public List<DNSProvider> DNSProviders = ConfigureService.DNSProviders;
+        public List<CertRecord> CertRecords = new();
+        public List<CertRecord> ExpiringSoonRecords = new();
+        public List<DNSProvider> DNSProviders= new();
         public List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
             .Cast<DNSProvider.ProviderType>()
             .Select(p => p.ToString())
@@ -52,7 +52,7 @@ namespace SphereSSLv2.Pages
         private readonly ConfigureService _spheressl;
         public static Dictionary<string, AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
 
-        public UserSession CurrentUser;
+        public UserSession CurrentUser = new();
 
         public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, ConfigureService spheressl, DatabaseManager database, CertRepository certRepository, DnsProviderRepository dnsProviderRepository, UserRepository userRepository )
         {
@@ -67,22 +67,16 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnGet()
         {
-            //if not logged in return
-            if (ConfigureService.UseLogOn)
-            {
-                var loggedIn = HttpContext.Session.GetString("IsLoggedIn");
+            var random = new Random();
+            ViewData["TitleTag"] = SphereSSLTaglines.TaglineArray[random.Next(SphereSSLTaglines.TaglineArray.Length)];
 
-                if (loggedIn != "true")
-                {
-                    return RedirectToPage("/Index");
-                }
-            }
 
             var sessionData = HttpContext.Session.GetString("UserSession");
-
+            
+            //if not logged in return
             if (sessionData == null)
             {
-                return RedirectToPage("/Index");
+              return RedirectToPage("/Index");
             }
 
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
@@ -92,33 +86,28 @@ namespace SphereSSLv2.Pages
                 return RedirectToPage("/Index");
             }
 
-            UserRole? role = await _userRepository.GetUserRoleByIdAsync(CurrentUser.UserId);
 
-            if (!role.IsEnabled || role == null) //if role is null or user not enabled, redirect to index
+            else if (CurrentUser.IsEnabled && CurrentUser.IsAdmin) // if user is admin get all certs 
             {
-                return RedirectToPage("/Index");
-
-            }
-            else if (role.IsEnabled && role.IsAdmin) // if user is admin get all certs 
-            {
+                var now = DateTime.UtcNow;
                 CertRecords = await CertRepository.GetAllCertRecords();
-                ExpiringSoonRecords = await _certRepository.GetAllExpiredCertsAsync();
+                ExpiringSoonRecords = CertRecords
+                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await DnsProviderRepository.GetAllDNSProviders();
 
             }
-            else if (role.IsEnabled && !role.IsAdmin) // if not admin get only the user's certs. 
+            else if (CurrentUser.IsEnabled && !CurrentUser.IsAdmin) // if not admin get only the user's certs. 
             {
-
+                var now = DateTime.UtcNow;
                 CertRecords = await _certRepository.GetAllCertsForUserAsync(CurrentUser.UserId);
-                ExpiringSoonRecords = await _certRepository.GetExpiredCertsByUserIdAsync(CurrentUser.UserId);
+                ExpiringSoonRecords = CertRecords
+                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await DnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
             }
 
             return Page();
         }
     
-        
-
         public async Task<IActionResult> OnPostQuickCreate([FromBody] QuickCreateRequest request)
         {
            
@@ -132,6 +121,16 @@ namespace SphereSSLv2.Pages
                     await _logger.Error("QuickCreateRequest was null.");
                     return BadRequest("Invalid request payload.");
                 }
+
+                var sessionData = HttpContext.Session.GetString("UserSession");
+                if (string.IsNullOrEmpty(sessionData))
+                    return RedirectToPage("/Index"); // or return an error
+
+                CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+                if (CurrentUser == null)
+                    return RedirectToPage("/Index"); // or return an error
+
+
 
                 var order = request.Order;
                 var providerName = request.Provider;
@@ -164,14 +163,12 @@ namespace SphereSSLv2.Pages
 
 
                 AcmeServiceCache.Add(request.Order.OrderId, ACME);
-                Console.WriteLine($"Adding to cache: {orderID} => {ACME}");
 
 
+                DNSProviders = await DnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
                 DNSProvider provider = DNSProviders.FirstOrDefault(p => p.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
 
                 var autoAdd = request.AutoAdd;
-
-                Console.WriteLine($"Creating user account for email: {order.Email} and domain: {order.Domain} using provider: {providerName}");
 
                 var (dnsChallengeToken, domain) = await ACME.CreateUserAccountForCert( order.Email, order.Domain);
 
@@ -179,11 +176,10 @@ namespace SphereSSLv2.Pages
                 {
 
                 
-                    await _logger.Error($"[{CurrentUser.Username}]:Returned domain is null or empty after CreateUserAccountForCert!");
+                    await _logger.Error($"[{CurrentUser.Username}]: Returned domain is null or empty after CreateUserAccountForCert!");
 
                     return BadRequest("Failed to create ACME order: domain is empty/null.");
                 }
-
 
 
                 order.DnsChallengeToken = dnsChallengeToken;
@@ -194,7 +190,7 @@ namespace SphereSSLv2.Pages
                 if (autoAdd)
                 {
                     await _logger.Info($"[{CurrentUser.Username}]: Auto-adding DNS record using provider: {provider.ProviderName}");
-                    zoneID = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domain, order.DnsChallengeToken);
+                    zoneID = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domain, order.DnsChallengeToken, CurrentUser.Username);
 
                     if (String.IsNullOrWhiteSpace(zoneID))
                     {
@@ -241,7 +237,7 @@ namespace SphereSSLv2.Pages
                 using SHA256 algor = SHA256.Create();
                 var thumbprintBytes = JwsHelper.ComputeThumbprint(Acme._signer, algor);
                 var thumbprint = AcmeService.Base64UrlEncode(thumbprintBytes);
-
+                order.UserId = CurrentUser.UserId;
                 order.Provider = provider;
                 order.Signer = Acme._signer.Export();
                 order.Thumbprint = thumbprint;
@@ -249,6 +245,7 @@ namespace SphereSSLv2.Pages
                 order.OrderUrl = Acme._order.OrderUrl;
                 order.CreationDate = DateTime.UtcNow;
                 order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+                Console.WriteLine($"[{CurrentUser.Username}]: User Separate Files:{order.UseSeparateFiles.ToString()}");
                 string fullLink = "https://" + link;
                 string fullDomainName = "_acme-challenge." + order.Domain;
 
@@ -272,6 +269,7 @@ namespace SphereSSLv2.Pages
                         <input type='hidden' id='orderId' value='{order.OrderId}' />
                         <input type='hidden' id='email' value='{order.Email}' />
                         <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
+                        <input type='hidden' id='useSeperateFiles' value='{order.UseSeparateFiles}' />
                         <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
                         <input type='hidden' id='zoneID' value='{order.ZoneId}' />
                         <input type='hidden' id='provider' value='{order.Provider}' />
@@ -352,6 +350,7 @@ namespace SphereSSLv2.Pages
                             <input type='hidden' id='orderId' value='{order.OrderId}' />
                             <input type='hidden' id='email' value='{order.Email}' />
                             <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
+                            <input type='hidden' id='useSeperateFiles' value='{order.UseSeparateFiles}' />
                             <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
                             <input type='hidden' id='zoneID' value='{order.ZoneId}' />
                             <input type='hidden' id='provider' value='{order.Provider}' />
@@ -468,19 +467,25 @@ namespace SphereSSLv2.Pages
         public async Task<IActionResult> OnPostAddDNSProvider([FromBody] DNSProvider provider)
         {
 
-            Console.WriteLine($"Adding DNS {provider.Provider}: {provider.ProviderName} with API Key: {provider.APIKey}");
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (string.IsNullOrEmpty(sessionData))
+                return RedirectToPage("/Index"); // or return an error
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null)
+                return RedirectToPage("/Index"); // or return an error
 
             if (provider == null || string.IsNullOrWhiteSpace(provider.ProviderName) || string.IsNullOrWhiteSpace(provider.APIKey))
             {
                 return BadRequest("Invalid provider data.");
             }
-            // Check if provider already exists
-            if (ConfigureService.DNSProviders.Any(p => p.ProviderName.Equals(provider.ProviderName, StringComparison.OrdinalIgnoreCase)))
+            DNSProviders = await DnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
+            if (DNSProviders.Any(p => p.ProviderName.Equals(provider.ProviderName, StringComparison.OrdinalIgnoreCase)))
             {
                 return BadRequest("Provider already exists.");
             }
             // Add the new provider to the list
-            ConfigureService.DNSProviders.Add(provider);
+            DNSProviders.Add(provider);
 
             await _dnsProviderRepository.InsertDNSProvider(provider, CurrentUser.UserId);
 
@@ -658,6 +663,13 @@ namespace SphereSSLv2.Pages
         {
             AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService ACME);
 
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (string.IsNullOrEmpty(sessionData))
+                return RedirectToPage("/Index"); // or return an error
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null)
+                return RedirectToPage("/Index"); // or return an error
             var acme = ACME;
 
             if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
@@ -673,6 +685,7 @@ namespace SphereSSLv2.Pages
 
                     <input type='hidden' id='orderId' value='{order.OrderId}' />
                     <input type='hidden' id='dnsToken' value='{order.DnsChallengeToken}' />
+                    <input type='hidden' id='useSeperateFiles' value='{order.UseSeparateFiles}' />
                     <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal.ToString().ToLower()}' />
                     <input type='hidden' id='autoRenew' value='{order.autoRenew.ToString().ToLower()}' />
                     <input type='hidden' id='zoneID' value='{order.ZoneId}' />
@@ -707,7 +720,7 @@ namespace SphereSSLv2.Pages
                     try
                     {
 
-                        verified = await acme.CheckTXTRecordMultipleDNS( order.DnsChallengeToken, order.Domain);
+                        verified = await acme.CheckTXTRecordMultipleDNS( order.DnsChallengeToken, order.Domain, CurrentUser.Username);
                     }
                     catch (Exception ex)
                     {
@@ -729,7 +742,7 @@ namespace SphereSSLv2.Pages
                         try
                         {
                            
-                            await acme.ProcessCertificateGeneration( order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domain);
+                            await acme.ProcessCertificateGeneration( order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domain, CurrentUser.Username);
 
                             order.Domain =  order.Domain.StartsWith("_acme-challenge.") ? order.Domain.Substring(16) : order.Domain;
 
@@ -737,6 +750,7 @@ namespace SphereSSLv2.Pages
                             if (order.SaveForRenewal)
                             {
                                 await _logger.Update($"[{CurrentUser.Username}]: Saving order for renewal!");
+                                order.UserId = CurrentUser.UserId;
                                 await CertRepository.InsertCertRecord(order);
 
                                 CertRecords = ConfigureService.CertRecords;
@@ -841,5 +855,20 @@ namespace SphereSSLv2.Pages
             return File(bytes, "application/x-pem-key", "private.key");
         }
 
+        public async Task<IActionResult> OnGetGetCurrentUserUsername()
+        {
+
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (string.IsNullOrEmpty(sessionData))
+                return new JsonResult("CurrentSessionData is null");
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null)
+                return new JsonResult("CurrentUser is null");
+
+
+            return new JsonResult(new { username = CurrentUser.Username });
+
+        }
     }
 }

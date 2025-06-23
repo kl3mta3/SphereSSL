@@ -100,18 +100,12 @@
                             </div>
                         </div>
 
-
-
                         <!-- Certificates Section -->
                         <div class="col-lg-5 col-md-12 col-sm-12 mb-4">
                             <div class="row gx-3">
                                 <h3 class="title text-center mb-3">Certificates</h3>
 
-
                                 <div class="accordion" id="certAccordion">
-                                    <!-- Active -->
-                                    <div class="accordion" id="certAccordion">
-
 
                                         <!-- Active Certs Column -->
                                         <h5 class="accordion-header">
@@ -180,10 +174,8 @@
                                                 </div>
 
                                             </div>
-                                        </div>
+                                       
                                     </div>
-
-
 
                                     <!-- Expiring Certs Column -->
                                     <div class="accordion-item">
@@ -326,13 +318,8 @@
                                             </div>
                                         </div>
                                     </div>
+
                                 </div>
-
-
-
-
-
-
 
                             </div>
                         </div>
@@ -723,7 +710,6 @@
     }
 </script>
 
-
 <!-- Browse btn listener -->
 <script>
 document.getElementById('browseBtn').addEventListener('click', async () => {
@@ -734,7 +720,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 });
 </script>
-
 
 <!-- Listener for clicking links in renewals -->
 <script>
@@ -747,7 +732,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         });
     });
 </script>
-
 
 <!-- Submit Quick Connect -->
 <script>
@@ -866,7 +850,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
-
 <!-- Copy DNS Name to Clipboard -->
 <script>
     function copyDNSName(button) {
@@ -907,7 +890,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
-
 <!-- Copy AccountID to Clipboard -->
 <script>
     function copyAccountID(button) {
@@ -929,7 +911,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 </script>
 
 <!--Toggle DNS Visibility-->
-
 <script>
     function toggleDnsVisibility() {
       const field = document.getElementById("dnsTokenField");
@@ -941,8 +922,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
       navigator.clipboard.writeText(input.value);
     }
 </script>
-
-
 
 <!-- Show Cert Modal -->
 <script>
@@ -963,7 +942,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             });
     }
 </script>
-
 
 <!-- Show Add provider Modal -->
 <script>
@@ -1025,7 +1003,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
-
 <!-- Verify Challenge -->
 <script>
     async function verifyChallange() {
@@ -1040,7 +1017,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             domain: document.getElementById("domainName")?.textContent.trim() || "",
             dnsChallengeToken: document.getElementById("dnsToken")?.textContent.trim() || "",
             email: document.getElementById("email")?.value || "",
-            useSeparateFiles: false,
+            useSeparateFiles:document.getElementById("useSeparateFiles").checked || false,
             saveForRenewal: document.getElementById("saveForRenewal").checked || false,
             autoRenew: document.getElementById("autoRenew").checked || false,
             savePath: document.getElementById("savePath")?.value || "",
@@ -1092,7 +1069,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
-
 <!-- Close DNS Challenge Modal -->
 <script>
        function closeDnsModal() {
@@ -1115,3 +1091,101 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
+<!--Get Current User Username-->
+<script>
+
+    let currentUsername = null;
+
+    async function fetchCurrentUsername() {
+        try {
+            const resp = await fetch('/Dashboard?handler=GetCurrentUserUsername');
+            const data = await resp.json();
+            if (data.username) {
+                currentUsername = data.username;
+            } else {
+                console.warn("Username not found in session.");
+            }
+        } catch (err) {
+            console.error("Failed to fetch current username:", err);
+        }
+    }
+</script>
+
+<!-- starting Signal listener -->
+<script>
+    console.log("Starting Signal listener:");
+
+    async function startSignalR() {
+        await fetchCurrentUsername(); // make sure username is set first!
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/logHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.on("UpdateLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.log("Received UpdateLog:", msg)
+            appendToLog(msg, "update");
+
+            if (msg.includes("Certificate stored successfully!")) {
+                certDownloadReady = true;
+                console.log("Certificate download ready:", certDownloadReady);
+                tryShowDownloadButton();
+            }
+            if (msg.includes("Certificates stored successfully!")) {
+                certDownloadsReady = true;
+                console.log("Certificates download ready:", certDownloadsReady);
+                tryShowDownloadButtons();
+            }
+        });
+
+        connection.on("InfoLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.log("Received InfoLog:", msg);
+            appendToLog(msg, "info");
+        });
+
+        connection.on("DebugLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.debug("Received DebugLog:", msg);
+            appendToLog(msg, "debug");
+        });
+
+        connection.start()
+            .then(() => {
+                console.log("SignalR connection successfully established!");
+            })
+            .catch(err => {
+                console.error("SignalR connection failed: ", err);
+            });
+
+        window.signalHub = connection;
+    }
+
+    // Call it!
+    startSignalR();
+
+</script>
+
+<!-- append Signal Log -->
+<script>
+    function appendToLog(text, level) {
+          console.log("Signal Line Heard:");
+        const logLine = document.createElement("div");
+        logLine.textContent = text;
+        logLine.className = `log-line ${level}`;
+
+        const container = document.getElementById("signalLogOutput");
+
+        if (!container) {
+            setTimeout(() => appendToLog(text, level), 100); 
+            return;
+        }
+
+        container.appendChild(logLine);
+        container.scrollTop = container.scrollHeight;
+
+        console.log("Appending log to:", container);
+    }
+</script>

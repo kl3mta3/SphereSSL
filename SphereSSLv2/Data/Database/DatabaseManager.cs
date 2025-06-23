@@ -7,6 +7,7 @@ using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Services.Config;
 using System.Security.AccessControl;
 using System.Security.Cryptography.Xml;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace SphereSSLv2.Data.Database
 {
@@ -33,7 +34,7 @@ namespace SphereSSLv2.Data.Database
                 var adminUUID= Guid.NewGuid();
                 var adminUserId = Guid.NewGuid().ToString("N"); 
                 var adminPassHash = ConfigureService.HashedPassword;
-
+                var adminUsername = ConfigureService.Username;
                 var command = connection.CreateCommand();
                 command.CommandText = @$"
 
@@ -59,7 +60,7 @@ namespace SphereSSLv2.Data.Database
                     ChallengeType TEXT,
                     Thumbprint TEXT,
                     ZoneId TEXT,
-                    FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE RESTRICT
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE RESTRICT
                 );
 
                 CREATE TABLE IF NOT EXISTS ExpiredCerts (
@@ -84,7 +85,7 @@ namespace SphereSSLv2.Data.Database
                     ChallengeType TEXT,
                     Thumbprint TEXT,
                     ZoneId TEXT,
-                    FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE RESTRICT  
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE RESTRICT  
                 );
 
                 CREATE TABLE IF NOT EXISTS Health (
@@ -107,13 +108,12 @@ namespace SphereSSLv2.Data.Database
                     Provider TEXT,
                     APIKey TEXT,
                     Ttl INTEGER,
-                    FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE CASCADE
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 
                 );
 
                 CREATE TABLE IF NOT EXISTS Users(
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    UserId TEXT NOT NULL UNIQUE,
+                    UserId TEXT PRIMARY KEY,
                     Username TEXT,
                     PasswordHash TEXT,
                     Name TEXT,
@@ -125,13 +125,13 @@ namespace SphereSSLv2.Data.Database
                 ); 
 
                 CREATE TABLE IF NOT EXISTS UserLogins (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId TEXT,
                     LoginTime TEXT,
                     IPAddress TEXT,
                     UserAgent TEXT,
                     Success BOOL,
-                   FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE CASCADE
+                   FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
                 );
 
                 CREATE TABLE IF NOT EXISTS ApiKeys (
@@ -141,7 +141,7 @@ namespace SphereSSLv2.Data.Database
                     Created TEXT,
                     LastUsed TEXT,
                     IsRevoked BOOL DEFAULT 0,
-                    FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE CASCADE
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
                 );
 
                 CREATE TABLE IF NOT EXISTS UserStats (
@@ -150,7 +150,7 @@ namespace SphereSSLv2.Data.Database
                     CertsRenewed INTEGER DEFAULT 0,
                     CertsFailed INTEGER DEFAULT 0,
                     LastCertCreated TEXT,
-                    FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE CASCADE
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
                 );
 
                  CREATE TABLE IF NOT EXISTS UserRoles (
@@ -158,7 +158,7 @@ namespace SphereSSLv2.Data.Database
                      IsAdmin BOOL,
                      IsEnabled BOOL,
                      Role TEXT DEFAULT 'User' CHECK(Role IN ('Viewer', 'User', 'Admin', 'SuperAdmin')),
-                     FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE CASCADE
+                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
                 );
 
                 CREATE TABLE IF NOT EXISTS Logs(
@@ -168,7 +168,7 @@ namespace SphereSSLv2.Data.Database
                     AlertLevel TEXT,
                     Message TEXT,
                     Timestamp DATETIME,
-                    FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE RESTRICT  
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
                 ); 
 
                 ";
@@ -186,11 +186,13 @@ namespace SphereSSLv2.Data.Database
                 UserId, Username, PasswordHash, Name, Email, CreationTime, LastUpdated, UUID, Notes
                 )
                     VALUES (
-                    @userId, 'Masterlocke', @passwordHash, 'Locke-Ann Key', 'admin@example.com',
+                    @userId, @username, @passwordHash, 'Locke-Ann Key', 'admin@example.com',
                     datetime('now'), datetime('now'), @uuid, 'System default super admin account'
-                );";
+                );"
+                ;
 
                 command.Parameters.Clear();
+                command.Parameters.AddWithValue("@username", adminUsername);
                 command.Parameters.AddWithValue("@userId", adminUserId);
                 command.Parameters.AddWithValue("@passwordHash", adminPassHash);
                 command.Parameters.AddWithValue("@uuid", adminUUID.ToString());
@@ -224,10 +226,6 @@ namespace SphereSSLv2.Data.Database
             }
         }
 
-
-
-
-
         //DB Version and Migration
         public static async Task<int> GetDatabaseVersion()
         {
@@ -241,177 +239,5 @@ namespace SphereSSLv2.Data.Database
             return result == null ? 0 : Convert.ToInt32(result);
         }
 
-        //logs Management
-
-        public static async Task InsertLog(LogEntry entry)
-        {
-            try
-            {
-                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-                await connection.OpenAsync();
-                var command = connection.CreateCommand();
-                command.CommandText = @"
-                    INSERT INTO Logs (UserId AlertLevel, LogId, Message, Timestamp)
-                    VALUES ($userId, $alertLevel, $logId, $message, $timestamp)";
-                command.Parameters.AddWithValue("$userId", entry.UserId ?? string.Empty);
-                command.Parameters.AddWithValue("$logId", entry.LogId);
-                command.Parameters.AddWithValue("$alertLevel", entry.AlertLevel);
-                command.Parameters.AddWithValue("$message", entry.Message);
-                command.Parameters.AddWithValue("$timestamp", DateTime.UtcNow);
-                await command.ExecuteNonQueryAsync();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error inserting log: {ex.Message}", ex);
-            }
-        }
-
-        public static async Task<List<LogEntry>> GetLogs(string alertLevel = null)
-        {
-            List<LogEntry> logs = new List<LogEntry>();
-            try
-            {
-                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-                await connection.OpenAsync();
-                var command = connection.CreateCommand();
-                if (string.IsNullOrEmpty(alertLevel))
-                {
-                    command.CommandText = "SELECT * FROM Logs ORDER BY Timestamp DESC";
-                }
-                else
-                {
-                    command.CommandText = "SELECT * FROM Logs WHERE AlertLevel = @alertLevel ORDER BY Timestamp DESC";
-                    command.Parameters.AddWithValue("@alertLevel", alertLevel);
-                }
-                using var reader = await command.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    LogEntry log = new LogEntry
-                    {
-                        UserId = reader.GetString(reader.GetOrdinal("UserId")),
-                        LogId = reader.GetString(reader.GetOrdinal("LogId")),
-                        AlertLevel = reader.GetString(reader.GetOrdinal("AlertLevel")),
-                        Message = reader.GetString(reader.GetOrdinal("Message")),
-                        Timestamp = reader.GetDateTime(reader.GetOrdinal("Timestamp"))
-                    };
-                    logs.Add(log);
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error retrieving logs: {ex.Message}", ex);
-            }
-            return logs;
-        }
-
-        public static async Task<LogEntry> GetLogByID(string id)
-        {
-            if (string.IsNullOrWhiteSpace(id))
-                return null;
-
-            try
-            {
-                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-                await connection.OpenAsync();
-
-                var command = connection.CreateCommand();
-                command.CommandText = "SELECT * FROM Logs WHERE LogId = @logId";
-                command.Parameters.AddWithValue("@logId", id);
-
-                using var reader = await command.ExecuteReaderAsync();
-                if (await reader.ReadAsync())
-                {
-                    return new LogEntry
-                    {
-                        UserId = reader.GetString(reader.GetOrdinal("UserId")),
-                        LogId = reader.GetString(reader.GetOrdinal("logId")),
-                        AlertLevel = reader.GetString(reader.GetOrdinal("AlertLevel")),
-                        Message = reader.GetString(reader.GetOrdinal("Message")),
-                        Timestamp = reader.GetDateTime(reader.GetOrdinal("Timestamp"))
-                    };
-                }
-
-                return null; // No match found
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error retrieving log by ID: {ex.Message}", ex);
-            }
-        }
-
-        public static async Task<List<LogEntry>> GetLogsWithRange(string alertLevel = null, int range = 30)
-        {
-            List<LogEntry> logs = new List<LogEntry>();
-            try
-            {
-                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-                await connection.OpenAsync();
-                var command = connection.CreateCommand();
-
-                // Calculate the cutoff timestamp
-                var cutoff = DateTime.UtcNow.AddDays(-range);
-
-                if (string.IsNullOrEmpty(alertLevel))
-                {
-                    command.CommandText = @"
-                SELECT * FROM Logs 
-                WHERE Timestamp >= @cutoff 
-                ORDER BY Timestamp DESC";
-                }
-                else
-                {
-                    command.CommandText = @"
-                SELECT * FROM Logs 
-                WHERE AlertLevel = @alertLevel AND Timestamp >= @cutoff 
-                ORDER BY Timestamp DESC";
-                    command.Parameters.AddWithValue("@alertLevel", alertLevel);
-                }
-
-                command.Parameters.AddWithValue("@cutoff", cutoff);
-
-                using var reader = await command.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    LogEntry log = new LogEntry
-                    {
-                        UserId = reader.GetString(reader.GetOrdinal("UserId")),
-                        LogId = reader.GetString(reader.GetOrdinal("LogId")),
-                        AlertLevel = reader.GetString(reader.GetOrdinal("AlertLevel")),
-                        Message = reader.GetString(reader.GetOrdinal("Message")),
-                        Timestamp = reader.GetDateTime(reader.GetOrdinal("Timestamp"))
-                    };
-                    logs.Add(log);
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error retrieving logs: {ex.Message}", ex);
-            }
-
-            return logs;
-        }
-
-        public static async Task<bool> DeleteLogByID(string id)
-        {
-            if (string.IsNullOrWhiteSpace(id))
-                return false;
-
-            try
-            {
-                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-                await connection.OpenAsync();
-
-                var command = connection.CreateCommand();
-                command.CommandText = "DELETE FROM Logs WHERE LogId = @logId";
-                command.Parameters.AddWithValue("@logId", id);
-
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error deleting log by ID: {ex.Message}", ex);
-            }
-        }
     }
 }
