@@ -1,4 +1,4 @@
-﻿namespace SphereSSLv2.Models
+﻿namespace SphereSSLv2.Models.ConfigModels
 {
 
     public class DeviceConfig

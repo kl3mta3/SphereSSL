@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using SphereSSLv2.Data;
+using SphereSSLv2.Services.Config;
 
 namespace SphereSSLv2.Pages
 {
@@ -20,7 +20,7 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnGet()
         {
-            if (Spheressl.UseLogOn)
+            if (ConfigureService.UseLogOn)
             {
                 var loggedIn = HttpContext.Session.GetString("IsLoggedIn");
 

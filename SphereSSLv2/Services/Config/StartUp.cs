@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using SphereSSLv2.Data;
 using System.Diagnostics;
 using SphereSSLv2.Testing;
 using Microsoft.AspNetCore.SignalR;
 using SphereSSLv2.Models;
+using SphereSSLv2.Services.CertServices;
+using SphereSSLv2.Data.Database;
 
-namespace SphereSSLv2.Services
+namespace SphereSSLv2.Services.Config
 {
     public class StartUp
     {
@@ -26,13 +27,13 @@ namespace SphereSSLv2.Services
             builder.Logging.SetMinimumLevel(LogLevel.Error);
             builder.Services.AddControllersWithViews();
             builder.Services.AddSignalR();
-            builder.Services.AddSingleton<Spheressl>();
-            builder.Services.AddSingleton<Logger>(provider =>
+            builder.Services.AddSingleton<ConfigureService>();
+            builder.Services.AddSingleton(provider =>
             {
                 var hubContext = provider.GetRequiredService<IHubContext<SignalHub>>();
                 return new Logger(hubContext);
             });
-            //builder.Services.AddScoped<AcmeService>();
+
             builder.Services.AddHostedService<ExpiryWatcherService>();
             builder.Services.AddSingleton<DatabaseManager>();
            
@@ -57,10 +58,11 @@ namespace SphereSSLv2.Services
 
             builder.WebHost.ConfigureKestrel(options =>
             {
-                options.Listen(IPAddress.Parse(Spheressl.ServerIP), port); // HTTP
-                //options.Listen(IPAddress.Parse(WebAppIP), port + 1, listen =>
+                options.Listen(IPAddress.Parse(ConfigureService.ServerIP), port); // HTTP
+
+                //options.Listen(IPAddress.Parse(ConfigureService.ServerIP), port -1, listen =>
                 //{
-                //    listen.UseHttps();
+                //    listen.UseHttps("c:/SphereVRF/spherevrf.pfx", "Empanada1030!");
                 //});
             });
 
@@ -69,6 +71,8 @@ namespace SphereSSLv2.Services
                 options.IdleTimeout = TimeSpan.FromMinutes(15);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.Strict;
             });
 
             var app = builder.Build();
@@ -84,13 +88,13 @@ namespace SphereSSLv2.Services
             app.Use(async (context, next) =>
             {
                 var remoteIp = context.Connection.RemoteIpAddress?.ToString();
-
+                
 
 
                 if (string.IsNullOrWhiteSpace(remoteIp) ||
-                    (!remoteIp.StartsWith("10.") &&
+                    !remoteIp.StartsWith("10.") &&
                      !remoteIp.StartsWith("192.168.") &&
-                     !remoteIp.StartsWith("127.")))
+                     !remoteIp.StartsWith("127."))
                 {
                     context.Response.StatusCode = 403;
                     await context.Response.WriteAsync("Forbidden");
@@ -110,13 +114,13 @@ namespace SphereSSLv2.Services
 
         public static async Task ConfigureApplication()
         {
-            if (!File.Exists(Spheressl.ConfigFilePath))
+            if (!File.Exists(ConfigureService.ConfigFilePath))
             {
-                File.Create(Spheressl.ConfigFilePath).Close();
+                File.Create(ConfigureService.ConfigFilePath).Close();
             }
             else
             {
-                // await Spheressl.LoadConfigFile();
+                await ConfigureService.LoadConfigFile();
             }
 
             if (!File.Exists(Logger.LogFilePath))
@@ -131,7 +135,7 @@ namespace SphereSSLv2.Services
 
         private static async Task StartTrayApp()
         {
-            var processName = Path.GetFileNameWithoutExtension(Spheressl.TrayAppPath);
+            var processName = Path.GetFileNameWithoutExtension(ConfigureService.TrayAppPath);
 
 
             var existing = Process.GetProcessesByName(processName).FirstOrDefault();
@@ -141,9 +145,9 @@ namespace SphereSSLv2.Services
                 try
                 {
 
-                    if (existing.MainModule.FileName != Spheressl.TrayAppPath)
+                    if (existing.MainModule.FileName != ConfigureService.TrayAppPath)
                     {
-                        Spheressl.TrayAppProcess = existing;
+                        ConfigureService.TrayAppProcess = existing;
                         return;
                     }
                 }
@@ -153,16 +157,16 @@ namespace SphereSSLv2.Services
                 return;
             }
 
-            if (!File.Exists(Spheressl.TrayAppPath))
+            if (!File.Exists(ConfigureService.TrayAppPath))
             {
-                MessageBox.Show($"{Spheressl.TrayAppPath} not found!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"{ConfigureService.TrayAppPath} not found!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            Spheressl.TrayAppProcess = new Process();
-            Spheressl.TrayAppProcess.StartInfo.FileName = Spheressl.TrayAppPath;
-            Spheressl.TrayAppProcess.StartInfo.UseShellExecute = true;
-            Spheressl.TrayAppProcess.Start();
+            ConfigureService.TrayAppProcess = new Process();
+            ConfigureService.TrayAppProcess.StartInfo.FileName = ConfigureService.TrayAppPath;
+            ConfigureService.TrayAppProcess.StartInfo.UseShellExecute = true;
+            ConfigureService.TrayAppProcess.Start();
         }
 
         private static async Task InitilizeDatabase()
@@ -170,25 +174,25 @@ namespace SphereSSLv2.Services
             var now = DateTime.UtcNow;
 
             await DatabaseManager.Initialize();
-            await DatabaseManager.RecalculateHealthStats();
+            await HealthRepository.RecalculateHealthStats();
 
-            Spheressl.DNSProviders = await DatabaseManager.GetAllDNSProviders();
-            Spheressl.CertRecords = await DatabaseManager.GetAllCertRecords();
+            //ConfigureService.DNSProviders = await DnsProviderRepository.GetAllDNSProviders();
+            //ConfigureService.CertRecords = await DatabaseManager.GetAllCertRecords();
 
 
             //for testing (remove later)
-            if (!Spheressl.CertRecords.Any() && Spheressl.GenerateFakeTestCerts)
+            if (!ConfigureService.CertRecords.Any() && ConfigureService.GenerateFakeTestCerts)
             {
 
                 await TestingTools.GenerateFakeCertRecords();
             }
 
-            if (Spheressl.CertRecords.Count <= 1)
+            if (ConfigureService.CertRecords.Count <= 1)
             {
 
-                Spheressl.ExpiredCertRecords = Spheressl.CertRecords
+                ConfigureService.ExpiredCertRecords = ConfigureService.CertRecords
                     .FindAll(cert => cert.ExpiryDate < now);
-                Spheressl.ExpiringSoonCertRecords = Spheressl.CertRecords
+                ConfigureService.ExpiringSoonCertRecords = ConfigureService.CertRecords
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
             }
 

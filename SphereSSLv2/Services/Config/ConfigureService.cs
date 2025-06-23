@@ -3,10 +3,7 @@
 using DnsClient;
 using DnsClient.Protocol;
 using Microsoft.AspNetCore.SignalR;
-using SphereSSLv2.Models;
 using SphereSSL2.View;
-
-using SphereSSLv2.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,11 +12,15 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using CertRecord = SphereSSLv2.Models.CertRecord;
+using CertRecord = SphereSSLv2.Models.CertModels.CertRecord;
+using SphereSSLv2.Models.ConfigModels;
+using SphereSSLv2.Models.DNSModels;
+using SphereSSLv2.Services.Security.Auth;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
-namespace SphereSSLv2.Data
+namespace SphereSSLv2.Services.Config
 {
-    public class Spheressl
+    public class ConfigureService
     {
 
         internal static bool UseLogOn = false;
@@ -43,7 +44,7 @@ namespace SphereSSLv2.Data
 
         private readonly Logger _logger;
 
-        public Spheressl(Logger logger)
+        public ConfigureService(Logger logger)
         {
             _logger = logger;
         }
@@ -67,31 +68,6 @@ namespace SphereSSLv2.Data
             }
         }
 
-        private static async Task UpdateSavedPassword(string password)
-        {
-            try
-            {
-                string hashedPassword = HashPassword(password);
-                if (hashedPassword == null)
-                {
-                    throw new InvalidOperationException("Failed to hash password.");
-                }
-                DeviceConfig config = new DeviceConfig
-                {
-                    UsePassword = UseLogOn,
-                    ServerURL = ServerIP,
-                    ServerPort = ServerPort,
-                    Username = Username,
-                    PasswordHash = hashedPassword
-                };
-                string json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(ConfigFilePath, json);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Failed to update saved password.", ex);
-            }
-        }
 
         private static async Task SaveConfigFile(DeviceConfig config)
         {
@@ -115,105 +91,50 @@ namespace SphereSSLv2.Data
             HashedPassword = config.PasswordHash;
         }
 
-        internal static async Task<DeviceConfig> LoadConfigFile()
+        internal static async Task LoadConfigFile()
         {
             try
             {
                 string json = File.ReadAllText(ConfigFilePath);
 
-                DeviceConfig config = JsonSerializer.Deserialize<DeviceConfig>(json);
+                var storedConfig = JsonSerializer.Deserialize<StoredConfig>(json);
 
-                if (config == null)
+                if (storedConfig == null)
                 {
                     throw new InvalidOperationException("Failed to deserialize node config.");
                 }
+                string passhash = PasswordService.HashPassword(storedConfig.AdminPassword);
 
+             
+                if (storedConfig.UseLogOn == "false")
+                {
+                    UseLogOn = false; 
+                }
+                else if(storedConfig.UseLogOn == "true")
+                {
 
-                return config;
+                   UseLogOn = true;
+
+                }
+                else
+                {
+                    UseLogOn = false; 
+
+                }
+
+                Username = storedConfig.AdminUsername ?? string.Empty;
+                HashedPassword = passhash;
+                ServerPort = storedConfig.ServerPort > 0 ? storedConfig.ServerPort : 7171;
+                ServerIP = string.IsNullOrWhiteSpace(storedConfig.ServerURL)
+                ? "127.0.0.1"
+                : storedConfig.ServerURL;
+
 
 
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException("Failed to load config file.", ex);
-            }
-        }
-
-        public static string HashPassword(string password)
-        {
-            try
-            {
-                string prehashedPass = Convert.ToBase64String(SHA512.HashData(Encoding.UTF8.GetBytes(password)));
-
-                using var rng = RandomNumberGenerator.Create();
-                byte[] salt = new byte[16];
-                rng.GetBytes(salt);
-
-                using var pbkdf2 = new Rfc2898DeriveBytes(prehashedPass, salt, 100000, HashAlgorithmName.SHA256);
-                byte[] hash = pbkdf2.GetBytes(32);
-
-                byte[] hashBytes = new byte[48];
-                Array.Copy(salt, 0, hashBytes, 0, 16);
-                Array.Copy(hash, 0, hashBytes, 16, 32);
-
-                return Convert.ToBase64String(hashBytes);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
-
-        public static bool VerifyPassword(string password, string storedHash)
-        {
-            try
-            {
-                byte[] hashBytes = Convert.FromBase64String(storedHash);
-
-                if (hashBytes.Length != 48)
-                {
-                    return false;
-                }
-
-                byte[] salt = new byte[16];
-                Array.Copy(hashBytes, 0, salt, 0, 16);
-
-                using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000, HashAlgorithmName.SHA256);
-                byte[] hash = pbkdf2.GetBytes(32);
-
-                bool isMatch = true;
-                for (int i = 0; i < 32; i++)
-                {
-                    if (hashBytes[i + 16] != hash[i]) isMatch = false;
-                }
-
-                return isMatch;
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
-            catch (ArgumentNullException)
-            {
-                return false;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        public static string HashString(string password)
-        {
-            try
-            {
-                string hashedPass = Convert.ToBase64String(SHA512.HashData(Encoding.UTF8.GetBytes(password)));
-
-                return hashedPass;
-            }
-            catch (Exception)
-            {
-                return null;
             }
         }
 
@@ -240,7 +161,7 @@ namespace SphereSSLv2.Data
             var result = await lookup.QueryAsync(domain, QueryType.NS);
 
             return result.Answers
-                .OfType<DnsClient.Protocol.NsRecord>()
+                .OfType<NsRecord>()
                 .Select(ns => ns.NSDName.Value)
                 .ToList();
         }
@@ -271,7 +192,6 @@ namespace SphereSSLv2.Data
 
             return await ExtractDnsProvider(results[0]);
         }
-
 
     }
 

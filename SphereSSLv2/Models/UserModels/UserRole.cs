@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace SphereSSLv2.Models
+namespace SphereSSLv2.Models.UserModels
 {
     public class UserRole
     {

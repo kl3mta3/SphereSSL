@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SphereSSLv2.Data;
-using SphereSSLv2.Services;
+using SphereSSLv2.Services.Config;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -21,7 +20,7 @@ namespace SphereSSLv2.Controllers
         [HttpPost]
         public IActionResult Restart()
         {
-            if (!Spheressl.UseLogOn || Spheressl.IsLogIn)
+            if (!ConfigureService.UseLogOn || ConfigureService.IsLogIn)
             {
                  
                 try

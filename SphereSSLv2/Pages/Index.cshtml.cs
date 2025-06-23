@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using SphereSSLv2.Data;
+using Newtonsoft.Json;
+using SphereSSLv2.Data.Database;
+using SphereSSLv2.Models.UserModels;
+using SphereSSLv2.Services.Config;
+using SphereSSLv2.Services.Security.Auth;
 using System.Security.Cryptography;
 using System.Text;
 using static Org.BouncyCastle.Math.EC.ECCurve;
@@ -11,10 +15,12 @@ namespace SphereSSLv2.Pages
     {
 
         private readonly ILogger<IndexModel> _logger;
+        private readonly UserRepository _userRepository;
 
-        public IndexModel(ILogger<IndexModel> logger)
+        public IndexModel(ILogger<IndexModel> logger, UserRepository userRepository)
         {
             _logger = logger;
+            _userRepository = userRepository;
         }
 
         [BindProperty]
@@ -25,68 +31,80 @@ namespace SphereSSLv2.Pages
 
         public IActionResult OnGet()
         {
-
-             if (!Spheressl.UseLogOn)
-            {
-
-                if (!string.IsNullOrEmpty(Spheressl.Username))
-                {
-                    HttpContext.Session.SetString("Username", Spheressl.Username);
-
-                }
-                else
-                {
-                    HttpContext.Session.SetString("Username", " ");
-                }
-                HttpContext.Session.SetString("IsLoggedIn", "true");
-                return RedirectToPage("/Dashboard");
-            }
-
             return Page();
+
         }
 
-        public IActionResult OnPost()
+        public async Task<IActionResult> OnPost()
         {
-            if (Spheressl.UseLogOn)
+            string targetUsername = ConfigureService.Username;
+            if (string.IsNullOrEmpty(targetUsername))
+                targetUsername = "Masterlocke";
+
+            if (!ConfigureService.UseLogOn)
             {
+                if (!await SetSessionForUser(targetUsername))
+                    return RedirectToPage("/Index");
 
-                string usernameLower = Username.ToLower();
-                string prehashedPass = Convert.ToBase64String(SHA512.HashData(Encoding.UTF8.GetBytes(Password)));
+                HttpContext.Session.SetString("IsLoggedIn", "true");
+                return RedirectToPage("/Dashboard");
+            }
+            else
+            {
+                HttpContext.Session.SetString("Username", Username);
 
-                //if (!Spheressl.VerifyPassword(prehashedPass, Spheressl.HashedPassword) || usernameLower != Spheressl.Username)
-                //{
-                //    ModelState.AddModelError(string.Empty, "Invalid Password or UserName.");
-                //    return Page();
-                //}
-
-                if (Password!="letmein"|| usernameLower != "admin")
+                var user = await _userRepository.GetUserByUsernameAsync(Username);
+                if (user == null)
                 {
-                    ModelState.AddModelError(string.Empty, "Invalid Password or UserName.");
+                    ModelState.AddModelError(string.Empty, "Invalid Username or Password.");
                     return Page();
                 }
+
+                // Use case-insensitive compare for safety
+                if (!string.Equals(Username, user.Username, StringComparison.OrdinalIgnoreCase))
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid Username or Password.");
+                    return Page();
+                }
+
+                var role = await _userRepository.GetUserRoleByIdAsync(user.UserId);
+                string prehashedPass = Convert.ToBase64String(SHA512.HashData(Encoding.UTF8.GetBytes(Password)));
+
+                if (!PasswordService.VerifyPassword(prehashedPass, user.PasswordHash))
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid Username or Password.");
+                    return Page();
+                }
+
                 HttpContext.Session.SetString("IsLoggedIn", "true");
+                var sessionUser = new UserSession
+                {
+                    UserId = user.UserId,
+                    Username = user.Username,
+                    DisplayName = user.Name,
+                    Role = role?.Role ?? "User"
+                };
+                HttpContext.Session.SetString("UserSession", JsonConvert.SerializeObject(sessionUser));
 
-                HttpContext.Session.SetString("Username", Username);
-                Spheressl.IsLogIn = true;
                 return RedirectToPage("/Dashboard");
             }
-            else if (!Spheressl.UseLogOn)
+
+        }
+
+        private async Task<bool> SetSessionForUser(string username)
+        {
+            var user = await _userRepository.GetUserByUsernameAsync(username);
+            if (user == null) return false;
+            var role = await _userRepository.GetUserRoleByIdAsync(user.UserId);
+            var sessionUser = new UserSession
             {
-
-                if (!string.IsNullOrEmpty(Spheressl.Username))
-                {
-                    HttpContext.Session.SetString("Username", Spheressl.Username);
-
-                }
-                else
-                {
-                    HttpContext.Session.SetString("Username", " ");
-                }
-                    HttpContext.Session.SetString("IsLoggedIn", "true");
-                return RedirectToPage("/Dashboard");
-            }
-                return Page();
-
+                UserId = user.UserId,
+                Username = user.Username,
+                DisplayName = user.Name,
+                Role = role?.Role ?? "User"
+            };
+            HttpContext.Session.SetString("UserSession", JsonConvert.SerializeObject(sessionUser));
+            return true;
         }
 
     }

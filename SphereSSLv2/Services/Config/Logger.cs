@@ -4,7 +4,7 @@ using SphereSSLv2.Data;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace SphereSSLv2.Services
+namespace SphereSSLv2.Services.Config
 {
     public class Logger
     {

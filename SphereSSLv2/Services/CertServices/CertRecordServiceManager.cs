@@ -1,7 +1,7 @@
-﻿using SphereSSLv2.Data;
+﻿using SphereSSLv2.Data.Database;
 using System.Diagnostics;
 
-namespace SphereSSLv2.Services
+namespace SphereSSLv2.Services.CertServices
 {
     public class CertRecordServiceManager
     {

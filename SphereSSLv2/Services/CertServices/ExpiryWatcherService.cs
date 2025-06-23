@@ -1,7 +1,7 @@
-﻿using SphereSSLv2.Data;
-using SphereSSLv2.Models;
+﻿using SphereSSLv2.Models;
+using SphereSSLv2.Services.Config;
 
-namespace SphereSSLv2.Services
+namespace SphereSSLv2.Services.CertServices
 {
     public class ExpiryWatcherService : BackgroundService
     {
@@ -38,15 +38,15 @@ namespace SphereSSLv2.Services
                 {
                     var now = DateTime.UtcNow;
 
-                    Spheressl.ExpiringSoonCertRecords = Spheressl.CertRecords
-                        .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(Spheressl.ExpiringNoticePeriodInDays));
+                    ConfigureService.ExpiringSoonCertRecords = ConfigureService.CertRecords
+                        .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.ExpiringNoticePeriodInDays));
                 }
                 catch (Exception ex)
                 {
                     await _logger.Error(" Error Refreshing cert list...");
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(Spheressl.RefreshExpiringSoonRateInMinutes));
+                await Task.Delay(TimeSpan.FromMinutes(ConfigureService.RefreshExpiringSoonRateInMinutes));
             }
         }
     }

@@ -1,8 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System.Configuration.Provider;
 using SphereSSLv2.Services.APISupportedProviders;
-using SphereSSLv2.Services;
-namespace SphereSSLv2.Models
+using SphereSSLv2.Services.Config;
+
+namespace SphereSSLv2.Models.DNSModels
 {
 
     public class DNSProvider
@@ -20,6 +21,10 @@ namespace SphereSSLv2.Models
             GoDaddy,
             DNSMadeEasy
         }
+
+
+        [JsonProperty("userId")]
+        public string UserId { get; set; } = string.Empty;
 
         [JsonProperty("providerName")]
         public string ProviderName { get; set; } = string.Empty;

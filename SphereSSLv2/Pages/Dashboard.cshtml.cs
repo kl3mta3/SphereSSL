@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using SphereSSLv2.Data;
 using System.DirectoryServices.ActiveDirectory;
 using Newtonsoft.Json;
 using ACMESharp.Crypto.JOSE;
 using Org.BouncyCastle.Crypto;
 using System.Security.Cryptography;
 using Microsoft.VisualBasic.ApplicationServices;
-using SphereSSLv2.Services;
 using Microsoft.AspNetCore.SignalR;
 using DnsClient;
 using System.Net;
@@ -21,17 +19,24 @@ using Org.BouncyCastle.Asn1.Ocsp;
 using System.Text.Json;
 using ACMESharp.Crypto.JOSE.Impl;
 using Microsoft.Extensions.Logging.Console;
-using SphereSSLv2.Models;
-
+using SphereSSLv2.Services.Config;
+using SphereSSLv2.Models.Dtos;
+using SphereSSLv2.Models.CertModels;
+using SphereSSLv2.Models.DNSModels;
+using SphereSSLv2.Data.Database;
+using SphereSSLv2.Services.AcmeServices;
+using SphereSSLv2.Data;
+using User = SphereSSLv2.Models.UserModels.User;
+using SphereSSLv2.Models.UserModels;
 namespace SphereSSLv2.Pages
 {
     public class DashboardModel : PageModel
     {
         private readonly ILogger<DashboardModel> _Ilogger;
 
-        public List<CertRecord> CertRecords = Spheressl.CertRecords;
-        public List<CertRecord> ExpiringSoonRecords = Spheressl.ExpiringSoonCertRecords;
-        public List<DNSProvider> DNSProviders = Spheressl.DNSProviders;
+        public List<CertRecord> CertRecords = ConfigureService.CertRecords;
+        public List<CertRecord> ExpiringSoonRecords = ConfigureService.ExpiringSoonCertRecords;
+        public List<DNSProvider> DNSProviders = ConfigureService.DNSProviders;
         public List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
             .Cast<DNSProvider.ProviderType>()
             .Select(p => p.ToString())
@@ -40,24 +45,30 @@ namespace SphereSSLv2.Pages
         public DNSProvider SelectedDNSProvider { get; set; } = new DNSProvider();
         private bool _runningCertGeneration = false;
         private readonly DatabaseManager _databaseManager;
-        private readonly IHubContext<SignalHub> _hubContext;
+        private readonly UserRepository _userRepository;
+        private readonly DnsProviderRepository _dnsProviderRepository;
+        private readonly CertRepository _certRepository;
         private readonly Logger _logger;
-        private readonly Spheressl _spheressl;
-        public static  Dictionary<string,AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
+        private readonly ConfigureService _spheressl;
+        public static Dictionary<string, AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
 
+        public UserSession CurrentUser;
 
-        public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, Spheressl spheressl, DatabaseManager database)
+        public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, ConfigureService spheressl, DatabaseManager database, CertRepository certRepository, DnsProviderRepository dnsProviderRepository, UserRepository userRepository )
         {
             _Ilogger = ilogger;
             _logger = logger;
             _spheressl = spheressl;
-
             _databaseManager = database;
+            _certRepository = certRepository;
+            _dnsProviderRepository = dnsProviderRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<IActionResult> OnGet()
         {
-            if (Spheressl.UseLogOn)
+            //if not logged in return
+            if (ConfigureService.UseLogOn)
             {
                 var loggedIn = HttpContext.Session.GetString("IsLoggedIn");
 
@@ -66,10 +77,47 @@ namespace SphereSSLv2.Pages
                     return RedirectToPage("/Index");
                 }
             }
-            CertRecords = Spheressl.CertRecords;
-            ExpiringSoonRecords = Spheressl.ExpiringSoonCertRecords;
+
+            var sessionData = HttpContext.Session.GetString("UserSession");
+
+            if (sessionData == null)
+            {
+                return RedirectToPage("/Index");
+            }
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+
+            if (CurrentUser == null)
+            {
+                return RedirectToPage("/Index");
+            }
+
+            UserRole? role = await _userRepository.GetUserRoleByIdAsync(CurrentUser.UserId);
+
+            if (!role.IsEnabled || role == null) //if role is null or user not enabled, redirect to index
+            {
+                return RedirectToPage("/Index");
+
+            }
+            else if (role.IsEnabled && role.IsAdmin) // if user is admin get all certs 
+            {
+                CertRecords = await CertRepository.GetAllCertRecords();
+                ExpiringSoonRecords = await _certRepository.GetAllExpiredCertsAsync();
+                DNSProviders = await DnsProviderRepository.GetAllDNSProviders();
+
+            }
+            else if (role.IsEnabled && !role.IsAdmin) // if not admin get only the user's certs. 
+            {
+
+                CertRecords = await _certRepository.GetAllCertsForUserAsync(CurrentUser.UserId);
+                ExpiringSoonRecords = await _certRepository.GetExpiredCertsByUserIdAsync(CurrentUser.UserId);
+                DNSProviders = await DnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
+            }
+
             return Page();
         }
+    
+        
 
         public async Task<IActionResult> OnPostQuickCreate([FromBody] QuickCreateRequest request)
         {
@@ -90,7 +138,7 @@ namespace SphereSSLv2.Pages
                 string orderID = AcmeService.GenerateCertRequestId();
                 order.Provider = providerName;
                 order.OrderId = orderID;
-
+                order.UserId = CurrentUser.UserId;
                 string _baseAddress = request.UseStaging
 
                      ? "https://acme-staging-v02.api.letsencrypt.org/"
@@ -130,8 +178,8 @@ namespace SphereSSLv2.Pages
                 if (string.IsNullOrWhiteSpace(domain))
                 {
 
-                    Console.WriteLine($"Domain is null or empty for email: {order.Email} and domain: {order.Domain}");
-                    await _logger.Error("Returned domain is null or empty after CreateUserAccountForCert!");
+                
+                    await _logger.Error($"[{CurrentUser.Username}]:Returned domain is null or empty after CreateUserAccountForCert!");
 
                     return BadRequest("Failed to create ACME order: domain is empty/null.");
                 }
@@ -145,12 +193,12 @@ namespace SphereSSLv2.Pages
                 bool added = false;
                 if (autoAdd)
                 {
-                    await _logger.Info($"Auto-adding DNS record using provider: {provider.ProviderName}");
+                    await _logger.Info($"[{CurrentUser.Username}]: Auto-adding DNS record using provider: {provider.ProviderName}");
                     zoneID = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domain, order.DnsChallengeToken);
 
                     if (String.IsNullOrWhiteSpace(zoneID))
                     {
-                        await _logger.Info($"Failed to auto-add DNS record for provider: {provider}");
+                        await _logger.Info($"[{CurrentUser.Username}]: Failed to auto-add DNS record for provider: {provider}");
                         added = false;
                     }
                     else
@@ -170,7 +218,7 @@ namespace SphereSSLv2.Pages
             }
             else
             {
-                await _logger.Error("A certificate generation is already in progress. Please wait until it completes.");
+                await _logger.Error($"[{CurrentUser.Username}]: A certificate generation is already in progress. Please wait until it completes.");
                 return BadRequest("A certificate generation is already in progress. Please wait until it completes.");
             }
         }
@@ -183,12 +231,12 @@ namespace SphereSSLv2.Pages
             AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService Acme);
             if(Acme == null)
             {
-                await _logger.Error($"No ACME service found for Order ID: {order.OrderId}");
+                await _logger.Error($"[{CurrentUser.Username}]: No ACME service found for Order ID: {order.OrderId}");
                 return BadRequest("ACME service not found for the specified order.");
             }
-            Console.WriteLine($"Getting ACME for Order: {_order.Order.OrderId}");
+           
             (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
-                var nsList = await Spheressl.GetNameServers(order.Domain);
+                var nsList = await ConfigureService.GetNameServers(order.Domain);
 
                 using SHA256 algor = SHA256.Create();
                 var thumbprintBytes = JwsHelper.ComputeThumbprint(Acme._signer, algor);
@@ -241,7 +289,7 @@ namespace SphereSSLv2.Pages
                              <div> Domain: <a href='{order.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
                                 {order.Domain} </a>  </div>   
                             
-                           <div> Provider: {Spheressl.CapitalizeFirstLetter(order.Provider)} </div>
+                           <div> Provider: {ConfigureService.CapitalizeFirstLetter(order.Provider)} </div>
                            <div> Website: <a href='{fullLink}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
                                 ({fullLink}) </a> </div>
                                 <div> NameServer1: {nsList[0]} </div>  
@@ -321,7 +369,7 @@ namespace SphereSSLv2.Pages
                             <div> Domain: <a href='{order.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
                                 {order.Domain} </a>  </div>   
                             
-                           <div> Provider: {Spheressl.CapitalizeFirstLetter(order.Provider)} </div>
+                           <div> Provider: {ConfigureService.CapitalizeFirstLetter(order.Provider)} </div>
                            <div> Website: <a href='{fullLink}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
                                 ({fullLink}) </a> </div>
                                 <div> NameServer1: {nsList[0]} </div>  
@@ -427,14 +475,14 @@ namespace SphereSSLv2.Pages
                 return BadRequest("Invalid provider data.");
             }
             // Check if provider already exists
-            if (Spheressl.DNSProviders.Any(p => p.ProviderName.Equals(provider.ProviderName, StringComparison.OrdinalIgnoreCase)))
+            if (ConfigureService.DNSProviders.Any(p => p.ProviderName.Equals(provider.ProviderName, StringComparison.OrdinalIgnoreCase)))
             {
                 return BadRequest("Provider already exists.");
             }
             // Add the new provider to the list
-            Spheressl.DNSProviders.Add(provider);
+            ConfigureService.DNSProviders.Add(provider);
 
-            await _databaseManager.InsertDNSProvider(provider);
+            await _dnsProviderRepository.InsertDNSProvider(provider, CurrentUser.UserId);
 
 
             return new JsonResult(new { success = true, message = "Provider added successfully." });
@@ -442,14 +490,14 @@ namespace SphereSSLv2.Pages
 
         public async Task<JsonResult> OnGetGetDNSProvidersAsync()
         {
-            DNSProviders = Spheressl.DNSProviders;
+            DNSProviders = ConfigureService.DNSProviders;
 
             SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
             .Cast<DNSProvider.ProviderType>()
             .Select(p => p.ToString())
             .ToList();
 
-            return new JsonResult(Spheressl.DNSProviders);
+            return new JsonResult(ConfigureService.DNSProviders);
   
         }
        
@@ -457,7 +505,7 @@ namespace SphereSSLv2.Pages
         {
 
 
-            var record = Spheressl.CertRecords.FirstOrDefault(r => r.OrderId == orderId);
+            var record = ConfigureService.CertRecords.FirstOrDefault(r => r.OrderId == orderId);
 
             if (record == null)
             {
@@ -614,7 +662,7 @@ namespace SphereSSLv2.Pages
 
             if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
             {
-                await _logger.Error("Invalid order data received for verification.");
+                await _logger.Error($"[{CurrentUser.Username}]: Invalid order data received for verification.");
                 return BadRequest("Invalid order data.");
             }
 
@@ -652,7 +700,7 @@ namespace SphereSSLv2.Pages
 
                 while (attempt < maxAttempts)
                 {
-                    await _logger.Info($"Attempting DNS verification (try {attempt + 1} of {maxAttempts})...");
+                    await _logger.Info($"[{CurrentUser.Username}]: Attempting DNS verification (try {attempt + 1} of {maxAttempts})...");
 
                     bool verified = false;
 
@@ -663,12 +711,12 @@ namespace SphereSSLv2.Pages
                     }
                     catch (Exception ex)
                     {
-                        await _logger.Error($"\n[ERROR] DNS verification failed: {ex.Message}");
-                        await _logger.Debug($"\n[ERROR] DNS verification failed: {ex.Message}");
+                        await _logger.Error($"[{CurrentUser.Username}]: DNS verification failed: {ex.Message}");
+                        await _logger.Debug($"[{CurrentUser.Username}]: DNS verification failed: {ex.Message}");
                         attempt++;
                         if (attempt < maxAttempts)
                         {
-                            await _logger.Info($"\nRetrying in 15 seconds... (attempt {attempt + 1} of {maxAttempts})");
+                            await _logger.Info($"[{CurrentUser.Username}]: Retrying in 15 seconds... (attempt {attempt + 1} of {maxAttempts})");
                             await Task.Delay(15000);
                         }
                         continue;
@@ -676,7 +724,7 @@ namespace SphereSSLv2.Pages
 
                     if (verified)
                     {
-                        await _logger.Update("\nDNS verification successful! Starting certificate generation...");
+                        await _logger.Update($"[{CurrentUser.Username}]: DNS verification successful! Starting certificate generation...");
 
                         try
                         {
@@ -688,10 +736,10 @@ namespace SphereSSLv2.Pages
 
                             if (order.SaveForRenewal)
                             {
-                                await _logger.Update($"Saving order for renewal!");
-                                await DatabaseManager.InsertCertRecord(order);
+                                await _logger.Update($"[{CurrentUser.Username}]: Saving order for renewal!");
+                                await CertRepository.InsertCertRecord(order);
 
-                                CertRecords = Spheressl.CertRecords;
+                                CertRecords = ConfigureService.CertRecords;
                             }
                            
 
@@ -700,31 +748,31 @@ namespace SphereSSLv2.Pages
 
                             if (!order.UseSeparateFiles)
                             {
-                                await _logger.Update($"Certificate stored successfully!");
+                                await _logger.Update($"[{CurrentUser.Username}]: Certificate stored successfully!");
                             }
                             else
                             {
-                                await _logger.Update($"Certificates stored successfully!");
+                                await _logger.Update($"[{CurrentUser.Username}]: Certificates stored successfully!");
                             }
            
 
                         }
                         catch (Exception ex)
                         {
-                            await _logger.Error($"[ERROR] Certificate generation failed: {ex.Message}");
-                            await _logger.Debug($"[ERROR] Certificate generation failed: {ex.Message}");
-                            await _logger.Error($"Stack trace: {ex.StackTrace}");
+                            await _logger.Error($"[{CurrentUser.Username}]:  Certificate generation failed: {ex.Message}");
+                            await _logger.Debug($"[{CurrentUser.Username}]:  Certificate generation failed: {ex.Message}");
+                            await _logger.Error($"[{CurrentUser.Username}]: Stack trace: {ex.StackTrace}");
 
                             if (ex.Message.Contains("urn:ietf:params:acme:error:dns") ||
                                 ex.Message.Contains("urn:ietf:params:acme:error:connection"))
                             {
-                                await _logger.Error("This appears to be a DNS propagation issue. Retrying might help.");
-                                await _logger.Debug("This appears to be a DNS propagation issue. Retrying might help.");
+                                await _logger.Error($"[{CurrentUser.Username}]: This appears to be a DNS propagation issue. Retrying might help.");
+                                await _logger.Debug($"[{CurrentUser.Username}]: This appears to be a DNS propagation issue. Retrying might help.");
                             }
                             else
                             {
-                                await _logger.Error("This appears to be a non-recoverable error.");
-                                await _logger.Debug("This appears to be a non-recoverable error.");
+                                await _logger.Error($"[{CurrentUser.Username}]: This appears to be a non-recoverable error.");
+                                await _logger.Debug($"[{CurrentUser.Username}]: This appears to be a non-recoverable error.");
                             }
                         }
 
@@ -732,27 +780,27 @@ namespace SphereSSLv2.Pages
                     }
                     else
                     {
-                        await _logger.Debug($"\nDNS verification failed (attempt {attempt + 1})");
-                        await _logger.Debug($"Expected TXT record at: _acme-challenge.{order.Domain}");
-                        await _logger.Debug($"Expected value: {order.DnsChallengeToken}");
-                        await _logger.Debug("Make sure:");
-                        await _logger.Debug("1. The TXT record is correctly added to your DNS");
-                        await _logger.Debug("2. The record name is exactly: _acme-challenge");
-                        await _logger.Debug("3. The record value matches exactly (case-sensitive)");
-                        await _logger.Debug("4. DNS changes have had time to propagate");
+                        await _logger.Debug($"[{CurrentUser.Username}]: \nDNS verification failed (attempt {attempt + 1})");
+                        await _logger.Debug($"[{CurrentUser.Username}]: Expected TXT record at: _acme-challenge.{order.Domain}");
+                        await _logger.Debug($"[{CurrentUser.Username}]: Expected value: {order.DnsChallengeToken}");
+                        await _logger.Debug($"[{CurrentUser.Username}]: Make sure:");
+                        await _logger.Debug($"[{CurrentUser.Username}]: 1. The TXT record is correctly added to your DNS");
+                        await _logger.Debug($"[{CurrentUser.Username}]: 2. The record name is exactly: _acme-challenge");
+                        await _logger.Debug($"[{CurrentUser.Username}]: 3. The record value matches exactly (case-sensitive)");
+                        await _logger.Debug($"[{CurrentUser.Username}]: 4. DNS changes have had time to propagate");
                     }
 
                     attempt++;
 
                     if (attempt < maxAttempts)
                     {
-                        await _logger.Info($"\nWaiting 15 seconds before next attempt...");
+                        await _logger.Info($"[{CurrentUser.Username}]: \nWaiting 15 seconds before next attempt...");
                         await Task.Delay(15000);
                     }
                 }
 
-                await _logger.Error($"All {maxAttempts} attempts failed.");
-                await _logger.Debug($"All {maxAttempts} attempts failed.");
+                await _logger.Error($"[{CurrentUser.Username}]: All {maxAttempts} attempts failed.");
+                await _logger.Debug($"[{CurrentUser.Username}]: All {maxAttempts} attempts failed.");
             });
         
             _runningCertGeneration = false;

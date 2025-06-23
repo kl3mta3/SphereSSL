@@ -1,12 +1,9 @@
 ﻿using Newtonsoft.Json;
 
-namespace SphereSSLv2.Models
+namespace SphereSSLv2.Models.UserModels
 {
     public class User
     {
-        [JsonProperty("id")]
-        public int Id { get; set; } // SQLite row ID
-
         [JsonProperty("userId")]
         public string UserId { get; set; } // Secure internal ID (Guid in hex)
 
@@ -23,10 +20,10 @@ namespace SphereSSLv2.Models
         public string Email { get; set; }
 
         [JsonProperty("creationTime")]
-        public string CreationTime { get; set; }
+        public DateTime CreationTime { get; set; }
 
         [JsonProperty("lastUpdated")]
-        public string LastUpdated { get; set; }
+        public DateTime? LastUpdated { get; set; }
 
         [JsonProperty("uuid")]
         public string UUID { get; set; } // Public-safe UUID

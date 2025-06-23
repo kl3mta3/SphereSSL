@@ -1,17 +1,15 @@
 ﻿using Newtonsoft.Json;
 
-namespace SphereSSLv2.Models
+namespace SphereSSLv2.Models.UserModels
 {
     public class ApiKey
     {
-        [JsonProperty("id")]
-        public int Id { get; set; }
 
         [JsonProperty("userId")]
         public string UserId { get; set; }
 
         [JsonProperty("apiKey")]
-        public string Key { get; set; }
+        public string APIKey { get; set; }
 
         [JsonProperty("created")]
         public DateTime Created { get; set; }

@@ -27,9 +27,10 @@ using Microsoft.AspNetCore.SignalR;
 using Certes.Acme.Resource;
 using Org.BouncyCastle.Tls;
 using System;
+using SphereSSLv2.Services.Config;
 
 
-namespace SphereSSLv2.Services
+namespace SphereSSLv2.Services.AcmeServices
 {
     public class AcmeService
     {

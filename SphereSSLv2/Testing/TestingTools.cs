@@ -1,6 +1,8 @@
-﻿using SphereSSLv2.Data;
-using SphereSSLv2.Models;
-using SphereSSLv2.Services;
+﻿using SphereSSLv2.Data.Database;
+using SphereSSLv2.Models.DNSModels;
+using SphereSSLv2.Models.CertModels;
+using SphereSSLv2.Services.Config;
+using SphereSSLv2.Services.AcmeServices;
 
 namespace SphereSSLv2.Testing
 {
@@ -31,7 +33,7 @@ namespace SphereSSLv2.Testing
                     Email = $"user{i}@example.com",
                     DnsChallengeToken = $"token-{i}",
                     SavePath = $"/fake/path/cert{i}.pem",
-                    Provider = Spheressl.CapitalizeFirstLetter(fakeProvider),
+                    Provider = ConfigureService.CapitalizeFirstLetter(fakeProvider),
                     UseSeparateFiles = i % 2 == 0,
                     SaveForRenewal = i % 3 == 0,
                     autoRenew = i % 2 == 0,
@@ -51,14 +53,14 @@ namespace SphereSSLv2.Testing
                     // Expired (1–29 days ago)
                     cert.ExpiryDate = now.AddDays(-Random.Shared.Next(1, 30));
                     cert.CreationDate = cert.ExpiryDate.AddDays(-90);
-                    await DatabaseManager.InsertExpiredCert(cert);
+                    await CertRepository.InsertExpiredCert(cert);
                 }
                 else if (i < 7)
                 {
                     // Expiring soon (1–30 days from now)
                     cert.ExpiryDate = now.AddDays(Random.Shared.Next(1, 31));
                     cert.CreationDate = cert.ExpiryDate.AddDays(-90);
-                    Spheressl.ExpiringSoonCertRecords.Add(cert);
+                    ConfigureService.ExpiringSoonCertRecords.Add(cert);
                 }
                 else
                 {
@@ -68,7 +70,7 @@ namespace SphereSSLv2.Testing
                 }
 
 
-                await DatabaseManager.InsertCertRecord(cert);
+                await CertRepository.InsertCertRecord(cert);
             }
         }
     }

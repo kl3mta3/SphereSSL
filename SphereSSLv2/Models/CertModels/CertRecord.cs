@@ -1,11 +1,14 @@
 ﻿using Newtonsoft.Json;
 
-namespace SphereSSLv2.Models
+namespace SphereSSLv2.Models.CertModels
 {
     public class CertRecord
     {
         [JsonProperty("orderId")]
         public string OrderId { get; set; } = string.Empty;
+
+        [JsonProperty("userId")]
+        public string UserId { get; set; } = string.Empty;
 
         [JsonProperty("domain")]
         public string Domain { get; set; } = string.Empty;

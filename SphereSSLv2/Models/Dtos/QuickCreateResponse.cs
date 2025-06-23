@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
+using SphereSSLv2.Models.CertModels;
 
-namespace SphereSSLv2.Models
+namespace SphereSSLv2.Models.Dtos
 {
     public class QuickCreateResponse
     {

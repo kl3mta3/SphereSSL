@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualBasic.ApplicationServices;
 using Newtonsoft.Json;
 
-namespace SphereSSLv2.Models
+namespace SphereSSLv2.Models.ConfigModels
 {
     public class LogEntry
     {
