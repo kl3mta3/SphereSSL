@@ -148,10 +148,10 @@ namespace SphereSSLv2.Data.Database
             command.CommandText = @"
         SELECT UserId, Username, PasswordHash, Name, Email, CreationTime, LastUpdated, UUID, Notes
         FROM Users
-        WHERE Id = @Id
+        WHERE UserId = @UserId
         LIMIT 1;
     ";
-            command.Parameters.AddWithValue("@Id", userId);
+            command.Parameters.AddWithValue("@UserId", userId);
 
             using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())

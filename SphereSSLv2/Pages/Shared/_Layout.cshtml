@@ -106,15 +106,15 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-dark">
             <div class="modal-header">
-                <h5 class="modal-title" id="powerModalLabel">Restart Server</h5>
+                <h5 class="modal-title" id="powerModalLabel">Log Off</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                Are you sure you want to restart the server? This will temporarily interrupt all active sessions.
+                Are you sure you want to Log off? 
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmRestart">Yes, Restart</button>
+                <button type="button" class="btn btn-danger" id="confirmLogOff">Yes, Log Off</button>
             </div>
         </div>
     </div>
@@ -191,6 +191,143 @@
     </div>
 </div>
 
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Add User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addUserForm" autocomplete="off">
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label for="newUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="newUsername" required>
+                    </div>
+                    <div class="mb-2">
+                        <label for="newPassword" class="form-label">Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="newPassword" required autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label for="newName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="newName">
+                    </div>
+                    <div class="mb-2">
+                        <label for="newEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="newEmail">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Role</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="roleViewer" value="Viewer" required>
+                            <label class="form-check-label" for="roleViewer">Viewer</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="roleUser" value="User">
+                            <label class="form-check-label" for="roleUser">User</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="Admin">
+                            <label class="form-check-label" for="roleAdmin">Admin</label>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label for="newNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="newNotes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View User Modal -->
+<div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewUserModalLabel">View User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="viewUserForm" autocomplete="off">
+                <div class="modal-body">
+                    <!-- All fields filled in dynamically by JS -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">User ID</label>
+                            <input type="text" class="form-control" id="vuUserId" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">UUID</label>
+                            <input type="text" class="form-control" id="vuUUID" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="vuUsername" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Password Hash</label>
+                            <input type="text" class="form-control" id="vuPasswordHash" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="vuName" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="vuEmail" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Role</label>
+                            <input type="text" class="form-control" id="vuRole" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="vuNotes" rows="1" readonly></textarea>
+                        </div>
+                    </div>
+                    <hr>
+                    <div id="userStatsSection">
+                        <h6>User Stats</h6>
+                        <div>Total Certs: <span id="vuTotalCerts"></span></div>
+                        <div>Certs Renewed: <span id="vuCertsRenewed"></span></div>
+                        <div>Certs Failed: <span id="vuCertsFailed"></span></div>
+                        <div>Last Cert Created: <span id="vuLastCertCreated"></span></div>
+                    </div>
+                    <hr>
+                    <div id="apiKeySection">
+                        <h6>API Key</h6>
+                        <div>API Key: <span id="vuApiKey"></span></div>
+                        <div>Created: <span id="vuApiCreated"></span></div>
+                        <div>Last Used: <span id="vuApiLastUsed"></span></div>
+                        <div>Revoked: <span id="vuApiRevoked"></span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="editUserBtn" style="display:none;">Edit</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 <!-- CSS styles-->
 <style>
@@ -235,21 +372,20 @@
         modal.show();
     });
 
-    document.getElementById("confirmRestart").addEventListener("click", async function () {
+    document.getElementById("confirmLogOff").addEventListener("click", async function () {
         try {
-            const response = await fetch("/Server/Restart", {
+            const response = await fetch("?handler=LogOff", { 
                 method: "POST"
             });
 
             if (response.ok) {
-                alert("Server restart initiated!");
-                location.reload(); // optional
+                window.location = "/Index";
             } else {
-                alert("Failed to restart the server.");
+                showToast("Failed to log off the server.", true);
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred while trying to restart.");
+             showToast("An error occurred while trying to log off.", true);
         }
     });
 </script>
@@ -353,15 +489,71 @@
 
 <!--Auto Select Save on Select AutoRenew-->
 <script>
-    document.getElementById("autoRenew").addEventListener("change", function () {
-        const autoRenew = this.checked;
-        const saveForRenewal = document.getElementById("saveForRenewal");
+    var autoRenew = document.getElementById("autoRenew");
+    if (autoRenew) {
+        autoRenew.addEventListener("change", function () {
+            const autoRenewVal = this.checked;
+            const saveForRenewal = document.getElementById("saveForRenewal");
 
-        if (autoRenew && !saveForRenewal.checked) {
-            saveForRenewal.checked = true;
+            if (autoRenewVal && saveForRenewal && !saveForRenewal.checked) {
+                saveForRenewal.checked = true;
+            }
+        });
+    }
+</script>
+
+<!--Show/Hide Add User Password-->
+<script>
+
+        document.getElementById('togglePassword').addEventListener('click', function () {
+        const pwInput = document.getElementById('newPassword');
+        const icon = document.getElementById('togglePasswordIcon');
+        if (pwInput.type === 'password') {
+            pwInput.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            pwInput.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
         }
     });
+
 </script>
 
 
 
+<script>
+        
+    document.getElementById('addUserForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const userDto = {
+            Username: document.getElementById('newUsername').value.trim(),
+            Password: document.getElementById('newPassword').value,
+            Name: document.getElementById('newName').value.trim(),
+            Email: document.getElementById('newEmail').value.trim(),
+            Role: document.querySelector('input[name="role"]:checked').value,
+            Notes: document.getElementById('newNotes').value.trim()
+        };
+
+        const response = await fetch('/Settings?handler=AddUser', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userDto)
+        });
+
+           if (response.redirected) {
+            window.location = response.url;
+        } else if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+            showToast('User added successfully!'); 
+            setTimeout(() => location.reload(), 800); // Give a moment for the toast to show or call a function to refresh the list without reload
+        } else {
+            showToast('Error adding user: ' + (await response.text()), true); 
+        }
+    });
+
+        </script>

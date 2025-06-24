@@ -69,7 +69,7 @@ namespace SphereSSLv2.Services.Config
         }
 
 
-        private static async Task SaveConfigFile(DeviceConfig config)
+        internal static async Task SaveConfigFile(StoredConfig config)
         {
             try
             {
@@ -82,6 +82,59 @@ namespace SphereSSLv2.Services.Config
             }
         }
 
+
+        internal static async Task UpdateConfigFile(StoredConfig config)
+        {
+            Console.WriteLine($"UpdateConfigFile triggered");
+            try
+            {
+
+                StoredConfig oldConfig = await LoadConfigFile();
+
+                if (!String.IsNullOrWhiteSpace(config.ServerURL))
+                {
+                    oldConfig.ServerURL = config.ServerURL;
+                   
+                }
+                if (config.ServerPort != 0 && oldConfig.ServerPort != config.ServerPort)
+                {
+                    oldConfig.ServerPort = config.ServerPort;
+                   
+                }
+                if (!String.IsNullOrWhiteSpace(config.AdminUsername) && oldConfig.AdminUsername != config.AdminUsername)
+                {
+
+                    oldConfig.AdminUsername = config.AdminUsername;
+                   
+                }
+                if (!String.IsNullOrWhiteSpace(config.AdminPassword) && oldConfig.AdminPassword != config.AdminPassword)
+                {
+                    oldConfig.AdminPassword = config.AdminPassword;
+                  
+
+                }
+                if (!String.IsNullOrWhiteSpace(config.DatabasePath) && oldConfig.DatabasePath != config.DatabasePath)
+                {
+                    oldConfig.DatabasePath = config.DatabasePath;
+                   
+
+                }
+                if (!String.IsNullOrWhiteSpace(config.UseLogOn) && oldConfig.UseLogOn != config.UseLogOn)
+                {
+                    oldConfig.UseLogOn = config.UseLogOn.ToLower().ToString();
+                  
+
+                }
+
+
+                string json = JsonSerializer.Serialize(oldConfig, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(ConfigFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Failed to update saved config.", ex);
+            }
+        }
         private static async Task UpdateConfigSettings(DeviceConfig config)
         {
             UseLogOn = config.UsePassword;
@@ -91,10 +144,11 @@ namespace SphereSSLv2.Services.Config
             HashedPassword = config.PasswordHash;
         }
 
-        internal static async Task LoadConfigFile()
+        internal static async Task<StoredConfig> LoadConfigFile()
         {
             try
             {
+               
                 string json = File.ReadAllText(ConfigFilePath);
 
                 var storedConfig = JsonSerializer.Deserialize<StoredConfig>(json);
@@ -109,14 +163,17 @@ namespace SphereSSLv2.Services.Config
                 if (storedConfig.UseLogOn == "false")
                 {
                     UseLogOn = false; 
+                    
                 }
                 else if(storedConfig.UseLogOn == "true")
                 {
                     UseLogOn = true;
+                    
                 }
                 else
                 {
-                    UseLogOn = false; 
+                    UseLogOn = false;
+                    
                 }
 
                 Username = storedConfig.AdminUsername ?? string.Empty;
@@ -126,7 +183,7 @@ namespace SphereSSLv2.Services.Config
                 ? "127.0.0.1"
                 : storedConfig.ServerURL;
 
-
+                return storedConfig;
 
             }
             catch (Exception ex)

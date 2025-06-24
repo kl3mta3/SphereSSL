@@ -114,7 +114,7 @@ namespace SphereSSLv2.Data.Database
 
                 CREATE TABLE IF NOT EXISTS Users(
                     UserId TEXT PRIMARY KEY,
-                    Username TEXT,
+                    Username TEXT UNIQUE,
                     PasswordHash TEXT,
                     Name TEXT,
                     Email TEXT,
@@ -181,42 +181,62 @@ namespace SphereSSLv2.Data.Database
 
 
                 // Insert defaultSuperAdmin User record
-                command.CommandText = @"
-                INSERT OR IGNORE INTO Users (
-                UserId, Username, PasswordHash, Name, Email, CreationTime, LastUpdated, UUID, Notes
-                )
+                command.CommandText = "SELECT COUNT(1) FROM Users WHERE Name = @name";
+                command.Parameters.Clear();
+                command.Parameters.AddWithValue("@name", "Locke-Ann Key");
+                var exists = (long)await command.ExecuteScalarAsync();
+
+                if (exists == 0)
+                {
+                    command.CommandText = @"
+                    INSERT OR IGNORE INTO Users (
+                        UserId, Username, PasswordHash, Name, Email, CreationTime, LastUpdated, UUID, Notes
+                        )
                     VALUES (
-                    @userId, @username, @passwordHash, 'Locke-Ann Key', 'admin@example.com',
-                    datetime('now'), datetime('now'), @uuid, 'System default super admin account'
-                );"
-                ;
+                        @userId, @username, @passwordHash, 'Locke-Ann Key', 'admin@example.com',
+                        datetime('now'), datetime('now'), @uuid, 'System default super admin account'
+                    );
+                    ";
 
-                command.Parameters.Clear();
-                command.Parameters.AddWithValue("@username", adminUsername);
-                command.Parameters.AddWithValue("@userId", adminUserId);
-                command.Parameters.AddWithValue("@passwordHash", adminPassHash);
-                command.Parameters.AddWithValue("@uuid", adminUUID.ToString());
-                await command.ExecuteNonQueryAsync();
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@username", adminUsername);
+                    command.Parameters.AddWithValue("@userId", adminUserId);
+                    command.Parameters.AddWithValue("@passwordHash", adminPassHash);
+                    command.Parameters.AddWithValue("@uuid", adminUUID.ToString());
+                    await command.ExecuteNonQueryAsync();
 
-                // Insert default UserRole record
-                command.CommandText = @"
-                INSERT OR IGNORE INTO UserRoles (UserId, IsAdmin, IsEnabled, Role)
-                    VALUES (@userId, 1, 1, 'SuperAdmin');
-                ";
-                command.Parameters.Clear();
-                command.Parameters.AddWithValue("@userId", adminUserId);
-                await command.ExecuteNonQueryAsync();
+                }
 
 
-                // Insert default log record
-                command.CommandText = @"
-                INSERT INTO Logs (UserId, LogID, AlertLevel, Message, Timestamp)
-                    VALUES (@userId, @logId, 'INFO', 'Locke-Ann Key has entered the realm.', datetime('now'));
-                ";
+                command.CommandText = "SELECT COUNT(1) FROM UserRoles WHERE UserId = @userId AND Role = @role";
                 command.Parameters.Clear();
                 command.Parameters.AddWithValue("@userId", adminUserId);
-                command.Parameters.AddWithValue("@logId", Guid.NewGuid().ToString("N"));
-                await command.ExecuteNonQueryAsync();
+                command.Parameters.AddWithValue("@role", "SuperAdmin");
+                var roleExists = (long)await command.ExecuteScalarAsync();
+
+                if (roleExists == 0)
+                {
+
+                    // Insert default UserRole record
+                    command.CommandText = @"
+                    INSERT OR IGNORE INTO UserRoles (UserId, IsAdmin, IsEnabled, Role)
+                        VALUES (@userId, 1, 1, 'SuperAdmin');
+                    ";
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@userId", adminUserId);
+                    await command.ExecuteNonQueryAsync();
+
+
+                    // Insert default log record
+                    command.CommandText = @"
+                    INSERT INTO Logs (UserId, LogID, AlertLevel, Message, Timestamp)
+                        VALUES (@userId, @logId, 'INFO', 'Locke-Ann Key has entered the realm.', datetime('now'));
+                    ";
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@userId", adminUserId);
+                    command.Parameters.AddWithValue("@logId", Guid.NewGuid().ToString("N"));
+                    await command.ExecuteNonQueryAsync();
+                }
 
                 await HealthRepository.RecalculateHealthStats();
             }

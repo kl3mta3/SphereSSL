@@ -5,8 +5,9 @@
     }
 
 @{
-    bool isSuperadmin = Model.CurrentUser.Role == "Superadmin";
+    bool isSuperadmin = Model.CurrentUser.Role == "SuperAdmin";
     bool isAdmin = Model.CurrentUser.IsAdmin || isSuperadmin;
+    bool useLogOn = Model.UseLogOn;
 }
 
 <div class="container-fluid">
@@ -65,23 +66,109 @@
 
 
                                             <!-- Log On Settings Content Here -->
-                                    @if (isAdmin)
-                                    {
+                                    
                                         <div class="tab-pane fade" id="logon" role="tabpanel" aria-labelledby="logon-tab">
-                                            @if (isSuperadmin)
-                                            {
 
-                                                <!--Show toggle-->
-                                                <!-- Show adminUsername and password inputs here for superadmin -->
+                                                <!-- Only Superadmin sees these controls -->
+                                        @if (isSuperadmin)
+                                        {
+                                                <div class="card shadow-sm p-4 mb-4">
+                                                    <form id="adminCredsForm" method="post">
+                                                        <div class="text-center">
+                                                            <h4>Enable Log On</h4>
+                                                            <p>(Server Restart Required To take Effect)</p>
+                                                            <div class="form-check form-switch d-flex justify-content-center mt-2">
+                                                                <input class="form-check-input custom-toggle"
+                                                                       type="checkbox"
+                                                                       id="useLogOnSwitch"
+                                                                       name="UseLogOn"
+                                                                       value="true"
+                                                            @(useLogOn ? "checked" : "") />
+                                                            </div>
+                                                        </div>
+
+                                                        <h5 class="fw-semibold mb-3">SuperAdmin Creds</h5>
+                                                        <div class="row g-2">
+                                                            <div class="col-md-6 mb-3">
+                                                                <label for="adminUsername" class="form-label">Admin Username</label>
+                                                                <input type="text"
+                                                                       class="form-control"
+                                                                       id="adminUsername"
+                                                                       name="Username"
+                                                                       value="@Model.AdminUsername" />
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label for="adminPassword" class="form-label">Admin Password</label>
+                                                                <input type="password"
+                                                                       class="form-control"
+                                                                       id="adminPassword"
+                                                                       name="Password"
+                                                                       value="@Model.AdminPassword" />
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" class="btn btn-primary mt-2" onclick="submitAdminCreds()">Save Admin Credentials</button>
+                                                    </form>
+                                                </div>
+                                        }
+
+                                        @if (isAdmin)
+                                        {
+                                                <!-- User Account Management (all Admins/Superadmins) -->
+                                                <br/>
+                                            <div class="card shadow-sm p-4">
+                                                <h6 class="fw-semibold mb-3">User Accounts</h6>
+                                                <table class="table align-middle mb-3" id="usersTable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="cursor:pointer;" onclick="sortTable(0)">Username <span id="userSortIcon">⇅</span></th>
+                                                            <th class="text-center" style="cursor:pointer;" onclick="sortTable(1)">Name <span id="nameSortIcon">⇅</span></th>
+                                                            <th style="width:140px"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    @if (Model.UserList != null && Model.UserList.Any())
+                                                    {
+                                                        foreach (var user in Model.UserList)
+                                                        {
+                                                                <tr>
+                                                                    <td>@user.Username</td>
+                                                                    <td class="text-center">@user.Name</td>
+                                              
+                                                                    <td>
+                                                                        <button onclick="showViewUserModal('@user.UserId')" class="btn btn-sm btn-info">View</button>
+                                                                    </td>
+                                                                </tr>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                            <tr>
+                                                                <td colspan="3" class="text-muted text-center">No users found.</td>
+                                                            </tr>
+                                                    }
+                                                    </tbody>
+                                                </table>
+                                                <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#addUserModal">Add User</button>
+                                            </div>
+                                        }
+                                        else
+                                @*     @if (!isAdmin || !isSuperadmin) *@
+                                        {
+                                                <div class="card shadow-sm p-4 mb-4">
+
+                                                    <!-- For non admin or superAdmin users -->
+                                                    <div class="form-check form-switch mb-3">
+                                                        <label class="form-check-label ms-2" for="useLogOnSwitch">
+                                                            <h4> You do not have Access to this Page</h4>
+                                                            <p>(Contact your system Admin)</p>
+                                                        </label>
+
+                                                    </div>
+                                                </div>
+                                        }
 
 
-
-
-
-                                            }
-                                            <!-- Show list of users, add/edit/delete buttons, etc. -->
-                                        </div>
-                                    }
+                                    </div>
                                 </div>
 
                             </div>
@@ -94,11 +181,66 @@
 </div>
 
 
+<style>
+    .form-check-input.custom-toggle {
+        width: 3rem;
+        height: 1.7rem;
+        border: 2px solid #007bff;
+        box-shadow: 0 0 8px #007bff40;
+        background-color: #f2f8ff;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+        /* Bigger thumb/circle */
+        .form-check-input.custom-toggle:checked {
+            background-color: #007bff;
+            border-color: #0056b3;
+            box-shadow: 0 0 12px #007bff99;
+        }
+
+        .form-check-input.custom-toggle:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 8px #007bff80;
+        }
+
+</style>
 
 
+<script>
+    let sortDirection = [1, 1]; // [Username, Name] 1=asc, -1=desc
+
+    function sortTable(colIndex) {
+        const table = document.getElementById("usersTable");
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.querySelectorAll("tr")).filter(
+            tr => tr.children.length > 2 // Skip "No users found" row
+        );
+
+        // Toggle sort direction for this column
+        sortDirection[colIndex] *= -1;
+
+        rows.sort((a, b) => {
+            const aText = a.cells[colIndex].innerText.trim().toLowerCase();
+            const bText = b.cells[colIndex].innerText.trim().toLowerCase();
+            if (aText < bText) return -1 * sortDirection[colIndex];
+            if (aText > bText) return 1 * sortDirection[colIndex];
+            return 0;
+        });
+
+        // Remove all rows, then add them back in new order
+        rows.forEach(row => tbody.appendChild(row));
+
+        // Optionally update sort icons (simple toggle)
+        document.getElementById('userSortIcon').textContent = colIndex === 0
+            ? (sortDirection[0] === 1 ? '↑' : '↓') : '⇅';
+        document.getElementById('nameSortIcon').textContent = colIndex === 1
+            ? (sortDirection[1] === 1 ? '↑' : '↓') : '⇅';
+    }
+</script>
 
 
-}
 <script>
     const tryRegisterErrorLog = () => {
         if (window.signalHub && window.signalHub.connectionState === "Connected") {
@@ -112,4 +254,76 @@
     };
 
     tryRegisterErrorLog();
+</script>
+
+
+ <script>
+       function submitAdminCreds() {
+        const useLogOn = document.getElementById("useLogOnSwitch").checked;
+        const username = document.getElementById("adminUsername").value;
+        const password = document.getElementById("adminPassword").value;
+
+        fetch('/Settings?handler=ToggleLogOn', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: username,     
+                useLogOn: useLogOn,   
+                password: password
+            })
+        })
+        .then(resp => {
+            if (resp.redirected) {
+                window.location = resp.url;
+            } else if (resp.ok) {
+                location.reload();
+            } else {
+                alert("Error saving admin credentials.");
+            }
+        })
+       .catch(err => alert("Request failed: " + err));
+    }
+    </script>
+
+<!-- Show View User Modal -->
+<script>
+
+
+        function showViewUserModal(userId) {
+        fetch(`/Settings?handler=ViewUserModal&userId=${encodeURIComponent(userId)}`)
+            .then(res => res.json())
+            .then(data => {
+                // Fill fields
+                const u = data.user || {};
+                document.getElementById('vuUserId').value = u.userId || "";
+                document.getElementById('vuUUID').value = u.uuid || "";
+                document.getElementById('vuUsername').value = u.username || "";
+                document.getElementById('vuPasswordHash').value = u.passwordHash || "";
+                document.getElementById('vuName').value = u.name || "";
+                document.getElementById('vuEmail').value = u.email || "";
+                document.getElementById('vuRole').value = u.role || "";
+                document.getElementById('vuNotes').value = u.notes || "";
+
+                // User stats
+                const s = data.userStat || {};
+                document.getElementById('vuTotalCerts').innerText = s.totalCerts ?? "-";
+                document.getElementById('vuCertsRenewed').innerText = s.certsRenewed ?? "-";
+                document.getElementById('vuCertsFailed').innerText = s.certsFailed ?? "-";
+                document.getElementById('vuLastCertCreated').innerText = s.lastCertCreated ? new Date(s.lastCertCreated).toLocaleString() : "-";
+
+                // API Key
+                const k = data.apiKey || {};
+                document.getElementById('vuApiKey').innerText = k.apiKey ?? "-";
+                document.getElementById('vuApiCreated').innerText = k.created ? new Date(k.created).toLocaleString() : "-";
+                document.getElementById('vuApiLastUsed').innerText = k.lastUsed ? new Date(k.lastUsed).toLocaleString() : "-";
+                document.getElementById('vuApiRevoked').innerText = k.isRevoked ? "Yes" : "No";
+
+                // Show edit button if allowed
+                document.getElementById('editUserBtn').style.display = data.isSuperAdmin ? "" : "none";
+
+                // Show modal
+                var modal = new bootstrap.Modal(document.getElementById('viewUserModal'));
+                modal.show();
+            });
+    }
 </script>
