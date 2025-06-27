@@ -21,9 +21,9 @@ namespace SphereSSLv2.Pages
         private readonly ILogger<SettingsModel> _ilogger;
         private readonly UserRepository _userRepository;
         private readonly ApiRepository _apiRepository;
-
-
+        private readonly Logger _logger;
         public UserSession CurrentUser = new();
+
 
         [BindProperty]
         public string AdminUsername { get; set; } = "";
@@ -48,7 +48,8 @@ namespace SphereSSLv2.Pages
 
         [BindProperty]
         public string SelectedUser { get; set; }
-        private readonly Logger _logger;
+
+
         public SettingsModel(ILogger<SettingsModel> ilogger, Logger logger, UserRepository userRepository)
         {
             _ilogger = ilogger;
@@ -84,7 +85,6 @@ namespace SphereSSLv2.Pages
             DBPath = ConfigureService.dbPath;
             return Page();
         }
-
 
         public async Task<IActionResult> OnPostUpdateLogOnAsync([FromBody] ToggleUseLogOn logOn)
         {
@@ -127,10 +127,6 @@ namespace SphereSSLv2.Pages
             await ConfigureService.UpdateConfigFile(config);
             return RedirectToPage("/Settings");
         }
-
-
-
-     
 
         public async Task<IActionResult> OnPostAddUserAsync([FromBody] NewUserRequest userRequest)
         {
@@ -529,9 +525,6 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostResetServerToFactoryAsync()
         {
-
-
-
             var sessionData = HttpContext.Session.GetString("UserSession");
 
             if (sessionData == null)

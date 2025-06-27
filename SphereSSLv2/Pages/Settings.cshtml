@@ -101,7 +101,7 @@
                                                 </div>
                                                 <div class="row g-2 align-items-center justify-content-center">
                                                     <div class="col-md-2 mb-3 d-flex text center align-items-center">
-                                                        <button type="button" class="btn btn-danger w-100" onclick="submitServerCreds()">Update</button>
+                                                        <button type="button" class="btn btn-danger w-100" id="submitServerCredsBtn">Update</button>
                                                     </div>
                                                 </div>
                                                 <p>(A restart of the server is needed to apply these setting.)</p>
@@ -123,7 +123,7 @@
                                                 </div>
                                                 <div class="row g-2 align-items-center justify-content-center">
                                                     <div class="col-md-2 mb-3 d-flex align-items-center justify-content-center">
-                                                     <button type="button" class="btn btn-danger w-100" onclick="submitDbSettings()">Update</button>
+                                                        <button type="button" class="btn btn-danger w-100" id="submitDbSettingsBtn">Update</button>
                                                     </div>
                                                 </div>
                                                 <p>(This will cause a restart of the server to apply these setting.)</p>
@@ -487,57 +487,148 @@
 
 <!-- Submit Server setting Update -->
 <script>
-       function submitServerCreds() {
-        const serverUrl = document.getElementById("serverUrl").value;
-        const serverPort = document.getElementById("serverPort").value;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Open confirm modal on Update button click
+        document.getElementById("submitServerCredsBtn").addEventListener("click", function() {
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmUpdateServerUrlModal'));
+            confirmModal.show();
+        });
 
-        fetch('/Settings?handler=UpdateServerSetting', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                serverUrl: serverUrl,
-                serverPort: serverPort
-            })
-        })
-        .then(resp => {
-            if (resp.redirected) {
-                window.location = resp.url;
-            } else if (resp.ok) {
-                location.reload();
-            } else {
-                alert("Error saving admin credentials.");
+        // Handle confirm in modal
+        document.getElementById("confirmUpdateServerUrlBtn").addEventListener("click", async function() {
+            const serverUrl = document.getElementById("serverUrl").value;
+            const serverPort = document.getElementById("serverPort").value;
+
+            // Remove any existing overlays or wait modals
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+            let oldOverlay = document.getElementById("waitingModalOverlay");
+            if (oldOverlay) oldOverlay.remove();
+
+            // Hide confirm modal
+            const confirmModalEl = document.getElementById('confirmUpdateServerUrlModal');
+            const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // Show spinner overlay/modal
+            let waitModalHtml;
+            try {
+                const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                waitModalHtml = await waitModalResponse.text();
+            } catch {
+                waitModalHtml = `
+                    <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content p-4 text-center">
+                          <div class="spinner-border text-primary" role="status"></div>
+                          <p class="mt-2 mb-0 fw-bold">Updating server settings...</p>
+                        </div>
+                      </div>
+                    </div>`;
             }
-        })
-       .catch(err => alert("Request failed: " + err));
-    }
+
+            document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+            // If using Bootstrap modal, show with JS. If custom overlay, it just appears.
+            const waitModalEl = document.getElementById("waitModal");
+            if (waitModalEl) {
+                const waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                waitModalInstance.show();
+            }
+
+            // Do the fetch for updating server settings
+            try {
+                const resp = await fetch('/Settings?handler=UpdateServerSetting', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        serverUrl: serverUrl,
+                        serverPort: serverPort
+                    })
+                });
+                if (resp.redirected) {
+                    window.location = resp.url;
+                } else if (resp.ok) {
+                    setTimeout(() => { location.reload(); }, 1500);
+                } else {
+                    alert("Error saving server credentials.");
+                    setTimeout(() => { location.reload(); }, 2000);
+                }
+            } catch (err) {
+                alert("Request failed: " + err);
+                setTimeout(() => { location.reload(); }, 2000);
+            }
+        });
+    });
 </script>
 
 
 <!-- Submit DB setting Update -->
 <script>
-       function submitDbSettings() {
-        const dbPath = document.getElementById("dbPath").value;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Open confirm modal on button click
+        document.getElementById("submitDbSettingsBtn").addEventListener("click", function() {
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmUpdateDBSettingModal'));
+            confirmModal.show();
+        });
 
+        // On confirmation, do update and show waiting overlay or modal
+        document.getElementById("confirmUpdateDBSettingBtn").addEventListener("click", async function() {
+            let dbPath = document.getElementById("dbPath").value;
 
-        fetch('/Settings?handler=UpdateDbSetting', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                dbPath : dbPath
-              
-            })
-        })
-        .then(resp => {
-            if (resp.redirected) {
-                window.location = resp.url;
-            } else if (resp.ok) {
-                location.reload();
-            } else {
-                alert("Error saving admin credentials.");
+            // Remove any old overlays or modals
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+            let oldOverlay = document.getElementById("waitingModalOverlay");
+            if (oldOverlay) oldOverlay.remove();
+
+            // Hide confirmation modal
+            const confirmModalEl = document.getElementById('confirmUpdateDBSettingModal');
+            const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // Get waiting modal/overlay from server or use fallback
+            let waitModalHtml;
+            try {
+                const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                waitModalHtml = await waitModalResponse.text();
+            } catch {
+                waitModalHtml = `
+                    <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content p-4 text-center">
+                          <div class="spinner-border text-primary" role="status"></div>
+                          <p class="mt-2 mb-0 fw-bold">Updating database settings...</p>
+                        </div>
+                      </div>
+                    </div>`;
             }
-        })
-       .catch(err => alert("Request failed: " + err));
-    }
+
+            // Insert wait modal/overlay HTML into DOM
+            document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+            // If the inserted element is a real Bootstrap modal, show it using Bootstrap JS
+            const waitModalEl = document.getElementById("waitModal");
+            if (waitModalEl) {
+                const waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                waitModalInstance.show();
+            }
+            // If it's a custom overlay (waitingModalOverlay), it will show up by itself and block UI
+
+            // Do the actual DB update
+            try {
+                await fetch('/Settings?handler=UpdateDbSetting', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ dbPath: dbPath })
+                });
+                setTimeout(() => { location.reload(); }, 1500);
+            } catch (err) {
+                alert("An error occurred.");
+                setTimeout(() => { location.reload(); }, 2000);
+            }
+        });
+    });
 </script>
 
 
@@ -690,25 +781,28 @@
 
 <!--Reset Server to Factory-->
 <script>
-  
-    document.getElementById("resetServerBtn").addEventListener("click", function() {
-        const confirmModal = new bootstrap.Modal(document.getElementById('confirmResetServerModal'));
-        confirmModal.show();
-    });
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById("submitDbSettingsBtn").addEventListener("click", function() {
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmUpdateDBSettingModal'));
+            confirmModal.show();
+        });
 
-    // Handle confirmation
-    document.addEventListener('click', async (event) => {
-        if (event.target && event.target.id === 'confirmResetServerBtn') {
+        document.getElementById("confirmUpdateDBSettingBtn").addEventListener("click", async function() {
+            let dbPath = document.getElementById("dbPath").value;
+
+            // Remove any existing waitModal before creating a new one
             let oldWaitModal = document.getElementById("waitModal");
             if (oldWaitModal) oldWaitModal.remove();
 
-            const confirmModalEl = document.getElementById('confirmResetServerModal');
+            // Hide confirmation modal
+            const confirmModalEl = document.getElementById('confirmUpdateDBSettingModal');
             const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
             if (modalInstance) modalInstance.hide();
 
+            // Show wait modal (either from fetch or fallback)
             let waitModalHtml;
             try {
-                const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitingModal");
                 waitModalHtml = await waitModalResponse.text();
             } catch {
                 waitModalHtml = `
@@ -716,31 +810,32 @@
                       <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content p-4 text-center">
                           <div class="spinner-border text-primary" role="status"></div>
-                          <p class="mt-2 mb-0 fw-bold">Resetting server to Factory...</p>
+                          <p class="mt-2 mb-0 fw-bold">Updating database settings...</p>
                         </div>
                       </div>
                     </div>`;
             }
 
+            // Insert and show wait modal *synchronously* (no timeout)
             document.body.insertAdjacentHTML("beforeend", waitModalHtml);
-            let waitModalEl = document.getElementById("waitModal");
 
-            setTimeout(() => {
-                let waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
-                waitModalInstance.show();
-            }, 10);
+            // Now actually show it
+            const waitModalEl = document.getElementById("waitModal");
+            const waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+            waitModalInstance.show();
 
-            fetch('/Settings?handler=ResetServerToFactory', {
-                method: 'POST'
-            })
-            .then(response => {
-                setTimeout(() => { location.reload(); }, 5000);
-            })
-            .catch(err => {
+            try {
+                await fetch('/Settings?handler=UpdateDbSetting', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ dbPath: dbPath })
+                });
+                setTimeout(() => { location.reload(); }, 1500);
+            } catch (err) {
                 alert("An error occurred.");
-                setTimeout(() => { location.reload(); }, 5000);
-            });
-        }
+                setTimeout(() => { location.reload(); }, 2000);
+            }
+        });
     });
 </script>
 
