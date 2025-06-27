@@ -5,6 +5,7 @@ using SphereSSLv2.Testing;
 using Microsoft.AspNetCore.SignalR;
 using SphereSSLv2.Models;
 using SphereSSLv2.Services.CertServices;
+using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Data.Database;
 
 namespace SphereSSLv2.Services.Config
@@ -118,11 +119,13 @@ namespace SphereSSLv2.Services.Config
         public static async Task ConfigureApplication()
         {
             if (!File.Exists(ConfigureService.ConfigFilePath))
-            {
+            {   
+              
                 File.Create(ConfigureService.ConfigFilePath).Close();
             }
             else
             {
+              
                 await ConfigureService.LoadConfigFile();
             }
 

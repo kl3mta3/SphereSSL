@@ -2,7 +2,7 @@
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Services.Config;
 
-namespace SphereSSLv2.Data.Database
+namespace SphereSSLv2.Data.Repositories
 {
     public class CertRepository
     {
@@ -21,18 +21,19 @@ namespace SphereSSLv2.Data.Database
 
             command.CommandText = @"
         INSERT INTO CertRecords (
-            OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
+            UserId, OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
             ChallengeType, Thumbprint, ZoneId
         )
         VALUES (
-            @OrderId, @Domain, @Email, @DnsChallengeToken, @SavePath, @Provider,
+            @UserId, @OrderId, @Domain, @Email, @DnsChallengeToken, @SavePath, @Provider,
             @CreationTime, @ExpiryDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
             @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl,
             @ChallengeType, @Thumbprint, @ZoneId
         );";
 
+            command.Parameters.AddWithValue("@UserId", record.UserId);
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
             command.Parameters.AddWithValue("@Domain", record.Domain);
             command.Parameters.AddWithValue("@Email", record.Email);
@@ -170,6 +171,7 @@ namespace SphereSSLv2.Data.Database
             {
                 return new CertRecord
                 {
+                    UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
                     Domain = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
@@ -214,6 +216,7 @@ namespace SphereSSLv2.Data.Database
             {
                 return new CertRecord
                 {
+                    UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
                     Domain = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
@@ -249,7 +252,7 @@ namespace SphereSSLv2.Data.Database
             var command = connection.CreateCommand();
             command.CommandText = @"
         SELECT 
-            OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
+            UserId, OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
             ChallengeType, Thumbprint, ZoneId
@@ -261,25 +264,26 @@ namespace SphereSSLv2.Data.Database
             {
                 var record = new CertRecord
                 {
-                    OrderId = reader.GetString(0),
-                    Domain = reader.GetString(1),
-                    Email = reader.GetString(2),
-                    DnsChallengeToken = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    SavePath = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                    Provider = reader.IsDBNull(5) ? "" : reader.GetString(5),
-                    CreationDate = DateTime.Parse(reader.GetString(6)),
-                    ExpiryDate = DateTime.Parse(reader.GetString(7)),
-                    UseSeparateFiles = reader.GetInt32(8) != 0,
-                    SaveForRenewal = reader.GetInt32(9) != 0,
-                    autoRenew = reader.GetInt32(10) != 0,
-                    FailedRenewals = reader.GetInt32(11),
-                    SuccessfulRenewals = reader.GetInt32(12),
-                    Signer = reader.IsDBNull(13) ? "" : reader.GetString(13),
-                    AccountID = reader.IsDBNull(14) ? "" : reader.GetString(14),
-                    OrderUrl = reader.IsDBNull(15) ? "" : reader.GetString(15),
-                    ChallengeType = reader.IsDBNull(16) ? "" : reader.GetString(16),
-                    Thumbprint = reader.IsDBNull(17) ? "" : reader.GetString(17),
-                    ZoneId = reader.IsDBNull(18) ? "" : reader.GetString(18),
+                    UserId = reader["UserId"].ToString(),
+                    OrderId = reader["OrderId"].ToString(),
+                    Domain = reader["Domain"].ToString(),
+                    Email = reader["Email"].ToString(),
+                    DnsChallengeToken = reader["DnsChallengeToken"].ToString(),
+                    SavePath = reader["SavePath"].ToString(),
+                    Provider = reader["Provider"].ToString(),
+                    CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
+                    ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
+                    UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
+                    SaveForRenewal = Convert.ToBoolean(reader["SaveForRenewal"]),
+                    autoRenew = Convert.ToBoolean(reader["AutoRenew"]),
+                    FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
+                    SuccessfulRenewals = Convert.ToInt32(reader["SuccessfulRenewals"]),
+                    Signer = reader["Signer"].ToString(),
+                    AccountID = reader["AccountID"].ToString(),
+                    OrderUrl = reader["OrderUrl"].ToString(),
+                    ChallengeType = reader["ChallengeType"].ToString(),
+                    Thumbprint = reader["Thumbprint"].ToString(),
+                    ZoneId = reader["ZoneId"].ToString()
                 };
 
                 records.Add(record);
@@ -319,6 +323,7 @@ namespace SphereSSLv2.Data.Database
             {
                 var cert = new CertRecord
                 {
+                    UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
                     Domain = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
@@ -365,6 +370,7 @@ namespace SphereSSLv2.Data.Database
             {
                 var record = new CertRecord
                 {
+                    UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
                     Domain = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
@@ -408,6 +414,7 @@ namespace SphereSSLv2.Data.Database
             {
                 var record = new CertRecord
                 {
+                    UserId = reader.GetString(0),
                     OrderId = reader.GetString(1),
                     Domain = reader.GetString(2),
                     Email = reader.GetString(3),
@@ -452,7 +459,7 @@ namespace SphereSSLv2.Data.Database
             await transaction.CommitAsync();
         }
 
-        public async Task<List<CertRecord>> GetAllCertsForUserAsync(string userId)
+        public async Task<List<CertRecord>> GetAllCertsForUserIdAsync(string userId)
         {
             var certs = new List<CertRecord>();
 
@@ -524,18 +531,19 @@ namespace SphereSSLv2.Data.Database
 
             command.CommandText = @"
         INSERT INTO ExpiredCerts (
-            OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
+            UserId, OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
             ChallengeType, Thumbprint, ZoneId
         )
         VALUES (
-            @OrderId, @Domain, @Email, @DnsChallengeToken, @SavePath, @Provider,
+            @UserId, @OrderId, @Domain, @Email, @DnsChallengeToken, @SavePath, @Provider,
             @CreationTime, @ExpiryDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
             @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl,
             @ChallengeType, @Thumbprint, @ZoneId
         );";
 
+            command.Parameters.AddWithValue("@UserId", record.UserId);
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
             command.Parameters.AddWithValue("@Domain", record.Domain);
             command.Parameters.AddWithValue("@Email", record.Email);
@@ -609,6 +617,7 @@ namespace SphereSSLv2.Data.Database
             {
                 return new CertRecord
                 {
+                    UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
                     Domain = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
@@ -653,6 +662,7 @@ namespace SphereSSLv2.Data.Database
             {
                 return new CertRecord
                 {
+                    UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
                     Domain = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
@@ -698,6 +708,7 @@ namespace SphereSSLv2.Data.Database
             {
                 var record = new CertRecord
                 {
+                    UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
                     Domain = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),

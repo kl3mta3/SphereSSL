@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualBasic.ApplicationServices;
+using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Models.ConfigModels;
 using SphereSSLv2.Models.DNSModels;
@@ -60,7 +61,7 @@ namespace SphereSSLv2.Data.Database
                     ChallengeType TEXT,
                     Thumbprint TEXT,
                     ZoneId TEXT,
-                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE RESTRICT
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS ExpiredCerts (
@@ -85,7 +86,7 @@ namespace SphereSSLv2.Data.Database
                     ChallengeType TEXT,
                     Thumbprint TEXT,
                     ZoneId TEXT,
-                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE RESTRICT  
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS Health (
@@ -104,6 +105,7 @@ namespace SphereSSLv2.Data.Database
                 CREATE TABLE IF NOT EXISTS DNSProviders (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId TEXT,
+                    Username TEXT,
                     ProviderName TEXT,
                     Provider TEXT,
                     APIKey TEXT,
@@ -148,7 +150,8 @@ namespace SphereSSLv2.Data.Database
                     UserId TEXT PRIMARY KEY,
                     TotalCerts INTEGER DEFAULT 0,
                     CertsRenewed INTEGER DEFAULT 0,
-                    CertsFailed INTEGER DEFAULT 0,
+                    CertCreationsFailed INTEGER DEFAULT 0,
+                    CertRenewalsFailed INTEGER DEFAULT 0,
                     LastCertCreated TEXT,
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
                 );

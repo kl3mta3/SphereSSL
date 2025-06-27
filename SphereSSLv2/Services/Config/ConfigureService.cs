@@ -68,7 +68,6 @@ namespace SphereSSLv2.Services.Config
             }
         }
 
-
         internal static async Task SaveConfigFile(StoredConfig config)
         {
             try
@@ -82,10 +81,8 @@ namespace SphereSSLv2.Services.Config
             }
         }
 
-
         internal static async Task UpdateConfigFile(StoredConfig config)
         {
-            Console.WriteLine($"UpdateConfigFile triggered");
             try
             {
 
@@ -94,37 +91,40 @@ namespace SphereSSLv2.Services.Config
                 if (!String.IsNullOrWhiteSpace(config.ServerURL))
                 {
                     oldConfig.ServerURL = config.ServerURL;
-                   
+                    ServerIP = config.ServerURL;
                 }
+
                 if (config.ServerPort != 0 && oldConfig.ServerPort != config.ServerPort)
                 {
                     oldConfig.ServerPort = config.ServerPort;
-                   
+                    ServerPort = config.ServerPort;
                 }
+
                 if (!String.IsNullOrWhiteSpace(config.AdminUsername) && oldConfig.AdminUsername != config.AdminUsername)
                 {
 
                     oldConfig.AdminUsername = config.AdminUsername;
-                   
+                    Username = config.AdminUsername;
                 }
+
                 if (!String.IsNullOrWhiteSpace(config.AdminPassword) && oldConfig.AdminPassword != config.AdminPassword)
                 {
                     oldConfig.AdminPassword = config.AdminPassword;
-                  
-
+                    HashedPassword = PasswordService.HashPassword(config.AdminPassword);
                 }
+
                 if (!String.IsNullOrWhiteSpace(config.DatabasePath) && oldConfig.DatabasePath != config.DatabasePath)
                 {
                     oldConfig.DatabasePath = config.DatabasePath;
-                   
-
+                    dbPath = config.DatabasePath;
                 }
-                if (!String.IsNullOrWhiteSpace(config.UseLogOn) && oldConfig.UseLogOn != config.UseLogOn)
+
+                if (oldConfig.UseLogOn != config.UseLogOn)
                 {
-                    oldConfig.UseLogOn = config.UseLogOn.ToLower().ToString();
-                  
-
+                    oldConfig.UseLogOn = config.UseLogOn;
+                    UseLogOn = config.UseLogOn ? true : false;
                 }
+
 
 
                 string json = JsonSerializer.Serialize(oldConfig, new JsonSerializerOptions { WriteIndented = true });
@@ -135,6 +135,7 @@ namespace SphereSSLv2.Services.Config
                 throw new InvalidOperationException("Failed to update saved config.", ex);
             }
         }
+
         private static async Task UpdateConfigSettings(DeviceConfig config)
         {
             UseLogOn = config.UsePassword;
@@ -148,27 +149,35 @@ namespace SphereSSLv2.Services.Config
         {
             try
             {
-               
-                string json = File.ReadAllText(ConfigFilePath);
-
-                var storedConfig = JsonSerializer.Deserialize<StoredConfig>(json);
-
+                
+                var storedConfig = new StoredConfig();
+                for (int i = 0; i < 3; i++)
+                {
+                    string json = File.ReadAllText(ConfigFilePath);
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    storedConfig = JsonSerializer.Deserialize<StoredConfig>(json, options);
+      
+                    if (!string.IsNullOrWhiteSpace(json) && json.Trim() != "{}")
+            
+                        break;
+                }
+              
                 if (storedConfig == null)
                 {
                     throw new InvalidOperationException("Failed to deserialize node config.");
                 }
                 string passhash = PasswordService.HashPassword(storedConfig.AdminPassword);
-
-             
-                if (storedConfig.UseLogOn == "false")
+            
+              
+                if (!storedConfig.UseLogOn )
                 {
-                    UseLogOn = false; 
-                    
+                    UseLogOn = false;
+                  
                 }
-                else if(storedConfig.UseLogOn == "true")
+                else if (storedConfig.UseLogOn)
                 {
                     UseLogOn = true;
-                    
+                   
                 }
                 else
                 {
@@ -177,11 +186,14 @@ namespace SphereSSLv2.Services.Config
                 }
 
                 Username = storedConfig.AdminUsername ?? string.Empty;
+
                 HashedPassword = passhash;
                 ServerPort = storedConfig.ServerPort > 0 ? storedConfig.ServerPort : 7171;
-                ServerIP = string.IsNullOrWhiteSpace(storedConfig.ServerURL)
-                ? "127.0.0.1"
-                : storedConfig.ServerURL;
+
+                ServerIP = storedConfig.ServerURL;
+
+
+                dbPath = storedConfig.DatabasePath;
 
                 return storedConfig;
 
@@ -191,7 +203,6 @@ namespace SphereSSLv2.Services.Config
                 throw new InvalidOperationException("Failed to load config file.", ex);
             }
         }
-
 
         public static string CapitalizeFirstLetter(string input)
         {
@@ -246,6 +257,8 @@ namespace SphereSSLv2.Services.Config
 
             return await ExtractDnsProvider(results[0]);
         }
+
+
 
     }
 

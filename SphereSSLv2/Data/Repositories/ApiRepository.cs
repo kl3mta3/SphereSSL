@@ -2,7 +2,7 @@
 using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Services.Config;
 
-namespace SphereSSLv2.Data.Database
+namespace SphereSSLv2.Data.Repositories
 {
     public class ApiRepository
     {
@@ -24,7 +24,7 @@ namespace SphereSSLv2.Data.Database
             command.Parameters.AddWithValue("@UserId", apiKey.UserId);
             command.Parameters.AddWithValue("@ApiKey", apiKey.APIKey);
             command.Parameters.AddWithValue("@Created", apiKey.Created.ToString("o"));
-            command.Parameters.AddWithValue("@LastUsed", apiKey.LastUsed.HasValue ? apiKey.LastUsed.Value.ToString("o") : (object)DBNull.Value);
+            command.Parameters.AddWithValue("@LastUsed", apiKey.LastUsed.HasValue ? apiKey.LastUsed.Value.ToString("o") : DBNull.Value);
             command.Parameters.AddWithValue("@IsRevoked", apiKey.IsRevoked ? 1 : 0);
 
             await command.ExecuteNonQueryAsync();
@@ -52,7 +52,7 @@ namespace SphereSSLv2.Data.Database
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     APIKey = reader.GetString(reader.GetOrdinal("ApiKey")),
                     Created = DateTime.Parse(reader.GetString(reader.GetOrdinal("Created"))),
-                    LastUsed = reader.IsDBNull(reader.GetOrdinal("LastUsed")) ? (DateTime?)null : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastUsed"))),
+                    LastUsed = reader.IsDBNull(reader.GetOrdinal("LastUsed")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastUsed"))),
                     IsRevoked = reader.GetBoolean(reader.GetOrdinal("IsRevoked"))
                 };
             }
@@ -81,7 +81,7 @@ namespace SphereSSLv2.Data.Database
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     APIKey = reader.GetString(reader.GetOrdinal("ApiKey")),
                     Created = DateTime.Parse(reader.GetString(reader.GetOrdinal("Created"))),
-                    LastUsed = reader.IsDBNull(reader.GetOrdinal("LastUsed")) ? (DateTime?)null : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastUsed"))),
+                    LastUsed = reader.IsDBNull(reader.GetOrdinal("LastUsed")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastUsed"))),
                     IsRevoked = reader.GetBoolean(reader.GetOrdinal("IsRevoked"))
                 };
             }
@@ -108,7 +108,7 @@ namespace SphereSSLv2.Data.Database
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     APIKey = reader.GetString(reader.GetOrdinal("ApiKey")),
                     Created = DateTime.Parse(reader.GetString(reader.GetOrdinal("Created"))),
-                    LastUsed = reader.IsDBNull(reader.GetOrdinal("LastUsed")) ? (DateTime?)null : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastUsed"))),
+                    LastUsed = reader.IsDBNull(reader.GetOrdinal("LastUsed")) ? null : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastUsed"))),
                     IsRevoked = reader.GetBoolean(reader.GetOrdinal("IsRevoked"))
                 });
             }
@@ -134,7 +134,7 @@ namespace SphereSSLv2.Data.Database
             command.Parameters.AddWithValue("@UserId", apiKey.UserId);
             command.Parameters.AddWithValue("@ApiKey", apiKey.APIKey);
             command.Parameters.AddWithValue("@Created", apiKey.Created.ToString("o"));
-            command.Parameters.AddWithValue("@LastUsed", apiKey.LastUsed.HasValue ? apiKey.LastUsed.Value.ToString("o") : (object)DBNull.Value);
+            command.Parameters.AddWithValue("@LastUsed", apiKey.LastUsed.HasValue ? apiKey.LastUsed.Value.ToString("o") : DBNull.Value);
             command.Parameters.AddWithValue("@IsRevoked", apiKey.IsRevoked ? 1 : 0);
 
             await command.ExecuteNonQueryAsync();

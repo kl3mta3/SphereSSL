@@ -1,4 +1,7 @@
-﻿namespace SphereSSLv2.Data
+﻿using System.Diagnostics.Metrics;
+using System.Runtime.Intrinsics.X86;
+
+namespace SphereSSLv2.Data.Helpers
 {
     public class SphereSSLTaglines
     {
@@ -78,7 +81,10 @@
                 "This loading bar is just for show…",
                 "Pretending to load important stuff…",
                 "Testing your patience and our server’s speed…",
-                "Much like a Tesla with a dead battery, we don’t charge."
+                "Much like a Tesla with a dead battery, we don’t charge.",
+                "E.T. fetch('/Home?handler=Elliott',{method: 'UFO'}).",
+                "Clutching our knee: Sssssss… ahhh… sssss… ahhh… sssss… ahhh…",
+                "Tiger tested, Hobbes approved."
     };
     }
 }

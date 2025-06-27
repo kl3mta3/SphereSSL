@@ -23,11 +23,12 @@ using SphereSSLv2.Services.Config;
 using SphereSSLv2.Models.Dtos;
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Models.DNSModels;
-using SphereSSLv2.Data.Database;
 using SphereSSLv2.Services.AcmeServices;
-using SphereSSLv2.Data;
 using User = SphereSSLv2.Models.UserModels.User;
 using SphereSSLv2.Models.UserModels;
+using SphereSSLv2.Data.Repositories;
+using SphereSSLv2.Data.Helpers;
+using SphereSSLv2.Data.Database;
 namespace SphereSSLv2.Pages
 {
     public class DashboardModel : PageModel
@@ -86,23 +87,27 @@ namespace SphereSSLv2.Pages
                 return RedirectToPage("/Index");
             }
 
+            bool _isSuperAdmin = string.Equals(CurrentUser.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
 
-            else if (CurrentUser.IsEnabled && CurrentUser.IsAdmin) // if user is admin get all certs 
+            if (CurrentUser.IsEnabled && _isSuperAdmin)
             {
                 var now = DateTime.UtcNow;
                 CertRecords = await CertRepository.GetAllCertRecords();
                 ExpiringSoonRecords = CertRecords
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
-                DNSProviders = await DnsProviderRepository.GetAllDNSProviders();
-
+                DNSProviders = await _dnsProviderRepository.GetAllDNSProviders();
+ 
             }
-            else if (CurrentUser.IsEnabled && !CurrentUser.IsAdmin) // if not admin get only the user's certs. 
+            else if (CurrentUser.IsEnabled && !_isSuperAdmin)
             {
                 var now = DateTime.UtcNow;
-                CertRecords = await _certRepository.GetAllCertsForUserAsync(CurrentUser.UserId);
+                Console.WriteLine($"[{CurrentUser.Username}]: Fetching certs for user {CurrentUser.UserId}");
+                CertRecords = await _certRepository.GetAllCertsForUserIdAsync(CurrentUser.UserId);
+                Console.WriteLine($"[{CurrentUser.Username}]: Found {CertRecords.Count} certs for user {CurrentUser.UserId}");
                 ExpiringSoonRecords = CertRecords
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
-                DNSProviders = await DnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
+                DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
+           
             }
 
             return Page();
@@ -165,7 +170,7 @@ namespace SphereSSLv2.Pages
                 AcmeServiceCache.Add(request.Order.OrderId, ACME);
 
 
-                DNSProviders = await DnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
+                DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
                 DNSProvider provider = DNSProviders.FirstOrDefault(p => p.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
 
                 var autoAdd = request.AutoAdd;
@@ -245,7 +250,6 @@ namespace SphereSSLv2.Pages
                 order.OrderUrl = Acme._order.OrderUrl;
                 order.CreationDate = DateTime.UtcNow;
                 order.ExpiryDate = DateTime.UtcNow.AddDays(90);
-                Console.WriteLine($"[{CurrentUser.Username}]: User Separate Files:{order.UseSeparateFiles.ToString()}");
                 string fullLink = "https://" + link;
                 string fullDomainName = "_acme-challenge." + order.Domain;
 
@@ -479,7 +483,7 @@ namespace SphereSSLv2.Pages
             {
                 return BadRequest("Invalid provider data.");
             }
-            DNSProviders = await DnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
+            DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
             if (DNSProviders.Any(p => p.ProviderName.Equals(provider.ProviderName, StringComparison.OrdinalIgnoreCase)))
             {
                 return BadRequest("Provider already exists.");
@@ -508,15 +512,17 @@ namespace SphereSSLv2.Pages
        
         public async Task<IActionResult> OnGetGetRecordModal(string orderId)
         {
-
-
-            var record = ConfigureService.CertRecords.FirstOrDefault(r => r.OrderId == orderId);
-
+            var record = await CertRepository.GetCertRecordByOrderId(orderId);
             if (record == null)
             {
                 return Content("<p class='text-danger'>No record found with that ID.</p>");
             }
-
+            var username = await _userRepository.GetUsernameByIdAsync(record.UserId);
+            if (!string.IsNullOrEmpty(username)) { }
+            else
+            {
+                username = "Unknown/Deleted";
+            }
             var directoryPath = Path.GetDirectoryName(record.SavePath)?.Replace("\\", "/") ?? string.Empty;
             var htmlSafePath = System.Net.WebUtility.HtmlEncode(record.SavePath);
             var fileUrl = "file:///" + directoryPath.Replace(" ", "%20");
@@ -530,8 +536,8 @@ namespace SphereSSLv2.Pages
             <div class='row g-3'>
                 <div class='col-md-6'><strong>Domain:</strong><br> <a href='https://{record.Domain}' target='_blank'>{record.Domain}</a></div>
                 <div class='col-md-6'><strong>Email:</strong> <span>{record.Email}</span></div>
+                <div class='col-md-6'><strong>User:</strong> <span>{username}</span></div>
                 <div class='col-md-6'><strong>Provider:</strong> <span>{record.Provider}</span></div>
-                <div class='col-md-6'><strong>Challenge Type:</strong> <span>{record.ChallengeType}</span></div>
                 <div class='col-md-6'><strong>Created:</strong> <span>{record.CreationDate:g}</span></div>
                 <div class='col-md-6'>
                   <strong>Expires:</strong> 
@@ -542,6 +548,7 @@ namespace SphereSSLv2.Pages
                 <div class='col-md-6'><strong>Save for Renewal:</strong> <span class='badge bg-{(record.SaveForRenewal ? "info" : "secondary")}'>{(record.SaveForRenewal ? "Yes" : "No")}</span></div>
                 <div class='col-md-6'><strong>Successful Renewals:</strong> <span class='text-success fw-bold'>{record.SuccessfulRenewals}</span></div>
                 <div class='col-md-6'><strong>Failed Renewals:</strong> <span class='text-danger fw-bold'>{record.FailedRenewals}</span></div>
+                <div class='col-md-6'><strong>Challenge Type:</strong> <span>{record.ChallengeType}</span></div>
 
                 <div class='col-md-12'>
                     <strong>Save Path:</strong><br>
@@ -595,7 +602,8 @@ namespace SphereSSLv2.Pages
            
             
             var random = new Random();
-            var phrase = SphereSSLTaglines.TaglineArray[random.Next(SphereSSLTaglines.TaglineArray.Length)];
+           var phrase = SphereSSLTaglines.TaglineArray[random.Next(SphereSSLTaglines.TaglineArray.Length)];
+            
 
             var html = $@"
             <div id='waitingModalOverlay' style='
@@ -671,7 +679,7 @@ namespace SphereSSLv2.Pages
             if (CurrentUser == null)
                 return RedirectToPage("/Index"); // or return an error
             var acme = ACME;
-
+            order.UserId = CurrentUser.UserId;
             if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
             {
                 await _logger.Error($"[{CurrentUser.Username}]: Invalid order data received for verification.");
@@ -682,7 +690,7 @@ namespace SphereSSLv2.Pages
                 <form id='showVerifyForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; min-height: 400px; margin: auto;'>
 
                     <h3 class='mb-2 text-center text-primary fw-bold'>Verify DNS Challenge</h3>
-
+                    <input type='hidden' id='userId' value='{order.UserId}' />
                     <input type='hidden' id='orderId' value='{order.OrderId}' />
                     <input type='hidden' id='dnsToken' value='{order.DnsChallengeToken}' />
                     <input type='hidden' id='useSeperateFiles' value='{order.UseSeparateFiles}' />
@@ -749,9 +757,31 @@ namespace SphereSSLv2.Pages
 
                             if (order.SaveForRenewal)
                             {
+
+
+
                                 await _logger.Update($"[{CurrentUser.Username}]: Saving order for renewal!");
                                 order.UserId = CurrentUser.UserId;
+                           
                                 await CertRepository.InsertCertRecord(order);
+                                UserStat stats = await _userRepository.GetUserStatByIdAsync(CurrentUser.UserId);
+
+                                if (stats == null)
+                                {
+                                    stats = new UserStat
+                                    {
+                                        UserId = CurrentUser.UserId,
+                                        TotalCerts = 1,
+                                        CertsRenewed = 0,
+                                        CertCreationsFailed = 0,
+                                        LastCertCreated = DateTime.UtcNow
+                                    };
+                                }
+                                else
+                                {
+                                    stats.TotalCerts++;
+                                    stats.LastCertCreated = DateTime.UtcNow;
+                                }
 
                                 CertRecords = ConfigureService.CertRecords;
                             }

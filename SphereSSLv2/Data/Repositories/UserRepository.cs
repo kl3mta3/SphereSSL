@@ -4,9 +4,11 @@ using User = SphereSSLv2.Models.UserModels.User;
 using SphereSSLv2.Services.Config;
 using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Models.DNSModels;
+using static Org.BouncyCastle.Math.EC.ECCurve;
+using SphereSSLv2.Services.Security.Auth;
 
 
-namespace SphereSSLv2.Data.Database
+namespace SphereSSLv2.Data.Repositories
 {
     public class UserRepository
     {
@@ -19,7 +21,7 @@ namespace SphereSSLv2.Data.Database
 
         public async Task<List<DNSProvider>> GetUserDnsProviders(string userId)
         {
-            return await DnsProviderRepository.GetAllDNSProvidersByUserId(userId);
+            return await _dnsProviderRepository.GetAllDNSProvidersByUserId(userId);
         }
 
         //User Management Repository
@@ -33,14 +35,14 @@ namespace SphereSSLv2.Data.Database
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        INSERT INTO Users (
-            UserId, Username, PasswordHash, Name, Email, 
-            CreationTime, LastUpdated, UUID, Notes
-        )
-        VALUES (
-            @UserId, @Username, @PasswordHash, @Name, @Email, 
-            @CreationTime, @LastUpdated, @UUID, @Notes
-        );";
+            INSERT INTO Users (
+                UserId, Username, PasswordHash, Name, Email, 
+                CreationTime, LastUpdated, UUID, Notes
+            )
+            VALUES (
+                @UserId, @Username, @PasswordHash, @Name, @Email, 
+                @CreationTime, @LastUpdated, @UUID, @Notes
+            );";
 
             command.Parameters.AddWithValue("@UserId", user.UserId);
             command.Parameters.AddWithValue("@Username", user.Username);
@@ -222,6 +224,22 @@ namespace SphereSSLv2.Data.Database
 
         }
 
+        public async Task<string?> GetUsernameByIdAsync(string userId)
+        {
+
+            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+            await connection.OpenAsync();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Username FROM Users WHERE UserId = @UserId LIMIT 1;";
+            command.Parameters.AddWithValue("@UserId", userId);
+
+            var result = await command.ExecuteScalarAsync();
+            return result as string;
+
+
+        }
+
         public async Task<List<User>> GetAllUsersAsync()
         {
             var users = new List<User>();
@@ -264,61 +282,77 @@ namespace SphereSSLv2.Data.Database
 
         }
 
-        public async Task UpdateUserAsync(User user)
+        public async Task<bool> UpdateUserAsync(User user)
         {
 
-            if (user == null) return;
+            if (user == null) return false;
 
-            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-            await connection.OpenAsync();
+            try
+            {
+                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
 
-            var command = connection.CreateCommand();
-            command.CommandText = @"
-            UPDATE Users SET
-                Username = @Username,
-                PasswordHash = @PasswordHash,
-                Name = @Name,
-                Email = @Email,
-                CreationTime = @CreationTime,
-                LastUpdated = @LastUpdated,
-                UUID = @UUID,
-                Notes = @Notes
-            WHERE UserId = @UserId;
-             ";
+                var command = connection.CreateCommand();
 
-            command.Parameters.AddWithValue("@Username", user.Username);
-            command.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
-            command.Parameters.AddWithValue("@Name", user.Name);
-            command.Parameters.AddWithValue("@Email", user.Email);
-            command.Parameters.AddWithValue("@CreationTime", user.CreationTime.ToString("o"));
-            command.Parameters.AddWithValue("@LastUpdated", user.LastUpdated.HasValue
-                ? user.LastUpdated.Value.ToString("o")
-                : DBNull.Value);
-            command.Parameters.AddWithValue("@UUID", user.UUID);
-            command.Parameters.AddWithValue("@Notes", user.Notes ?? string.Empty);
-            command.Parameters.AddWithValue("@UserId", user.UserId);
+                command.CommandText = @"
+                UPDATE Users SET
+                    Username = @Username,
+                    PasswordHash = @PasswordHash,
+                    Name = @Name,
+                    Email = @Email,
+                    CreationTime = @CreationTime,
+                    LastUpdated = @LastUpdated,
+                    UUID = @UUID,
+                    Notes = @Notes
+                WHERE UserId = @UserId;
+                 ";
 
-            await command.ExecuteNonQueryAsync();
+                command.Parameters.AddWithValue("@Username", user.Username);
+                command.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
+                command.Parameters.AddWithValue("@Name", user.Name);
+                command.Parameters.AddWithValue("@Email", user.Email);
+                command.Parameters.AddWithValue("@CreationTime", user.CreationTime.ToString("o"));
+                command.Parameters.AddWithValue("@LastUpdated", user.LastUpdated.HasValue
+                    ? user.LastUpdated.Value.ToString("o")
+                    : DBNull.Value);
+                command.Parameters.AddWithValue("@UUID", user.UUID);
+                command.Parameters.AddWithValue("@Notes", user.Notes ?? string.Empty);
+                command.Parameters.AddWithValue("@UserId", user.UserId);
+
+                await command.ExecuteNonQueryAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+
+            }
 
         }
 
-        public async Task DeleteUserAsync(int userId)
+        public async Task<bool> DeleteUserAsync(string userId)
         {
 
-            if (userId <= 0) return;
+            if (string.IsNullOrWhiteSpace(userId)) return false;
+            try
+            {
+                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
 
-            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-            await connection.OpenAsync();
-
-            var command = connection.CreateCommand();
-            command.CommandText = @"
+                var command = connection.CreateCommand();
+                command.CommandText = @"
             DELETE FROM Users
-                WHERE Id = @Id;
+                WHERE UserId = @userId;
             ";
-            command.Parameters.AddWithValue("@Id", userId);
+                command.Parameters.AddWithValue("@userId", userId);
 
-            await command.ExecuteNonQueryAsync();
-
+                await command.ExecuteNonQueryAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
 
         }
 
@@ -428,6 +462,34 @@ namespace SphereSSLv2.Data.Database
             return null;
         }
 
+        internal static async Task<bool> UpdateUserPassword(string userId, string newPassword)
+        {
+            try
+            {
+            
+                string passwordHash = PasswordService.HashPassword(newPassword);
+
+                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
+
+                var command = connection.CreateCommand();
+                command.CommandText = @"
+                UPDATE Users
+                SET PasswordHash = @passwordHash
+                WHERE UserId = @userId
+                ";
+
+                command.Parameters.AddWithValue("@passwordHash", passwordHash);
+                command.Parameters.AddWithValue("@userId", userId);
+
+                var rowsAffected = await command.ExecuteNonQueryAsync();
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating user password: {ex.Message}", ex);
+            }
+        }
 
 
         //UserStat Management
@@ -440,15 +502,16 @@ namespace SphereSSLv2.Data.Database
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-            INSERT INTO UserStats (UserId, TotalCerts, CertsRenewed, CertsFailed, LastCertCreated)
-                VALUES (@UserId, @TotalCerts, @CertsRenewed, @CertsFailed, @LastCertCreated);
+            INSERT INTO UserStats (UserId, TotalCerts, CertsRenewed, CertCreationsFailed, CertRenewalsFailed, LastCertCreated)
+                VALUES (@UserId, @TotalCerts, @CertsRenewed, @CertCreationsFailed, @CertRenewalsFailed, @LastCertCreated);
             ";
             command.Parameters.AddWithValue("@UserId", userStat.UserId);
             command.Parameters.AddWithValue("@TotalCerts", userStat.TotalCerts);
             command.Parameters.AddWithValue("@CertsRenewed", userStat.CertsRenewed);
-            command.Parameters.AddWithValue("@CertsFailed", userStat.CertsFailed);
+            command.Parameters.AddWithValue("@CertCreationsFailed", userStat.CertCreationsFailed);
+            command.Parameters.AddWithValue("@CertRenewalsFailed", userStat.CertRenewalsFailed);
             command.Parameters.AddWithValue("@LastCertCreated",
-                userStat.LastCertCreated.HasValue ? userStat.LastCertCreated.Value.ToString("o") : (object)DBNull.Value);
+                userStat.LastCertCreated.HasValue ? userStat.LastCertCreated.Value.ToString("o") : DBNull.Value);
 
             await command.ExecuteNonQueryAsync();
         }
@@ -463,7 +526,7 @@ namespace SphereSSLv2.Data.Database
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-            SELECT UserId, TotalCerts, CertsRenewed, CertsFailed, LastCertCreated
+            SELECT UserId, TotalCerts, CertsRenewed, CertCreationsFailed, CertRenewalsFailed, LastCertCreated
                 FROM UserStats WHERE UserId = @UserId LIMIT 1;
             ";
             command.Parameters.AddWithValue("@UserId", userId);
@@ -476,7 +539,8 @@ namespace SphereSSLv2.Data.Database
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     TotalCerts = reader.GetInt32(reader.GetOrdinal("TotalCerts")),
                     CertsRenewed = reader.GetInt32(reader.GetOrdinal("CertsRenewed")),
-                    CertsFailed = reader.GetInt32(reader.GetOrdinal("CertsFailed")),
+                    CertCreationsFailed = reader.GetInt32(reader.GetOrdinal("CertCreationsFailed")),
+                    CertRenewalsFailed = reader.GetInt32(reader.GetOrdinal("CertRenewalsFailed")),
                     LastCertCreated = reader.IsDBNull(reader.GetOrdinal("LastCertCreated"))
                         ? null
                         : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastCertCreated")))
@@ -493,7 +557,7 @@ namespace SphereSSLv2.Data.Database
             await connection.OpenAsync();
 
             var command = connection.CreateCommand();
-            command.CommandText = "SELECT UserId, TotalCerts, CertsRenewed, CertsFailed, LastCertCreated FROM UserStats;";
+            command.CommandText = "SELECT UserId, TotalCerts, CertsRenewed, CertCreationsFailed, CertRenewalsFailed, LastCertCreated FROM UserStats;";
 
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -503,7 +567,8 @@ namespace SphereSSLv2.Data.Database
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     TotalCerts = reader.GetInt32(reader.GetOrdinal("TotalCerts")),
                     CertsRenewed = reader.GetInt32(reader.GetOrdinal("CertsRenewed")),
-                    CertsFailed = reader.GetInt32(reader.GetOrdinal("CertsFailed")),
+                    CertCreationsFailed = reader.GetInt32(reader.GetOrdinal("CertCreationsFailed")),
+                    CertRenewalsFailed = reader.GetInt32(reader.GetOrdinal("CertRenewalsFailed")),
                     LastCertCreated = reader.IsDBNull(reader.GetOrdinal("LastCertCreated"))
                         ? null
                         : DateTime.Parse(reader.GetString(reader.GetOrdinal("LastCertCreated")))
@@ -523,16 +588,18 @@ namespace SphereSSLv2.Data.Database
             UPDATE UserStats SET
                 TotalCerts = @TotalCerts,
                 CertsRenewed = @CertsRenewed,
-                CertsFailed = @CertsFailed,
+                CertCreationsFailed = @CertCreationsFailed,
+                CertRenewalsFailed = @CertRenewalsFailed,
                 LastCertCreated = @LastCertCreated
             WHERE UserId = @UserId;
             ";
             command.Parameters.AddWithValue("@UserId", userStat.UserId);
             command.Parameters.AddWithValue("@TotalCerts", userStat.TotalCerts);
             command.Parameters.AddWithValue("@CertsRenewed", userStat.CertsRenewed);
-            command.Parameters.AddWithValue("@CertsFailed", userStat.CertsFailed);
+            command.Parameters.AddWithValue("@CertCreationsFailed", userStat.CertCreationsFailed);
+            command.Parameters.AddWithValue("@CertRenewalsFailed", userStat.CertRenewalsFailed);
             command.Parameters.AddWithValue("@LastCertCreated",
-                userStat.LastCertCreated.HasValue ? userStat.LastCertCreated.Value.ToString("o") : (object)DBNull.Value);
+                userStat.LastCertCreated.HasValue ? userStat.LastCertCreated.Value.ToString("o") : DBNull.Value);
 
             await command.ExecuteNonQueryAsync();
 
@@ -629,26 +696,36 @@ namespace SphereSSLv2.Data.Database
             return roles;
         }
 
-        public async Task UpdateUserRoleAsync(UserRole userRole)
+        public async Task<bool> UpdateUserRoleAsync(UserRole userRole)
         {
-            if (userRole == null) return;
-            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-            await connection.OpenAsync();
+            if (userRole == null) return false;
+            try
+            {
+                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
 
-            var command = connection.CreateCommand();
-            command.CommandText = @"
+                var command = connection.CreateCommand();
+                command.CommandText = @"
             UPDATE UserRoles SET
                 IsAdmin = @IsAdmin,
                 IsEnabled = @IsEnabled,
                 Role = @Role
             WHERE UserId = @UserId;
             ";
-            command.Parameters.AddWithValue("@UserId", userRole.UserId);
-            command.Parameters.AddWithValue("@IsAdmin", userRole.IsAdmin ? 1 : 0);
-            command.Parameters.AddWithValue("@IsEnabled", userRole.IsEnabled ? 1 : 0);
-            command.Parameters.AddWithValue("@Role", userRole.Role);
+                command.Parameters.AddWithValue("@UserId", userRole.UserId);
+                command.Parameters.AddWithValue("@IsAdmin", userRole.IsAdmin ? 1 : 0);
+                command.Parameters.AddWithValue("@IsEnabled", userRole.IsEnabled ? 1 : 0);
+                command.Parameters.AddWithValue("@Role", userRole.Role);
 
-            await command.ExecuteNonQueryAsync();
+                await command.ExecuteNonQueryAsync();
+                return true;
+            }
+            catch
+            {
+
+
+                return false;
+            }
         }
 
         public async Task DeleteUserRoleAsync(string userId)

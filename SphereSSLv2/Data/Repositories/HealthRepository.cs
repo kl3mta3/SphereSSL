@@ -2,7 +2,7 @@
 using SphereSSLv2.Models.ConfigModels;
 using SphereSSLv2.Services.Config;
 
-namespace SphereSSLv2.Data.Database
+namespace SphereSSLv2.Data.Repositories
 {
     public class HealthRepository
     {

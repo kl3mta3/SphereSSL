@@ -60,7 +60,14 @@
                                             <select class="form-select" id="dnsProvider" name="dnsProvider" style="flex: 1;">
                                                 @foreach (var provider in Model.DNSProviders)
                                                 {
-                                                    <option value="@provider.ProviderName">@provider.ProviderName</option>
+                                                    if (Model.CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                                                    {
+                                                        <option value=" @provider.ProviderName"> [@provider.Username]: @provider.ProviderName</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@provider.ProviderName">@provider.ProviderName</option>
+                                                    }
                                                 }
                                             </select>
 

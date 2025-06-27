@@ -15,7 +15,7 @@ namespace SphereSSLv2.Models.Dtos
         public string Email { get; set; } = string.Empty;
         [JsonPropertyName("role")]
         public string Role { get; set; } = "User"; // Default role is User
-        [JsonPropertyName("note")]
+        [JsonPropertyName("notes")]
         public string Notes { get; set; } = string.Empty;
 
     }

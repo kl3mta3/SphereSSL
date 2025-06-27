@@ -191,6 +191,168 @@
     </div>
 </div>
 
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editUserForm" autocomplete="off">
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="editUsername" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label d-block">Role</label>
+                            <div id="editRoleGroup" class="d-flex gap-3 align-items-center">
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="editRole" id="editRoleViewer" value="Viewer">
+                                    <label class="form-check-label" for="editRoleViewer">Viewer</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="editRole" id="editRoleUser" value="User">
+                                    <label class="form-check-label" for="editRoleUser">User</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0" id="editRoleAdminGroup" style="display: none;">
+                                    <input class="form-check-input" type="radio" name="editRole" id="editRoleAdmin" value="Admin">
+                                    <label class="form-check-label" for="editRoleAdmin">Admin</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-center">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" id="editIsEnabled">
+                                <label class="form-check-label" for="editIsEnabled"><strong>Is Enabled</strong></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="editName">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmail">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="editNotes" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View User Modal -->
+<div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewUserModalLabel">View User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="viewUserForm" autocomplete="off">
+                <div class="modal-body">
+                    <!-- All fields filled in dynamically by JS -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">User ID</label>
+                            <input type="text" class="form-control" id="vuUserId" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">UUID</label>
+                            <input type="text" class="form-control" id="vuUUID" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="vuUsername" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label d-block">Role</label>
+                            <div class="d-flex gap-3 align-items-center">
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="vuRole" id="vuRoleViewer" value="Viewer" disabled>
+                                    <label class="form-check-label" for="vuRoleViewer">Viewer</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="vuRole" id="vuRoleUser" value="User" disabled>
+                                    <label class="form-check-label" for="vuRoleUser">User</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="vuRole" id="vuRoleAdmin" value="Admin" disabled>
+                                    <label class="form-check-label" for="vuRoleAdmin">Admin</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-2 d-flex align-items-center align-items-end">
+                            <div class="form-check mt-4 ">
+                                <input class="form-check-input" type="checkbox" id="vuEnabled" disabled>
+                                <label class="form-check-label" for="vuEnabled"><strong>Is Enabled</strong></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="vuName" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="vuEmail" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+
+                        <div class="col-md-12">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="vuNotes" rows="3" readonly></textarea>
+                        </div>
+                    </div>
+                    <hr>
+                    <div id="userStatsSection">
+                        <h5><strong>User Stats</strong></h5>
+                        <div>Total Certs: <span id="vuTotalCerts"></span></div>
+                        <div>Certs Renewed: <span id="vuCertsRenewed"></span></div>
+                        <div>Certs Failed: <span id="vuCertsFailed"></span></div>
+                        <div>Last Cert Created: <span id="vuLastCertCreated"></span></div>
+                    </div>
+                    <hr>
+                    <div id="apiKeySection">
+                        <h5><strong>API Key</strong></h5>
+                        <div>API Key: <span id="vuApiKey"></span></div>
+                        <div>Created: <span id="vuApiCreated"></span></div>
+                        <div>Last Used: <span id="vuApiLastUsed"></span></div>
+                        <div>Revoked: <span id="vuApiRevoked"></span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type='button' class='btn btn-primary me-2' onclick='changePassword(document.getElementById("vuUserId").value)'>Change Password</button>
+                    <button type="button" class="btn btn-primary" id="editUserBtn">Edit</button>
+                    <button type="button" class="btn btn-danger" id="deleteUserBtn" style="display:none;" onclick="deleteUser(document.getElementById('vuUserId').value)">Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Add User Modal -->
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -208,7 +370,7 @@
                     <div class="mb-2">
                         <label for="newPassword" class="form-label">Password</label>
                         <div class="input-group">
-                            <input type="password" class="form-control" id="newPassword" required autocomplete="new-password">
+                            <input type="password" class="form-control" id="newPassword" name="password" required autocomplete="new-password">
                             <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                 <i class="bi bi-eye" id="togglePasswordIcon"></i>
                             </button>
@@ -251,83 +413,20 @@
     </div>
 </div>
 
-<!-- View User Modal -->
-<div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content rounded-3">
+<!--Error Modal-->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-danger text-white">
             <div class="modal-header">
-                <h5 class="modal-title" id="viewUserModalLabel">View User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Deletion Blocked</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="viewUserForm" autocomplete="off">
-                <div class="modal-body">
-                    <!-- All fields filled in dynamically by JS -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">User ID</label>
-                            <input type="text" class="form-control" id="vuUserId" readonly>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">UUID</label>
-                            <input type="text" class="form-control" id="vuUUID" readonly>
-                        </div>
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" id="vuUsername" readonly>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Password Hash</label>
-                            <input type="text" class="form-control" id="vuPasswordHash" readonly>
-                        </div>
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Name</label>
-                            <input type="text" class="form-control" id="vuName" readonly>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="vuEmail" readonly>
-                        </div>
-                    </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Role</label>
-                            <input type="text" class="form-control" id="vuRole" readonly>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" id="vuNotes" rows="1" readonly></textarea>
-                        </div>
-                    </div>
-                    <hr>
-                    <div id="userStatsSection">
-                        <h6>User Stats</h6>
-                        <div>Total Certs: <span id="vuTotalCerts"></span></div>
-                        <div>Certs Renewed: <span id="vuCertsRenewed"></span></div>
-                        <div>Certs Failed: <span id="vuCertsFailed"></span></div>
-                        <div>Last Cert Created: <span id="vuLastCertCreated"></span></div>
-                    </div>
-                    <hr>
-                    <div id="apiKeySection">
-                        <h6>API Key</h6>
-                        <div>API Key: <span id="vuApiKey"></span></div>
-                        <div>Created: <span id="vuApiCreated"></span></div>
-                        <div>Last Used: <span id="vuApiLastUsed"></span></div>
-                        <div>Revoked: <span id="vuApiRevoked"></span></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="editUserBtn" style="display:none;">Edit</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </form>
+            <div class="modal-body">
+                <p>This user is an admin and cannot be deleted.</p>
+            </div>
         </div>
     </div>
 </div>
-
 
 <!-- CSS styles-->
 <style>
@@ -521,13 +620,12 @@
 
 </script>
 
-
-
+<!--Show Add User Form-->
 <script>
-        
+
     document.getElementById('addUserForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-
+        console.log(document.querySelectorAll('#newPassword').length)
         const userDto = {
             Username: document.getElementById('newUsername').value.trim(),
             Password: document.getElementById('newPassword').value,
@@ -549,11 +647,20 @@
             window.location = response.url;
         } else if (response.ok) {
             bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-            showToast('User added successfully!'); 
+            showToast('User added successfully!');
             setTimeout(() => location.reload(), 800); // Give a moment for the toast to show or call a function to refresh the list without reload
         } else {
-            showToast('Error adding user: ' + (await response.text()), true); 
+            showToast('Error adding user: ' + (await response.text()), true);
         }
     });
 
-        </script>
+</script>
+
+<!--Show Error Modal-->
+<script>
+    function showErrorModal() {
+    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+    errorModal.show();
+    }
+</script>
+

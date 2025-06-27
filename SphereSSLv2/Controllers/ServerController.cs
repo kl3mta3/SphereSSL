@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using SphereSSLv2.Models.Dtos;
 using SphereSSLv2.Services.Config;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 namespace SphereSSLv2.Controllers
 {
@@ -17,49 +20,63 @@ namespace SphereSSLv2.Controllers
             _logger = logger;
         }
 
-        [HttpPost]
-        public IActionResult Restart()
+        [HttpGet("/restart")]
+        public async Task<string> Restart()
         {
-            if (!ConfigureService.UseLogOn || ConfigureService.IsLogIn)
+            using var client = new HttpClient();
+            try
             {
-                 
-                try
-                {
-                    var exePath = Environment.ProcessPath;
-                    _ = _logger.Debug($"[RESTART] Relaunching: {exePath}");
 
-                    Process.Start(exePath); 
-                    Environment.Exit(0);  
 
-                    return Ok("Restart triggered.");
-                }
-                catch (Exception ex)
-                {
-                    _ = _logger.Debug($"[RESTART ERROR] {ex.Message}");
-                    return StatusCode(500, $"Restart failed: {ex.Message}");
-                }
+                var results = await client.GetStringAsync("http://localhost:7172/restart/");
+
+
+                return results;
             }
+            catch (Exception ex)
+            {
+                _ = _logger.Error($"[RESTART ERROR] {ex.Message}");
 
-            return Unauthorized("Not logged in.");
+                return $"Restart failed: {ex.Message}";
+            }
+        }
+
+        [HttpGet("/factory-reset")]
+        public async Task<string> FactoryReset()
+        {
+            using var client = new HttpClient();
+            Console.WriteLine("Restarting server...");
+            try
+            {
+                var results = await client.GetStringAsync($"http://localhost:7172/factory-reset/");
+
+                return results;
+            }
+            catch (Exception ex)
+            {
+                _ = _logger.Error($"[RESTART ERROR] {ex.Message}");
+
+                return $"Restart failed: {ex.Message}";
+            }
         }
 
         [HttpGet("/select-folder")]
         public async Task<string> GetFolderPath()
         {
-       
+
 
             using var client = new HttpClient();
 
             try
             {
                 var result = await client.GetStringAsync("http://localhost:7172/select-folder/");
-    
+
 
                 return result;
             }
             catch (Exception ex)
             {
-                
+
                 return string.Empty;
             }
         }
@@ -68,13 +85,13 @@ namespace SphereSSLv2.Controllers
         public async Task OpenFolderPath([FromQuery] string path)
         {
 
-         
+
             using var client = new HttpClient();
 
             try
             {
                 var result = await client.GetStringAsync($"http://localhost:7172/open-location/?path={WebUtility.UrlEncode(path)}");
-                return ;
+                return;
             }
             catch
             {
@@ -82,14 +99,48 @@ namespace SphereSSLv2.Controllers
             }
         }
 
-
-        [HttpPost("/shutdown")]
-        public async Task<IActionResult> Shutdown()
+        [HttpPost("/update-db-path")]
+        public async Task<string> UpdateDBPath(string path)
         {
-            await _logger.Info($"Shutdown request received");
-            await  _logger.Info("Shutting down...");
-            await Task.Run(() => Environment.Exit(0));
-            return Ok("Shutting down.");
+            using var client = new HttpClient();
+            try
+            {
+
+
+                var results = await client.GetStringAsync($"http://localhost:7172/update-db-path/?path={WebUtility.UrlEncode(path)}");
+
+                return results; ;
+            }
+            catch (Exception ex)
+            {
+                _ = _logger.Error($"[UPDATE ERROR] {ex.Message}");
+
+                return $"Update failed: {ex.Message}"; 
+            }
+
         }
+
+        [HttpPost("/update-url-path")]
+        public async Task<string> UpdateserverPath(UpdateServerRequest request)
+        {
+            using var client = new HttpClient();
+            try
+            {
+                var json = JsonSerializer.Serialize(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync("http://localhost:7172/update-url-path/", content);
+
+                return await response.Content.ReadAsStringAsync();
+
+            }
+            catch (Exception ex)
+            {
+                _ = _logger.Error($"[UPDATE ERROR] {ex.Message}");
+
+                return $"Update failed: {ex.Message}";
+            }
+
+        }
+
     }
 }

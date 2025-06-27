@@ -13,8 +13,11 @@ namespace SphereSSLv2.Models.UserModels
         [JsonProperty("certsRenewed")]
         public int CertsRenewed { get; set; }
 
-        [JsonProperty("certsFailed")]
-        public int CertsFailed { get; set; }
+        [JsonProperty("certCreationsFailed")]
+        public int CertCreationsFailed { get; set; }
+
+        [JsonProperty("certRenewalsFailed")]
+        public int CertRenewalsFailed { get; set; }
 
         [JsonProperty("lastCertCreated")]
         public DateTime? LastCertCreated { get; set; }

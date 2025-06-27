@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using SphereSSLv2.Data;
+using SphereSSLv2.Data.Helpers;
 using System;
 using System.Diagnostics;
 

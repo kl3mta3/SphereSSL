@@ -8,7 +8,7 @@
     overflow-x: hidden;
     overflow-y: hidden;
     height: 100%;
-    background-color: #1d3b5c; /* deep navy */
+    background-color: #1d3b5c;
     font-family: sans-serif;
     backdrop-filter: blur(10px);
 }
@@ -33,11 +33,6 @@
     color: red;
     cursor: pointer;
 }
-
-
-
-
-
 
 
 .css-avatar {
