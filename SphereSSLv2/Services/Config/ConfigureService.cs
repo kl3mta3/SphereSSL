@@ -32,7 +32,8 @@ namespace SphereSSLv2.Services.Config
         internal static int ServerPort { get; set; } = 7171;
         public static double RefreshExpiringSoonRateInMinutes { get; } = 5;
         public static double ExpiringNoticePeriodInDays { get; } = 30;
-
+        internal static string CAPrimeUrl = "https://acme-v02.api.letsencrypt.org/";
+        internal static string CAStagingUrl = "https://acme-staging-v02.api.letsencrypt.org/";
         internal static string dbPath = "certificates.db";
         internal static string HashedPassword = string.Empty;
         internal static string Username = string.Empty;

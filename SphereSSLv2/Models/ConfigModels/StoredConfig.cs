@@ -19,7 +19,13 @@ namespace SphereSSLv2.Models.ConfigModels
         [JsonPropertyName("databasePath")]
         public string DatabasePath { get; set; }
 
-        [JsonPropertyName("useLogOn ")]
+        [JsonPropertyName("useLogOn")]
         public bool UseLogOn { get; set; }
+
+        [JsonPropertyName("caPrimeUrl")]
+        public string CAPrimeUrl { get; set; }
+
+        [JsonPropertyName("caStagingUrl")]
+        public string CAStagingUrl { get; set; }
     }
 }
