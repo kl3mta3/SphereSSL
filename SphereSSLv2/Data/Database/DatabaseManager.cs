@@ -104,6 +104,7 @@ namespace SphereSSLv2.Data.Database
 
                 CREATE TABLE IF NOT EXISTS DNSProviders (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ProviderId TEXT,
                     UserId TEXT,
                     Username TEXT,
                     ProviderName TEXT,

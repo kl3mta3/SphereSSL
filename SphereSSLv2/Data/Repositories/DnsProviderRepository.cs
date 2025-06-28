@@ -1,8 +1,10 @@
 ﻿using Microsoft.Data.Sqlite;
+using Microsoft.VisualBasic.ApplicationServices;
 using SphereSSLv2.Data.Database;
 using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Services.Config;
+using System.Configuration.Provider;
 
 namespace SphereSSLv2.Data.Repositories
 {
@@ -14,7 +16,7 @@ namespace SphereSSLv2.Data.Repositories
         //DNSProvider Management
         public async Task<bool> InsertDNSProvider(DNSProvider provider, string userId)
         {
-            if(_userRepository==null)
+            if (_userRepository == null)
             {
                 _userRepository = new UserRepository(this);
             }
@@ -28,6 +30,7 @@ namespace SphereSSLv2.Data.Repositories
                 var command = connection.CreateCommand();
                 command.CommandText = @"
             INSERT INTO DNSProviders (
+                ProviderId,
                 UserId,
                 Username,
                 ProviderName,
@@ -35,6 +38,7 @@ namespace SphereSSLv2.Data.Repositories
                 APIKey,
                 Ttl
             ) VALUES (
+                @ProviderId,
                 @UserId,
                 @Username,
                 @ProviderName,
@@ -43,6 +47,7 @@ namespace SphereSSLv2.Data.Repositories
                 @Ttl
             );
         ";
+                command.Parameters.AddWithValue("@ProviderId", provider.ProviderId);
                 command.Parameters.AddWithValue("@UserId", userId);
                 command.Parameters.AddWithValue("@Username", username);
                 command.Parameters.AddWithValue("@ProviderName", provider.ProviderName);
@@ -55,7 +60,7 @@ namespace SphereSSLv2.Data.Repositories
 
                 if (!ConfigureService.DNSProviders.Any(r => r.ProviderName == provider.ProviderName && r.UserId == userId))
                 {
-                    provider.UserId= userId;
+                    provider.UserId = userId;
                     ConfigureService.DNSProviders.Add(provider);
                 }
 
@@ -68,36 +73,43 @@ namespace SphereSSLv2.Data.Repositories
             }
         }
 
-        public  async Task UpdateDNSProvider(DNSProvider updated, string userId)
+        public async Task<bool> UpdateDNSProvider(DNSProvider updated)
         {
-
-            string username = await _userRepository.GetUsernameByIdAsync(userId);
 
             using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
             await connection.OpenAsync();
-
-            var command = connection.CreateCommand();
-            command.CommandText = @"
+            try
+            {
+                var command = connection.CreateCommand();
+                command.CommandText = @"
             UPDATE DNSProviders
             SET 
+            ProviderName =@ProviderName,
             Provider = @Provider,
             APIKey = @APIKey,
             Username = @Username,
             Ttl = @Ttl
-            WHERE ProviderName = @ProviderName AND UserId = @UserId;
+            WHERE ProviderId = @ProviderId;
             ";
+                command.Parameters.AddWithValue("@ProviderId", updated.ProviderId);
+                command.Parameters.AddWithValue("@ProviderName", updated.ProviderName);
+                command.Parameters.AddWithValue("@Provider", updated.Provider);
+                command.Parameters.AddWithValue("@APIKey", updated.APIKey);
+                command.Parameters.AddWithValue("@Ttl", updated.Ttl);
+                command.Parameters.AddWithValue("@Username", updated.Username);
 
-            command.Parameters.AddWithValue("@ProviderName", updated.ProviderName);
-            command.Parameters.AddWithValue("@Provider", updated.Provider);
-            command.Parameters.AddWithValue("@APIKey", updated.APIKey);
-            command.Parameters.AddWithValue("@Ttl", updated.Ttl);
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@Username", username);
+                await command.ExecuteNonQueryAsync();
+                return true;
+            }
+            catch
+            {
 
-            await command.ExecuteNonQueryAsync();
+
+                return false;
+            }
         }
 
-        public  async Task DeleteDNSProviderByName(string providerName, string userId)
+        public async Task DeleteDNSProviderByName(string providerName, string userId)
         {
 
             using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
@@ -122,7 +134,7 @@ namespace SphereSSLv2.Data.Repositories
             }
         }
 
-        public  async Task<DNSProvider?> GetDNSProviderByName(string name, string userId)
+        public async Task<DNSProvider?> GetDNSProviderByName(string name, string userId)
         {
 
 
@@ -131,7 +143,7 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-            SELECT ProviderName, Provider, APIKey, Ttl, UserId, Username
+            SELECT ProviderName, Provider,  ProviderId, APIKey, Ttl, UserId, Username
                 FROM DNSProviders
             WHERE ProviderName = @ProviderName AND UserId = @UserId;
             ";
@@ -144,6 +156,7 @@ namespace SphereSSLv2.Data.Repositories
             {
                 return new DNSProvider
                 {
+                    ProviderId = reader["ProviderId"].ToString(),
                     Username = reader["Username"].ToString(),
                     ProviderName = reader["ProviderName"].ToString(),
                     Provider = reader["Provider"].ToString(),
@@ -156,7 +169,7 @@ namespace SphereSSLv2.Data.Repositories
             return null;
         }
 
-        public  async Task<List<DNSProvider>> GetAllDNSProvidersByUserId(string userId)
+        public async Task<List<DNSProvider>> GetAllDNSProvidersByUserId(string userId)
         {
 
 
@@ -167,7 +180,7 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-            SELECT ProviderName, Provider, APIKey, Ttl, UserId, Username
+            SELECT ProviderName,  ProviderId, Provider, APIKey, Ttl, UserId, Username
             FROM DNSProviders
             WHERE UserId = @UserId;
             ";
@@ -179,6 +192,7 @@ namespace SphereSSLv2.Data.Repositories
 
                 var provider = new DNSProvider
                 {
+                    ProviderId = reader["ProviderId"].ToString(),
                     Username = reader["Username"].ToString(),
                     ProviderName = reader["ProviderName"].ToString(),
                     Provider = reader["Provider"].ToString(),
@@ -193,7 +207,7 @@ namespace SphereSSLv2.Data.Repositories
             return providers;
         }
 
-        public  async Task DeleteAllDNSProviders(string userId)
+        public async Task DeleteAllDNSProvidersForUser(string userId)
         {
             using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
             await connection.OpenAsync();
@@ -205,7 +219,7 @@ namespace SphereSSLv2.Data.Repositories
             await HealthRepository.ClearTotalDNSProvidersInDB();
         }
 
-        public  async Task<List<DNSProvider>> GetAllDNSProviders()
+        public async Task<List<DNSProvider>> GetAllDNSProviders()
         {
             var providers = new List<DNSProvider>();
 
@@ -213,8 +227,8 @@ namespace SphereSSLv2.Data.Repositories
             await connection.OpenAsync();
 
             var command = connection.CreateCommand();
-                command.CommandText = @"
-            SELECT UserId, Username, ProviderName, Provider, APIKey, Ttl
+            command.CommandText = @"
+            SELECT UserId, Username, ProviderId, ProviderName, Provider, APIKey, Ttl
             FROM DNSProviders;
             ";
 
@@ -223,12 +237,13 @@ namespace SphereSSLv2.Data.Repositories
             {
                 var provider = new DNSProvider
                 {
+                    ProviderId = reader["ProviderId"].ToString(),
                     Username = reader["Username"].ToString(),
                     UserId = reader["UserId"].ToString(),
                     ProviderName = reader["ProviderName"].ToString(),
                     Provider = reader["Provider"].ToString(),
                     APIKey = reader["APIKey"].ToString(),
-                    Ttl = Convert.ToInt32(reader["Ttl"]),
+                    Ttl = reader["Ttl"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Ttl"]),
                 };
 
                 providers.Add(provider);
@@ -236,5 +251,78 @@ namespace SphereSSLv2.Data.Repositories
 
             return providers;
         }
+
+        internal async Task<DNSProvider> GetDNSProviderById(string providerId)
+        {
+
+            var provider = new DNSProvider();
+
+            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+            await connection.OpenAsync();
+
+            var command = connection.CreateCommand();
+            command.CommandText = @"
+            SELECT UserId, Username, ProviderId, ProviderName, Provider, APIKey, Ttl
+            FROM DNSProviders
+            WHERE ProviderId = @ProviderId;
+            ";
+            command.Parameters.AddWithValue("@ProviderId", providerId);
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+
+                provider = new DNSProvider
+                {
+                    ProviderId = reader["ProviderId"].ToString(),
+                    Username = reader["Username"].ToString(),
+                    UserId = reader["UserId"].ToString(),
+                    ProviderName = reader["ProviderName"].ToString(),
+                    Provider = reader["Provider"].ToString(),
+                    APIKey = reader["APIKey"].ToString(),
+                    Ttl = reader["Ttl"] == DBNull.Value ? 0 : Convert.ToInt32(reader["Ttl"]),
+                };
+
+
+                return provider;
+            }
+            else
+
+            {
+                return null;
+            }
+
+
+
+
+        }
+
+        public async Task<bool> DeleteDNSProviderById(string providerId)
+        {
+            try
+            {
+                using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
+
+                var command = connection.CreateCommand();
+                command.CommandText = @"
+                DELETE FROM DNSProviders
+                WHERE ProviderId = @ProviderId;
+                "
+                ;
+
+                command.Parameters.AddWithValue("@ProviderId", providerId);
+
+                await command.ExecuteNonQueryAsync();
+                await HealthRepository.AdjustTotalDNSProvidersInDB(-1);
+                return true;
+
+            }
+            catch
+            {
+                return false;
+            }
+
+        }
+
     }
 }

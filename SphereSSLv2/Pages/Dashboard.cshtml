@@ -950,65 +950,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
-<!-- Show Add provider Modal -->
-<script>
-    async function showAddProviderModal() {
-      const response = await fetch('/Dashboard?handler=ShowAddProviderModal', {
-        method: 'POST'
-      });
-
-      const html = await response.text();
-      document.getElementById('dnsChallengeModalBody').innerHTML = html;
-      const modal = new bootstrap.Modal(document.getElementById('dnsChallengeModal'));
-      modal.show();
-    }
-
-    async function submitNewProvider() {
-      const provider = {
-        providerName: document.getElementById('providerName').value,
-        provider: document.getElementById('provider').value,
-        apiKey: document.getElementById('apiKey').value,
-        ttl: parseInt(document.getElementById('ttl').value)
-      };
-
-      const response = await fetch('/Dashboard?handler=AddDNSProvider', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(provider)
-      });
-
-      if (response.ok) {
-       showToast("Provider added successfully!");
-        bootstrap.Modal.getInstance(document.getElementById('dnsChallengeModal')).hide();
-
-            const select = document.getElementById('dnsProvider');
-
-            // Fetch updated list from the server (assumes you have a handler for this)
-            const updatedList = await fetch('/Dashboard?handler=GetDNSProviders');
-            if (updatedList.ok) {
-              const providers = await updatedList.json();
-
-              // Clear current list
-              select.innerHTML = '';
-
-              // Add new options
-              providers.forEach(p => {
-                const option = document.createElement('option');
-                option.value = p.providerName;
-                option.textContent = p.providerName;
-                select.appendChild(option);
-              });
-
-              // Optional: auto-select the one that was just added
-              select.value = provider.providerName;
-            }
-
-      } else {
-        const err = await response.text();
-        showToast("Failed to add provider: " + err, true);
-      }
-    }
-</script>
 
 <!-- Verify Challenge -->
 <script>

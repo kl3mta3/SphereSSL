@@ -6,10 +6,12 @@ using SphereSSLv2.Data.Database;
 using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Models.ConfigModels;
+using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Models.Dtos;
 using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Services.Config;
 using SphereSSLv2.Services.Security.Auth;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using static Org.BouncyCastle.Math.EC.ECCurve;
@@ -21,9 +23,14 @@ namespace SphereSSLv2.Pages
         private readonly ILogger<SettingsModel> _ilogger;
         private readonly UserRepository _userRepository;
         private readonly ApiRepository _apiRepository;
+        private readonly DnsProviderRepository _dnsProviderRepository;
         private readonly Logger _logger;
         public UserSession CurrentUser = new();
-
+        public List<DNSProvider> DNSProviders = new();
+        public List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
+            .Cast<DNSProvider.ProviderType>()
+            .Select(p => p.ToString())
+            .ToList();
 
         [BindProperty]
         public string AdminUsername { get; set; } = "";
@@ -50,11 +57,12 @@ namespace SphereSSLv2.Pages
         public string SelectedUser { get; set; }
 
 
-        public SettingsModel(ILogger<SettingsModel> ilogger, Logger logger, UserRepository userRepository)
+        public SettingsModel(ILogger<SettingsModel> ilogger, Logger logger, UserRepository userRepository, DnsProviderRepository dnsProviderRepository)
         {
             _ilogger = ilogger;
             _logger = logger;
             _userRepository = userRepository;
+            _dnsProviderRepository = dnsProviderRepository;
         }
 
         public async Task<IActionResult> OnGet()
@@ -64,7 +72,6 @@ namespace SphereSSLv2.Pages
 
             var sessionData = HttpContext.Session.GetString("UserSession");
 
-            //if not logged in return
             if (sessionData == null)
             {
                 return RedirectToPage("/Index");
@@ -78,11 +85,31 @@ namespace SphereSSLv2.Pages
                 return RedirectToPage("/Index");
             }
 
+            if (CurrentUser.IsAdmin)
+            {
+                UserList = await _userRepository.GetAllUsersAsync();
 
-            UserList = await _userRepository.GetAllUsersAsync();
+            }
+
+
+
+            if (CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            {
+
+                DNSProviders = await _dnsProviderRepository.GetAllDNSProviders();
+            }
+            else
+            {
+                DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId) ?? new List<DNSProvider>();
+
+            }
+
+
+
             ServerPort = ConfigureService.ServerPort;
             ServerUrl = ConfigureService.ServerIP;
             DBPath = ConfigureService.dbPath;
+
             return Page();
         }
 
@@ -557,7 +584,7 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostRestartServerAsync()
         {
-           
+
             var sessionData = HttpContext.Session.GetString("UserSession");
 
             if (sessionData == null)
@@ -586,6 +613,158 @@ namespace SphereSSLv2.Pages
             }
 
         }
-        
+
+        public async Task<IActionResult> OnPostShowEditProviderModal([FromBody] string providerId)
+        {
+            // Fetch the DNSProvider from your repo
+            DNSProvider provider = await _dnsProviderRepository.GetDNSProviderById(providerId);
+
+            if (provider == null)
+                return Content("<div class='text-danger'>Provider not found.</div>", "text/html");
+
+            string optionsHtml = string.Join("", SupportedAutoProviders.Select(p =>
+                $"<option value='{p}'{(p == provider.Provider ? " selected" : "")}>{p}</option>"));
+
+            var html = $@"
+            <form id='editProviderForm' class='p-4 bg-white rounded shadow-sm' style='max-width: 500px; margin: auto;'>
+                <h4 class='mb-3 text-center text-primary fw-bold'>Edit DNS Provider</h4>
+                <input type='hidden' id='editProviderId' value='{provider.ProviderId}'>
+                <div class='mb-3'>
+                    <label for='editProviderName' class='form-label'>Name</label>
+                    <input type='text' id='editProviderName' class='form-control' value='{provider.ProviderName}' required>
+                </div>
+                <div class='mb-3'>
+                    <label for='editProvider' class='form-label'>Provider</label>
+                    <select id='editProvider' class='form-select' required>
+                        <option disabled value=''>-- Select a Provider --</option>
+                        {optionsHtml}
+                    </select>
+                </div>
+                <div class='mb-3'>
+                    <label for='editApiKey' class='form-label'>API Key</label>
+                    <input type='text' id='editApiKey' class='form-control' value='{provider.APIKey}' required>
+                </div>
+                <div class='mb-3'>
+                    <label for='editTtl' class='form-label'>TTL (Time to Live)</label>
+                    <input type='number' id='editTtl' class='form-control' value='{provider.Ttl}' min='60'>
+                </div>
+                <div class='d-flex justify-content-end gap-2'>
+                    <button type='button' class='btn btn-danger' onclick='promptDeleteProvider(""{provider.ProviderId}"")'>Delete</button>
+                    <button type='button' class='btn btn-primary' onclick='saveEditedProvider()'>Save</button>
+                    <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button>
+                </div>
+            </form>";
+            return Content(html, "text/html");
+
+        }
+
+
+        public async Task<IActionResult> OnPostDeleteDNSProviderAsync([FromBody] ProviderDeleteRequest request)
+        {
+            var providerId = request.ProviderId;
+            Console.WriteLine($"Deleting DNS Provider with ID: {providerId}");
+            var sessionData = HttpContext.Session.GetString("UserSession");
+
+            if (string.IsNullOrEmpty(sessionData))
+            {
+                
+                return new JsonResult(new { success = false, redirect = "/Index" });
+            }
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null)
+            {
+                return new JsonResult(new { success = false, redirect = "/Index" });
+            }
+
+            try
+            {
+               
+                bool success = await _dnsProviderRepository.DeleteDNSProviderById(providerId);
+                return new JsonResult(new { success = success });
+            }
+            catch (Exception ex)
+            {
+                await _logger.Error($"Error Deleting DNS Provider: {ex.Message}");
+                return new JsonResult(new { success = false, message = "Internal error occurred." });
+            }
+        }
+
+
+        public async Task<IActionResult> OnPostUpdateDNSProviderAsync([FromBody] UpdateDNSProviderRequest provider)
+        {
+            Console.WriteLine($"Updating DNS Provider with ID: {provider.ProviderId}");
+
+
+            Console.WriteLine("---- PROVIDER RECEIVED ----");
+            Console.WriteLine($"providerId: {provider.ProviderId}");
+            Console.WriteLine($"providerName: {provider.ProviderName}");
+            Console.WriteLine($"provider: {provider.Provider}");
+            Console.WriteLine($"apiKey: {provider.APIKey}");
+            Console.WriteLine($"ttl: {provider.Ttl}");
+
+            var sessionData = HttpContext.Session.GetString("UserSession");
+
+
+
+            if (string.IsNullOrEmpty(sessionData))
+            {
+               
+                return new JsonResult(new { success = false, redirect = "/Index" });
+            }
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null)
+            {
+                return new JsonResult(new { success = false, redirect = "/Index" });
+            }
+                DNSProvider existingProvider = await _dnsProviderRepository.GetDNSProviderById(provider.ProviderId);
+
+            if (existingProvider.UserId != CurrentUser.UserId && !CurrentUser.IsAdmin )
+            {
+                return new JsonResult(new { success = false, message = "You do not own this DNS provider." });
+            }
+
+
+            try
+            {
+
+                if (existingProvider == null)
+                {
+                    return new JsonResult(new { success = false, message = "Provider not found." });
+                }
+
+                if (!string.IsNullOrWhiteSpace(provider.ProviderName) && existingProvider.ProviderName != provider.ProviderName)
+                {
+                    existingProvider.ProviderName = provider.ProviderName;
+                }
+
+                if (!string.IsNullOrWhiteSpace(provider.Provider) && existingProvider.Provider != provider.Provider)
+                {
+                    existingProvider.Provider = provider.Provider;
+                }
+
+                if (!string.IsNullOrWhiteSpace(provider.APIKey) && existingProvider.APIKey != provider.APIKey)
+                {
+                    existingProvider.APIKey = provider.APIKey;
+                }
+
+                if (provider.Ttl > 0 && existingProvider.Ttl != provider.Ttl)
+                {
+                    existingProvider.Ttl = provider.Ttl;
+                }
+
+                if (existingProvider.Username != CurrentUser.Username  && existingProvider.UserId == CurrentUser.UserId)
+                {
+                    existingProvider.Username = CurrentUser.Username;
+                }
+
+                bool success = await _dnsProviderRepository.UpdateDNSProvider(existingProvider);
+                return new JsonResult(new { success = success });
+            }
+            catch (Exception ex)
+            {
+                await _logger.Error($"Error Restarting Server: {ex.Message}");
+                return new JsonResult(new { success = false, message = "Internal error occurred." });
+            }
+        }
     }
 }

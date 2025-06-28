@@ -490,11 +490,16 @@ namespace SphereSSLv2.Pages
             }
             // Add the new provider to the list
             DNSProviders.Add(provider);
-
+            provider.ProviderId = Guid.NewGuid().ToString("N");
             await _dnsProviderRepository.InsertDNSProvider(provider, CurrentUser.UserId);
 
 
-            return new JsonResult(new { success = true, message = "Provider added successfully." });
+            return new JsonResult(new
+            {
+                providerId = provider.ProviderId,
+                providerName = provider.ProviderName,
+                username = CurrentUser.Username
+            });
         }
 
         public async Task<JsonResult> OnGetGetDNSProvidersAsync()

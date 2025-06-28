@@ -2,7 +2,7 @@
 @model SphereSSLv2.Pages.SettingsModel
 @{
     ViewData["Title"] = "Settings";
-    }
+}
 
 @{
     bool isSuperadmin = Model.CurrentUser.Role == "SuperAdmin";
@@ -31,9 +31,12 @@
                                         <button class="nav-link" id="dns-tab" data-bs-toggle="tab" data-bs-target="#dns" type="button" role="tab" aria-controls="dns" aria-selected="false">DNS </button>
                                     </li>
 
-                                    <li class="nav-item" role="presentation">
-                                        <button class="nav-link" id="device-tab" data-bs-toggle="tab" data-bs-target="#device" type="button" role="tab" aria-controls="device" aria-selected="false">Device </button>
-                                    </li>
+                                    @if (isSuperadmin)
+                                    {
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="device-tab" data-bs-toggle="tab" data-bs-target="#device" type="button" role="tab" aria-controls="device" aria-selected="false">Device </button>
+                                        </li>
+                                    }
 
                                     @if (isAdmin)
                                     {
@@ -41,6 +44,7 @@
                                             <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">Advanced </button>
                                         </li>
                                     }
+
                                 </ul>
 
                                 <!-- Tab Content -->
@@ -49,19 +53,58 @@
                                         <!-- Section 1 Content Here -->
                                     </div>
 
-                                    <!-- Device Settings  -->
+                                    <!-- DNS Settings  -->
                                     <div class="tab-pane fade" id="dns" role="tabpanel" aria-labelledby=dns-tab">
+                                        <div class="card bg-light text-dark shadow-sm p-4">
+                                            <h6 class="fw-semibold mb-3">DNS Providers</h6>
 
+                                                <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                                                    <table class="table align-middle mb-3" id="dnsTable">
+                                                      <thead>
+                                                          <tr>
+                                                            <th style="cursor:pointer;" onclick="sortDNSTable(0)">Provider <span id="providerSortIcon">⇅</span></th>
+                                                            <th class="text-center" style="cursor:pointer;" onclick="sortDNSTable(1)">User <span id="usernameSortIcon">⇅</span></th>
+                                                              <th style="width:140px"></th>
+                                                          </tr>
+                                                       </thead>
+                                             
+                                                       <tbody>
+                                                            @if (Model.DNSProviders != null && Model.DNSProviders.Any())
+                                                            {
+                                                                foreach (var provider in Model.DNSProviders)
+                                                                {
+                                                                    <tr data-provider-id="@provider.ProviderId">
 
+                                                                        <td>@provider.ProviderName</td>
+                                                                        <td class="text-center">@provider.Username</td>
+                                                                        <td><button class="btn btn-sm btn-info" onclick="showEditProviderModal('@provider.ProviderId')">Edit</button></td>
 
+                                                                     </tr>
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                <tr class="no-sort">
+                                                                    <td colspan="3" class="text-muted text-center">No DNS Providers found.</td>
+                                                                </tr>
+                                                            }
+                                                       </tbody>
+
+                                                    </table>
+                                                </div>
+
+                                            <button class="btn btn-success w-80" data-bs-toggle="modal" onclick="showAddProviderModal()">Add DNSProvider</button>
+
+                                        </div>
                                     </div>
+                              
 
                                         <!-- Device Settings  -->
-                                    <div class="tab-pane fade" id="device" role="tabpanel" aria-labelledby="device-tab">
-
-                                          <!-- Only SuperAdmin sees these controls -->
+                                          <div class="tab-pane fade" id="device" role="tabpanel" aria-labelledby="device-tab">
                                         @if (isSuperadmin)
                                         {
+
+                                          <!-- Only SuperAdmin sees these controls -->
                                             <div class="card bg-light text-dark shadow-sm p-4 mb-4">
                                                 <div class="text-center">
                                                     <h4>Restart Server</h4>
@@ -149,15 +192,12 @@
                                                 </span>
                                             </div>
 
-                                         
                                         }
-
-
                                     </div>
 
 
 
-                                            <!-- Advanced  Settings -->  
+                                       <!-- Advanced  Settings -->  
                                      <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
 
                                                 <!-- Only SuperAdmin sees these controls -->
@@ -204,11 +244,11 @@
 
                                         @if (isAdmin)
                                         {
-                                        <!-- User Account Management (all Admins/Superadmins) -->
-                                            <br/>
-                                            <div class="card bg-light text-dark shadow-sm p-4">
-                                        <h6 class="fw-semibold mb-3">User Accounts</h6>
-                                        <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                                            <!-- User Account Management (all Admins/Superadmins) -->
+                                                <br/>
+                                                <div class="card bg-light text-dark shadow-sm p-4">
+                                            <h6 class="fw-semibold mb-3">User Accounts</h6>
+                                            <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
                                             <table class="table align-middle mb-3" id="usersTable">
                                                 <thead>
                                                     <tr>
@@ -224,7 +264,7 @@
                                                     {
                                                         if (user.Name != "Locke-Ann Key")
                                                         {
-                                                            <tr>
+                                                            <tr data-user-id="@user.UserId">
                                                                 <td>@user.Username</td>
                                                                 <td class="text-center">@user.Name</td>
                                                                 <td>
@@ -244,20 +284,28 @@
                                             </table>
                                         </div>
                                         <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#addUserModal">Add User</button>
-                                    </div>
+                                        </div>
                                         }
 
                                     </div>
-                                </div>
 
+                                </div>
                             </div>
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
-</div>
+
+ </div>
+
+
 
 
 
@@ -350,6 +398,44 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmResetServerBtn">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete DNS Provider Modal -->
+<div class="modal fade" id="confirmDeleteDNSProviderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete this DNS Provider?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteDNSProviderBtn">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Update DNS Provider Modal -->
+<div class="modal fade" id="confirmUpdateDNSProviderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete this DNS Provider?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmUpdateDNSProviderBtn">Yes, Update</button>
             </div>
         </div>
     </div>
@@ -911,22 +997,22 @@
         if (event.target && event.target.id === 'confirmDeleteUserBtn') {
             if (!pendingUserIdToDelete) return;
 
-    fetch(`/Settings?handler=DeleteCurrentUser&userId=${encodeURIComponent(pendingUserIdToDelete)}`, {
-        method: 'POST'
-    })
-    .then(response => {
+            fetch(`/Settings?handler=DeleteCurrentUser&userId=${encodeURIComponent(pendingUserIdToDelete)}`, {
+                method: 'POST'
+            })
+            .then(response => {
 
-        if (response.ok) {
-            const confirmModalEl = document.getElementById('confirmDeleteUserModal');
-            const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
-            if (modalInstance) modalInstance.hide();
+            if (response.ok) {
+                const confirmModalEl = document.getElementById('confirmDeleteUserModal');
+                const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
+                if (modalInstance) modalInstance.hide();
 
-
-            setTimeout(() => location.reload(), 500);
-        } else {
-            response.text().then(txt => console.error("Server responded with error:", txt));
-           showErrorModal();
-        }
+           
+              document.querySelector(`[data-user-id="${pendingUserIdToDelete}"]`).remove();
+            } else {
+                response.text().then(txt => console.error("Server responded with error:", txt));
+               showErrorModal();
+            }
     })
     .catch(err => {
         console.error("Error deleting user:", err);
@@ -1008,6 +1094,31 @@
     });
 
 </script>
+
+<!--Show Edit Provider Modal-->
+<script>
+
+    async function showEditProviderModal(providerId) {
+        // Optionally, show a spinner/loading while fetching
+        const response = await fetch('/Settings?handler=ShowEditProviderModal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(providerId)
+        });
+        const html = await response.text();
+        document.getElementById('editProviderModalBody').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('editProviderModal'));
+        modal.show();
+    }
+
+
+
+</script>
+
+
+
+
+
 
 
 <style>

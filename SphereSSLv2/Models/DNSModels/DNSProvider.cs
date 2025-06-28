@@ -26,6 +26,9 @@ namespace SphereSSLv2.Models.DNSModels
         [JsonProperty("userId")]
         public string UserId { get; set; } = string.Empty;
 
+        [JsonProperty("providerId")]
+        public string ProviderId { get; set; } = string.Empty;
+
         [JsonProperty("username")]
         public string Username { get; set; } = string.Empty;
 
