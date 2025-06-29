@@ -61,7 +61,18 @@ namespace SphereSSLv2.Services.CertServices
         }
 
 
+        public async Task<byte[]> CreateLocal(string domain, string savePath, string password = "", int validDays = 365)
+        {
+            var pfx = CertUtilityService.CreateSelfSignedCert(
+               subjectName: $"CN={domain}.local",        
+               outputPath: @$"{savePath}", 
+               password:  password,               
+               validDays: validDays
+           );
 
+            return pfx;
+
+        }
 
         public async Task ManualRenewCertRecord(string orderId)
         {

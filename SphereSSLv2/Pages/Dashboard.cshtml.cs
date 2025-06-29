@@ -12,7 +12,6 @@ using System.Net;
 using ACMESharp.Protocol;
 using Certes.Pkcs;
 using Certes;
-using SphereSSL2.View;
 using System.Diagnostics;
 using System.IO;
 using Org.BouncyCastle.Asn1.Ocsp;
@@ -106,9 +105,7 @@ namespace SphereSSLv2.Pages
             else if (CurrentUser.IsEnabled && !_isSuperAdmin)
             {
                 var now = DateTime.UtcNow;
-                Console.WriteLine($"[{CurrentUser.Username}]: Fetching certs for user {CurrentUser.UserId}");
                 CertRecords = await _certRepository.GetAllCertsForUserIdAsync(CurrentUser.UserId);
-                Console.WriteLine($"[{CurrentUser.Username}]: Found {CertRecords.Count} certs for user {CurrentUser.UserId}");
                 ExpiringSoonRecords = CertRecords
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);

@@ -53,36 +53,41 @@
 
                                 <!-- Tab Content -->
                                 <div class="tab-content" id="settingsTabContent">
+
+                                    <!-- Cert Settings-->
                                     <div class="tab-pane fade show active" id="cert" role="tabpanel" aria-labelledby="cert-tab">
-                                        <div class="card ca-card mx-auto shadow p-4">
-                                            <div class="text-center mb-2">
-                                                <h4 class="fw-bold mb-1">Certificate Authority Address</h4>
-                                                <p class="mb-3 text-muted">You can change the Certificate Authority used. Enter the CA's URL.</p>
+                                        @if (isSuperadmin)
+                                        {
+                                            <div class="card ca-card mx-auto shadow p-4">
+                                                <div class="text-center mb-2">
+                                                    <h4 class="fw-bold mb-1">Certificate Authority Address</h4>
+                                                    <p class="mb-3 text-muted">You can change the Certificate Authority used. Enter the CA's URL.</p>
+                                                </div>
+                                                <form>
+                                                    <div class="mb-3">
+                                                        <label for="caPrimeUrl" class="form-label">Certificate Authority Main URL</label>
+                                                        <input type="text"
+                                                        class="form-control url-input"
+                                                        id="caPrimeUrl"
+                                                        name="CAPrimeUrl"
+                                                        value="@Model.CAPrimeUrl" />
+                                                        <p class="small text-muted mt-1 mb-0">This is the main URL used for creating Certificates. (Must accept ACME protocol)</p>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="caStagingUrl" class="form-label">Certificate Authority Staging URL</label>
+                                                        <input type="text"
+                                                        class="form-control url-input"
+                                                        id="caStagingUrl"
+                                                        name="CAStagingUrl"
+                                                        value="@Model.CAStagingUrl" />
+                                                        <p class="small text-muted mt-1 mb-0">This is the URL used for staging (testing).</p>
+                                                    </div>
+                                                    <div class="text-center mt-4">
+                                                        <button type="button" class="btn btn-primary px-5 py-2" onclick="submitCAUpdateCreds()">Update</button>
+                                                    </div>
+                                                </form>
                                             </div>
-                                            <form>
-                                                <div class="mb-3">
-                                                    <label for="caPrimeUrl" class="form-label">Certificate Authority Main URL</label>
-                                                    <input type="text"
-                                                           class="form-control url-input"
-                                                           id="caPrimeUrl"
-                                                           name="CAPrimeUrl"
-                                                           value="@Model.CAPrimeUrl" />
-                                                    <p class="small text-muted mt-1 mb-0">This is the main URL used for creating Certificates. (Must accept ACME protocol)</p>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="caStagingUrl" class="form-label">Certificate Authority Staging URL</label>
-                                                    <input type="text"
-                                                           class="form-control url-input"
-                                                           id="caStagingUrl"
-                                                           name="CAStagingUrl"
-                                                           value="@Model.CAStagingUrl" />
-                                                    <p class="small text-muted mt-1 mb-0">This is the URL used for staging (testing).</p>
-                                                </div>
-                                                <div class="text-center mt-4">
-                                                    <button type="button" class="btn btn-primary px-5 py-2" onclick="submitCAUpdateCreds()">Update</button>
-                                                </div>
-                                            </form>
-                                        </div>
+                                        }
                                     </div>
 
                                    <!-- DNS Settings  -->
@@ -319,6 +324,7 @@
                                     </div>
 
                                 </div>
+
                             </div>
                         </div>
 

@@ -2,4 +2,541 @@
 @model SphereSSLv2.Pages.LearnMoreModel
 @{
     ViewData["Title"] = "Learn";
+
+
+    <div class="container-fluid">
+    <div class="d-flex flex-column flex-grow-1">
+        <div class="flex-grow-1 ">
+            <div class="container text-center ">
+
+                <div class="container-fluid px-4">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
+                            <h3 class="title text-center mb-3">Help</h3>
+
+                            <div class="card shadow-sm p-4">
+
+                                <!-- Tabs Navigation -->
+                                    <ul class="nav nav-tabs mb-4" id="learnMoreTab" role="tablist">
+
+                              
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="whatisssl-tab" data-bs-toggle="tab" data-bs-target="#whatisssl" type="button" role="tab" aria-controls="whatisssl" aria-selected="true">What is SSL?</button>
+                                        </li>                                  
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whatisdns-tab" data-bs-toggle="tab" data-bs-target="#whatisdns" type="button" role="tab" aria-controls="whatisdns" aria-selected="false">What is DNS?</button>
+                                        </li>
+                              
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whatisadomain-tab" data-bs-toggle="tab" data-bs-target="#whatisadomain" type="button" role="tab" aria-controls="whatisadomain" aria-selected="false">What is a Domain?</button>
+                                        </li>
+                                    
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whatisdns01-tab" data-bs-toggle="tab" data-bs-target="#whatisdns01" type="button" role="tab" aria-controls="whatisdns01" aria-selected="false">What is DNS01?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="howitworks-tab" data-bs-toggle="tab" data-bs-target="#howitworks" type="button" role="tab" aria-controls="howitworks" aria-selected="false">How it Works?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whynohttp01-tab" data-bs-toggle="tab" data-bs-target="#whynohttp01" type="button" role="tab" aria-controls="whynohttp01" aria-selected="false">Why no http01?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="needlocalcert-tab" data-bs-toggle="tab" data-bs-target="#needlocalcert" type="button" role="tab" aria-controls="needlocalcert" aria-selected="false"> Local Certs?</button>
+                                        </li>
+
+                                </ul>
+
+                                <!-- Tab Content -->
+                                <div class="tab-content" id="learnMoreTabContent">
+
+                                        <!-- What is SSL?  -->
+                                        <div class="tab-pane fade show active" id="whatisssl" role="tabpanel" aria-labelledby="whatisssl-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What is SSL?</h4>
+                                                    <p class="lead domain-lead">
+                                                        <b class="domain-term">SSL</b> stands for <b>Secure Sockets Layer</b> — yeah, it sounds fancy, but it's basically a protective bubble for your data when it's flying across the Internet.
+                                                        <br><br>
+                                                        When a website uses <b class="domain-term">SSL</b> (you’ll see <span class="domain-example">https://</span> and a lil' <span class="domain-padlock">🔒</span> in the address bar), it means the info you send and receive — like passwords, messages, or secret pizza orders — is <b class="domain-term">encrypted</b> and safe from eavesdroppers.
+                                                        <br><br>
+                                                        Technically, most sites now use <span class="domain-term">TLS</span> (Transport Layer Security), which is like SSL’s cooler, stronger cousin — but we still say SSL out of habit. Old habits die hard, y’know?
+                                                        <br><br>
+                                                        To get SSL on your site, you need a <b class="domain-term">certificate</b> from a trusted authority like <span class="domain-vendor">Let’s Encrypt</span>. They’ll check that you own your domain, and boom — <span class="domain-success">secure connection, baby!</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- What is DNS?  -->
+                                        <div class="tab-pane fade" id="whatisdns" role="tabpanel" aria-labelledby="whatisdns-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What is DNS?</h4>
+                                                    <p class="lead domain-lead">
+                                                        Imagine you’re trying to visit your friend’s house, but instead of remembering the coordinates, you just remember their <b class="domain-term">name</b>. Easy, right? That’s exactly what <b class="domain-term">DNS</b> does for websites.
+                                                        <br><br>
+                                                        <b class="domain-term">DNS</b> stands for <b>Domain Name System</b>. When you type a website like <span class="domain-example">catsrock.com</span> into your browser, DNS looks up the real address (<span class="domain-example">IP address</span>) so your device knows where to go.
+                                                        <br><br>
+                                                        It’s like asking your phone, <span class="domain-quote">“Take me to Pizza Palace”</span>, and it magically knows the exact location.
+                                                        <br><br>
+                                                        When setting up <span class="domain-term">SSL certificates</span>, DNS is super important — you might be asked to add special records (like <span class="domain-txt">TXT</span> or <span class="domain-txt">CNAME</span>) to your domain’s DNS settings to prove you own the domain.
+                                                        <br><br>
+                                                        So yeah, <b class="domain-term">DNS</b> is kinda like your Internet matchmaker. It connects <b>names</b> to <b>addresses</b>.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- What is a Domain?  -->
+                                        <div class="tab-pane fade" id="whatisadomain" role="tabpanel" aria-labelledby="whatisadomain-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-2 text-primary">What is a Domain?</h4>
+                                                    <p class="lead domain-lead">
+                                                        A <b>domain</b> is a human-readable address for a website. It is used to identify a specific location on the Internet.
+                                                        For example, <span class="domain-example">example.com</span>, <span class="domain-example">example.org</span>, and <span class="domain-example">example.net</span> are all domains.<br><br>
+                                                        Only one person or organization can own a domain at a time. When you register a domain, you are essentially renting it for a period of time (usually a year).
+                                                        <br><br>
+                                                        If you don’t have a domain, you can use a domain provider like <span class="domain-vendor">Cloudflare</span> to get one at cost (about <b>$10 for a .com</b>, often less for others).
+                                                        <span class="domain-warning">Avoid using free domains like <b>.tk</b> or <b>.ml</b> as they’re often blacklisted by Let’s Encrypt. (Their providers can also be shady.)</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="card ca-card domain-card mx-auto shadow p-4">
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-2 text-success">Get a domain?</h5>
+                                                    <div class="mb-3 domain-links">
+                                                        <a href="https://www.cloudflare.com/registrar/" class="btn btn-domain cloudflare">Cloudflare</a>
+                                                        <a href="https://www.namecheap.com/" class="btn btn-domain namecheap">Namecheap</a>
+                                                        <a href="https://www.godaddy.com/" class="btn btn-domain godaddy">GoDaddy</a>
+                                                        <a href="https://www.google.com/domains" class="btn btn-domain google">Google Domains</a>
+                                                    </div>
+                                                    <p class="mb-2"><small>For the best experience, stick to the 8 we support API access for.</small></p>
+                                                    <p class="supported-list mb-0">
+                                                        <b>Currently supported:</b>
+                                                        <span>Cloudflare</span>, <span>DigitalOcean</span>, <span>AWS Route53</span>, <span>GoogleCloudDNS</span>, <span>Hetzner</span>, <span>Namecheap</span>, <span>GoDaddy</span>, <span>DNSMadeEasy</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- What is DNS01? -->
+                                        <div class="tab-pane fade" id="whatisdns01" role="tabpanel" aria-labelledby="whatisdns01-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1">What is DNS01?</h4>
+
+                                                    <p class="lead domain-lead">
+                                                        <b class="domain-term">DNS-01</b> is a challenge type used by certificate authorities (like <span class="domain-vendor">Let’s Encrypt</span>) to verify that <b>you own the domain</b> you’re requesting an SSL certificate for.
+                                                        <br><br>
+                                                        Instead of clicking a link or uploading a file, the <b class="domain-term">DNS-01 challenge</b> asks you to add a special <b class="domain-txt">TXT record</b> to your domain’s DNS settings. This record contains a unique verification token that proves you control the domain.
+                                                        <br><br>
+                                                        Once the record is live, <span class="domain-vendor">Let’s Encrypt</span> (or another provider) checks your DNS zone, finds the token, and says: <span class="domain-quote">‘Yup, they own it!’</span> — then boom, you’re approved!
+                                                        <br><br>
+                                                        <b>When is DNS-01 useful?</b>
+                                                        <ul class="domain-list">
+                                                            <li>For domains with <b>no website yet</b> (no HTTP access).</li>
+                                                            <li>For issuing <span class="domain-term">wildcard certificates</span> like <span class="domain-example">*.example.com</span>.</li>
+                                                            <li>When automating SSL for many subdomains.</li>
+                                                        </ul>
+                                                    </p>
+
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- How it Works?< -->
+                                        <div class="tab-pane fade" id="howitworks" role="tabpanel" aria-labelledby="howitworks-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">How it Works</h4>
+                                                    <p class="lead domain-lead mb-3">
+                                                        This app helps you get a free SSL certificate using the <b class="domain-term">DNS-01</b> challenge method.
+                                                    </p>
+                                                    <ol class="how-steps mx-auto text-start">
+                                                        <li>
+                                                            <b>Enter your domain and email address</b>
+                                                            <span class="how-detail">We’ll use these to generate a certificate request.</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Get a verification token</b>
+                                                            <span class="how-detail">We’ll contact the certificate authority (<span class="domain-vendor">Let’s Encrypt</span>) and get a special token that proves you own the domain.</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Add a <span class="domain-txt">TXT</span> record to your DNS</b>
+                                                            <span class="how-detail">
+                                                                Log into your provider (like <span class="domain-vendor">Cloudflare</span> or <span class="domain-vendor">Namecheap</span>), go to DNS settings, and create:<br>
+                                                                <span class="how-substep">• <b>Name (host):</b> <span class="domain-example">_acme-challenge.yourdomain.com</span></span><br>
+                                                                <span class="how-substep">• <b>Value:</b> the token we give you — and <b>yes, include the quotes</b> (<span class="domain-example">"your-token-here"</span>)!</span>
+                                                                <br>
+                                                                <span class="how-api-tip">(If you’re using Auto Add via API, we’ll handle this for you.)</span>
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Wait for DNS to propagate</b>
+                                                            <span class="how-detail">Can take a few seconds to a few minutes. Chill, stretch, vibe. </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>We verify</b>
+                                                            <span class="how-detail">Once DNS is updated, we’ll check if the <span class="domain-txt">TXT</span> record is correct. If it is — <span class="domain-success">boom!</span> You’re verified.</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Get your SSL certificate</b>
+                                                            <span class="how-detail">If all’s good, we’ll fetch your certificate files (<span class="domain-txt">.crt</span> &amp; <span class="domain-txt">.key</span> or <span class="domain-txt">.pem</span> ). You’re ready for HTTPS life!</span>
+                                                        </li>
+                                                    </ol>
+                                                    <div class="mt-3">
+                                                        <span class="how-tip">You don’t need to be a wizard  — just follow the steps, copy the token right, and <b>don’t forget those quotes</b>!</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                        <!-- Why no http01?< -->
+                                        <div class="tab-pane fade" id="whynohttp01" role="tabpanel" aria-labelledby="whynohttp01-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">Why no http01?</h4>
+
+                                                    <div class="text-start mx-auto" style="max-width: 520px;">
+                                                        <div class="mb-2">
+                                                            <span class="domain-term">Why not HTTP-01?</span>
+                                                            <ul class="domain-list">
+                                                                <li>
+                                                                    <b>No need for port 80 access:</b>
+                                                                    <span class="how-detail">
+                                                                        With DNS-01 + API, you don’t have to open <span class="domain-example">port 80</span> or mess with NAT/firewall rules.
+                                                                    </span>
+                                                                </li>
+                                                                <li>
+                                                                    <b>No proxy required:</b>
+                                                                    <span class="how-detail">
+                                                                        Avoids complicated web server or reverse proxy setup—especially on home networks or behind corporate firewalls.
+                                                                    </span>
+                                                                </li>
+                                                                <li>
+                                                                    <b>Automation made easy:</b>
+                                                                    <span class="how-detail">
+                                                                        If your DNS provider supports API access, we can add verification records for you—no manual copy/paste.
+                                                                    </span>
+                                                                </li>
+                                                                <li>
+                                                                    <b>Same great security, less hassle:</b>
+                                                                    <span class="how-detail">
+                                                                        All the power of SSL, without the networking headaches. Just connect your domain and go!
+                                                                    </span>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                        <div class="how-tip">
+                                                            DNS-01 is a lifesaver for closed networks, internal apps, and servers with no public HTTP access.<br>
+                                                            <b>You get verified with <span style="color: #3273fa;">zero firewall drama</span>.</b>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                        <!-- local certs?< -->
+                                        <div class="tab-pane fade" id="needlocalcert" role="tabpanel" aria-labelledby="needlocalcert-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">Local Certs</h4>
+                                                    <p class="lead domain-lead mb-3">
+                                                        Need a certificate for local development or a Windows app? You can create a <b class="domain-term">local .pfx certificate</b> here—no domain needed!
+                                                    </p>
+                                                    <ol class="how-steps mx-auto text-start">
+                                                        <li>
+                                                            <b>Create a Local Certificate</b>
+                                                            <span class="how-detail">
+                                                                Go to <a href="/Create" class="domain-link">/Create</a> and fill out the form with your name or project info.<br>
+                                                                Download your <span class="domain-txt">.pfx</span> file.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Exchange Key Types (Optional)</b>
+                                                            <span class="how-detail">
+                                                                Already have a certificate or need to convert formats?<br>
+                                                                Visit <a href="/Exchange" class="domain-link">/Exchange</a> to swap between <span class="domain-txt">.pfx</span>, <span class="domain-txt">.pem</span>, <span class="domain-txt">.crt</span>, or <span class="domain-txt">.key</span>.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Install Your PFX (Windows)</b>
+                                                            <span class="how-detail">
+                                                                <ol style="list-style-type: lower-alpha; margin-top: 0.4em;">
+                                                                    <li>Double-click your <span class="domain-txt">.pfx</span> file.</li>
+                                                                    <li>Follow the Certificate Import Wizard prompts. Enter password if needed.</li>
+                                                                    <li>Choose <b>“Local Machine”</b> (for all users) or <b>“Current User”</b> (just you).</li>
+                                                                    <li>Let Windows finish up—your cert is now installed!</li>
+                                                                </ol>
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Use with Local Servers</b>
+                                                            <span class="how-detail">
+                                                                In IIS, .NET, or local services, select your installed certificate from the certificate store.<br>
+                                                                For NGINX, Apache, or others, convert your <span class="domain-txt">.pfx</span> to <span class="domain-txt">.crt</span> + <span class="domain-txt">.key</span> using <a href="/Exchange" class="domain-link">/Exchange</a>.
+                                                            </span>
+                                                        </li>
+                                                    </ol>
+                                                    <div class="mt-3">
+                                                        <span class="how-tip">
+                                                            <b>Pro tip:</b> You can always convert between formats—.pfx, .pem, .crt, .key—using the Exchange tool.<br>
+                                                            If Chrome or Windows gives warnings, install the cert as a <b>Trusted Root</b> for full trust.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                 </div>
+
+                            </div>
+
+                            <div class="card shadow-sm p-4">
+                                    <h4 class="title text-center mb-3">FAQ</h4>
+
+
+
+
+
+                            </div>
+
+                        </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
 }
+<style>
+
+    .domain-list {
+        margin: 0.5em 0 1em 1.5em;
+        padding-left: 1em;
+        color: #34495e;
+        font-size: 1.04em;
+    }
+
+        .domain-list li {
+            margin-bottom: 0.5em;
+            line-height: 1.4;
+        }
+
+    .how-steps {
+        max-width: 550px;
+        margin: 0 auto;
+        padding-left: 1.3em;
+        font-size: 1.07em;
+        counter-reset: step;
+    }
+
+        .how-steps li {
+            margin-bottom: 1.2em;
+            line-height: 1.5;
+            position: relative;
+            padding-left: 0.4em;
+        }
+
+            .how-steps li::marker {
+                font-weight: 700;
+                color: #3273fa;
+                font-size: 1.18em;
+            }
+
+    .how-detail {
+        display: block;
+        color: #405070;
+        margin-top: 2px;
+        margin-left: 2px;
+        font-size: 0.98em;
+        font-weight: 400;
+    }
+
+    .how-substep {
+        display: inline-block;
+        margin-left: 1.3em;
+        font-family: 'Fira Mono', monospace;
+        color: #1a4ca4;
+        font-size: 0.97em;
+    }
+
+    .how-api-tip {
+        color: #198754;
+        font-size: 0.95em;
+        font-style: italic;
+        margin-left: 0.8em;
+    }
+
+    .how-tip {
+        display: inline-block;
+        background: #fffbe6;
+        color: #c98c1b;
+        font-weight: 500;
+        border-radius: 7px;
+        padding: 8px 16px;
+        margin-top: 8px;
+        font-size: 1em;
+        box-shadow: 0 2px 8px #eee6b1;
+        border: 1px solid #fae6a0;
+    }
+    .domain-term {
+        color: #3273fa;
+        font-weight: 600;
+    }
+
+    .domain-example {
+        font-family: 'Fira Mono', monospace;
+        background: #f4f7ff;
+        color: #1a4ca4;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 1em;
+    }
+
+    .domain-txt {
+        font-family: 'Fira Mono', monospace;
+        background: #f1f9fc;
+        color: #18739d;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 0.98em;
+    }
+
+    .domain-quote {
+        color: #2e7d32;
+        font-style: italic;
+        font-family: 'Fira Sans', 'Segoe UI', sans-serif;
+    }
+
+    .domain-padlock {
+        color: #26b04c;
+        font-size: 1.1em;
+        vertical-align: middle;
+        margin: 0 2px;
+    }
+
+    .domain-success {
+        color: #26b04c;
+        font-weight: 600;
+        font-style: italic;
+    }
+
+    .text-primary {
+        color: #3273fa !important;
+    }
+
+    .domain-card {
+        border-radius: 18px;
+        border: 1.5px solid #e6eaf0;
+        background: #fafdff;
+        max-width: 650px;
+    }
+
+    .domain-lead {
+        font-size: 1.12rem;
+        color: #303030;
+        margin-bottom: 0;
+        line-height: 1.65;
+    }
+
+    .domain-example {
+        font-family: 'Fira Mono', monospace;
+        background: #f4f7ff;
+        color: #1a4ca4;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 1em;
+    }
+
+    .domain-vendor {
+        color: #3273fa;
+        font-weight: bold;
+    }
+
+    .domain-warning {
+        display: inline-block;
+        color: #bf2f2f;
+        background: #fff2f2;
+        border-radius: 4px;
+        padding: 3px 6px;
+        margin-top: 6px;
+        font-size: 1em;
+        font-weight: 500;
+    }
+
+    .domain-links {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-domain {
+        font-weight: 600;
+        font-size: 1rem;
+        border-radius: 8px;
+        border: none;
+        color: #fff !important;
+        min-width: 110px;
+        margin-bottom: 5px;
+    }
+
+        .btn-domain.cloudflare {
+            background: linear-gradient(90deg, #3273fa 60%, #61e8fb 100%);
+        }
+
+        .btn-domain.namecheap {
+            background: linear-gradient(90deg, #6366f1 60%, #f67325 100%);
+        }
+
+        .btn-domain.godaddy {
+            background: linear-gradient(90deg, #34a853 70%, #217a34 100%);
+        }
+
+        .btn-domain.google {
+            background: linear-gradient(90deg, #1e90ff 70%, #44d9ff 100%);
+        }
+
+        .btn-domain:hover, .btn-domain:focus {
+            opacity: 0.85;
+            box-shadow: 0 2px 12px 0 #e8eaf8;
+            text-decoration: none;
+        }
+
+    .supported-list span {
+        font-family: 'Fira Mono', monospace;
+        background: #f1f9fc;
+        color: #18739d;
+        padding: 2px 7px;
+        border-radius: 3px;
+        margin-right: 3px;
+        font-size: 0.98em;
+    }
+
+
+    .domain-lead {
+        font-size: 1em;
+    }
+
+    
+
+
+</style>

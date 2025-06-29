@@ -25,12 +25,6 @@
                 <div><p class="minititleText">@ViewData["Title"]</p></div>
             </div>
 
-
-            @*             <div class="center-title">
-                <h1 class="minititleTag">@ViewData["TitleTag"]</h1>
-            </div> *@
-
-
             <div class="top-bar-icons">
                 <div class="css-avatar"></div>
                 <button id="power-icon" class="settings-icon btn btn-link p-0" style="border: none;">
@@ -42,6 +36,7 @@
 
             </div>
         </div>
+
         <div class="sidebar-box">
             <nav class="sidebar-nav">
                 <a asp-page="/Dashboard" class="sidebar-link">
@@ -57,13 +52,19 @@
                     <span class="sidebar-text">Manage</span>
                 </a>
 
-                <a asp-page="/LearnMore" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="bi bi-book-half"></i></span>
-                    <span class="sidebar-text">Learn</span>
+                <a asp-page="/Exchange" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="bi bi-gear-fill"></i></span>
+                    <span class="sidebar-text">Exchange</span>
                 </a>
+
                 <a asp-page="/Settings" class="sidebar-link">
                     <span class="sidebar-icon"><i class="bi bi-gear-fill"></i></span>
                     <span class="sidebar-text">Settings</span>
+                </a>
+
+                <a asp-page="/LearnMore" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="bi bi-book-half"></i></span>
+                    <span class="sidebar-text">Help</span>
                 </a>
             </nav>
 
@@ -77,9 +78,7 @@
         </div>
 
         <footer class="footer-text">
-            @*                      <div class="left-footer">
-                        <h1 class="minititleTag">@ViewData["TitleTag"]</h1>
-                    </div> *@
+
             <div class="row align-items-center">
 
                 <div class="footer-title">
@@ -88,8 +87,10 @@
                         <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo-footer" />
                     </h2>
                 </div>
-                <p>©2025– Kenneth Lasyone</p>
-
+                
+            </div>
+            <div class="row align-items-center">
+                <p>©2025– Powered by SphereSSL</p>  <p> @ViewData["TitleTag"]</p>
             </div>
         </footer>
 
@@ -475,8 +476,10 @@
     
 </style>
 
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/signalr@6.0.0/dist/browser/signalr.min.js"></script>
+
 
 <!-- PowerIcon Listener -->
 <script>
@@ -502,7 +505,6 @@
         }
     });
 </script>
-
 
 <!-- Toggle Single File Download Button -->
 <script>
@@ -538,7 +540,6 @@
 
 </script>
 
-
 <!-- Toggle Multi File Download Buttons -->
 <script>
     let certDownloadsReady = false;
@@ -573,7 +574,6 @@
 
 </script>
 
-
 <!--Toast-->
 <script>
     function showToast(message, isError = false) {
@@ -598,7 +598,6 @@
             setTimeout(() => toast.remove(), 400);
         }, 2500);
     }</script>
-
 
 <!--Auto Select Save on Select AutoRenew-->
 <script>
@@ -648,6 +647,17 @@
             Role: document.querySelector('input[name="role"]:checked').value,
             Notes: document.getElementById('newNotes').value.trim()
         };
+
+        if (
+        userDto.Password.length < 8 ||
+        userDto.Password.length > 24 ||
+        !/[A-Z]/.test(userDto.Password) ||
+        !/[a-z]/.test(userDto.Password) ||
+        !/[0-9]/.test(userDto.Password)
+        ) {
+        showToast("Password must be 8-24 characters, and include uppercase, lowercase, and a number.", true);
+        return;
+
 
         const response = await fetch('/Settings?handler=AddUser', {
             method: 'POST',

@@ -1,5 +1,4 @@
-﻿using SphereSSL2.View;
-using SphereSSLv2.Models;
+﻿using SphereSSLv2.Models;
 using SphereSSLv2.Services.Config;
 public class Program
 {

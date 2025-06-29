@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using static Org.BouncyCastle.Math.EC.ECCurve;
 
+
 namespace SphereSSLv2.Pages
 {
     public class SettingsModel : PageModel
@@ -186,11 +187,23 @@ namespace SphereSSLv2.Pages
                 return RedirectToPage("/Index");
             }
 
+           
+
+            if (
+                userRequest.Password.Length < 8 ||
+                userRequest.Password.Length > 24 ||
+                !Regex.IsMatch(userRequest.Password, "[A-Z]") ||
+                !Regex.IsMatch(userRequest.Password, "[a-z]") ||
+                !Regex.IsMatch(userRequest.Password, "[0-9]")
+            )
+            {
+                return new JsonResult(new { success = false, message = "Password must be 8–24 characters, and include uppercase, lowercase, and a number." });
+            }
 
 
 
             try
-            {
+                {
                 var newUser = new User
                 {
                     UserId = Guid.NewGuid().ToString("N"),

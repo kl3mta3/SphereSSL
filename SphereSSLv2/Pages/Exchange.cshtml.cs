@@ -7,19 +7,16 @@ using SphereSSLv2.Services.Config;
 
 namespace SphereSSLv2.Pages
 {
-    public class CreateNewModel : PageModel
+    public class ExchangeModel : PageModel
     {
-        private readonly ILogger<CreateNewModel> _logger;
-
+        private readonly ILogger<ExchangeModel> _logger;
         public UserSession CurrentUser = new();
-        public CreateNewModel(ILogger<CreateNewModel> logger)
+
+        public ExchangeModel(ILogger<ExchangeModel> logger)
         {
             _logger = logger;
 
         }
-
-
-
 
         public async Task<IActionResult> OnGet()
         {
@@ -44,6 +41,7 @@ namespace SphereSSLv2.Pages
             }
 
             bool _isSuperAdmin = string.Equals(CurrentUser.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
 
             return Page();
         }

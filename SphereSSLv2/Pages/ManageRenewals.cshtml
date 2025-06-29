@@ -3,3 +3,109 @@
 @{
     ViewData["Title"] = "Manage";
 }
+<div class="container-fluid px-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
+            <h3 class="title text-center mb-3">Manage Certificates</h3>
+            <div class="card bg-light text-dark shadow-sm p-4">
+                <h3 class="title text-dark text-center mb-3">Your Certificates</h3>
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <table class="table align-middle mb-3" id="certTable">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(0)">Domain <span id="domainSortIcon">⇅</span></th>
+                            <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(1)">Status <span id="statusSortIcon">⇅</span></th>
+                            <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(2)">AutoRenew <span id="autorenewSortIcon">⇅</span></th>
+                            <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(3)">Days Remaining <span id="daysremainingSortIcon">⇅</span></th>
+                            <th style="width:140px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.CertRecords != null && Model.CertRecords.Any())
+                        {
+                            foreach (var cert in Model.CertRecords)
+                            {
+                               var status = cert.ExpiryDate < DateTime.Now ? "Expired" : "Active";
+                                int daysRemaining = (cert.ExpiryDate - DateTime.Now).Days;
+                                    var autoRenew = cert.autoRenew ? "On" : "Off";
+                                    <tr data-cert-id="@cert.OrderId">
+                                        <td>@cert.Domain</td>
+                                        <td class="text-center">@status.ToString()</td>
+                                        <td class="text-center">@autoRenew </td>
+                                        <td class="text-center">@daysRemaining</td>
+                                        <td>
+                                        <button onclick="showManageCertModal('@cert.OrderId')" class="btn btn-sm btn-info">Manage</button>
+                                        </td>
+                                    </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="3" class="text-muted text-center">No users found.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            </div>
+
+
+        </div>
+                
+    </div>
+</div>
+
+
+<!-- Sort CERT Table -->
+<script>
+    let sortDirection3 = [1, 1, 1, 1];
+
+    function sortCertTable(colIndex) {
+        const table3 = document.getElementById("certTable");
+        const tbody3 = table3.tBodies[0];
+        const rows3 = Array.from(tbody3.querySelectorAll("tr")).filter(
+            tr => tr.children.length > 2
+        );
+
+        // Toggle direction
+        sortDirection3[colIndex] *= -1;
+
+        rows3.sort((a, b) => {
+            let aVal = a.cells[colIndex].innerText.trim();
+            let bVal = b.cells[colIndex].innerText.trim();
+
+            if (colIndex === 2) {
+                // AutoRenew: "On" > "Off"
+                aVal = aVal.toLowerCase() === "on" ? 1 : 0;
+                bVal = bVal.toLowerCase() === "on" ? 1 : 0;
+                return (aVal - bVal) * sortDirection3[colIndex];
+            } else if (colIndex === 3) {
+                // Days Remaining: numeric sort
+                aVal = parseInt(aVal, 10);
+                bVal = parseInt(bVal, 10);
+                return (aVal - bVal) * sortDirection3[colIndex];
+            } else {
+                // String sort (domain, status)
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+                if (aVal < bVal) return -1 * sortDirection3[colIndex];
+                if (aVal > bVal) return 1 * sortDirection3[colIndex];
+                return 0;
+            }
+        });
+
+        rows3.forEach(row => tbody3.appendChild(row));
+
+        // Update sort icons
+        document.getElementById('domainSortIcon').textContent = colIndex === 0
+            ? (sortDirection3[0] === 1 ? '↑' : '↓') : '⇅';
+        document.getElementById('statusSortIcon').textContent = colIndex === 1
+            ? (sortDirection3[1] === 1 ? '↑' : '↓') : '⇅';
+        document.getElementById('autorenewIcon').textContent = colIndex === 2
+            ? (sortDirection3[2] === 1 ? '↑' : '↓') : '⇅';
+        document.getElementById('daysremaining').textContent = colIndex === 3
+            ? (sortDirection3[3] === 1 ? '↑' : '↓') : '⇅';
+    }
+</script>

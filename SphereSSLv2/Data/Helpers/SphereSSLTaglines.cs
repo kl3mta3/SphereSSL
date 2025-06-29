@@ -84,6 +84,8 @@ namespace SphereSSLv2.Data.Helpers
                 "Much like a Tesla with a dead battery, we don’t charge.",
                 "E.T. fetch('/Home?handler=Elliott',{method: 'UFO'}).",
                 "Clutching our knee: Sssssss… ahhh… sssss… ahhh… sssss… ahhh…",
+                "10/10, would cert again.",
+                "Friends don’t let friends HTTP.",
                 "Tiger tested, Hobbes approved."
     };
     }
