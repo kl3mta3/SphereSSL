@@ -32,8 +32,8 @@ namespace SphereSSLv2.Services.Config
         internal static int ServerPort { get; set; } = 7171;
         public static double RefreshExpiringSoonRateInMinutes { get; } = 5;
         public static double ExpiringNoticePeriodInDays { get; } = 30;
-        internal static string CAPrimeUrl = "https://acme-v02.api.letsencrypt.org/";
-        internal static string CAStagingUrl = "https://acme-staging-v02.api.letsencrypt.org/";
+        internal static string CAPrimeUrl ;
+        internal static string CAStagingUrl ;
         internal static string dbPath = "certificates.db";
         internal static string HashedPassword = string.Empty;
         internal static string Username = string.Empty;
@@ -126,7 +126,17 @@ namespace SphereSSLv2.Services.Config
                     UseLogOn = config.UseLogOn ? true : false;
                 }
 
+                if (!string.IsNullOrWhiteSpace(config.CAPrimeUrl) && oldConfig.CAPrimeUrl != config.CAPrimeUrl)
+                {
+                    oldConfig.CAPrimeUrl = config.CAPrimeUrl;
+                    CAPrimeUrl = config.CAPrimeUrl;
+                }
 
+                if (!string.IsNullOrWhiteSpace(config.CAStagingUrl) && oldConfig.CAStagingUrl != config.CAStagingUrl)
+                {
+                    oldConfig.CAStagingUrl = config.CAStagingUrl;
+                    CAStagingUrl = config.CAStagingUrl;
+                }
 
                 string json = JsonSerializer.Serialize(oldConfig, new JsonSerializerOptions { WriteIndented = true });
                 await File.WriteAllTextAsync(ConfigFilePath, json);
@@ -190,11 +200,11 @@ namespace SphereSSLv2.Services.Config
 
                 HashedPassword = passhash;
                 ServerPort = storedConfig.ServerPort > 0 ? storedConfig.ServerPort : 7171;
-
                 ServerIP = storedConfig.ServerURL;
-
-
                 dbPath = storedConfig.DatabasePath;
+                CAPrimeUrl = storedConfig.CAPrimeUrl;
+                CAStagingUrl = storedConfig.CAStagingUrl;
+
 
                 return storedConfig;
 

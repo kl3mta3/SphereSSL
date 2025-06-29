@@ -56,6 +56,11 @@ namespace SphereSSLv2.Pages
         [BindProperty]
         public string SelectedUser { get; set; }
 
+        [BindProperty]
+        public string CAPrimeUrl { get; set; } = ConfigureService.CAPrimeUrl;
+
+        [BindProperty]
+        public string CAStagingUrl { get; set; } = ConfigureService.CAStagingUrl;
 
         public SettingsModel(ILogger<SettingsModel> ilogger, Logger logger, UserRepository userRepository, DnsProviderRepository dnsProviderRepository)
         {
@@ -658,7 +663,6 @@ namespace SphereSSLv2.Pages
 
         }
 
-
         public async Task<IActionResult> OnPostDeleteDNSProviderAsync([FromBody] ProviderDeleteRequest request)
         {
             var providerId = request.ProviderId;
@@ -667,7 +671,7 @@ namespace SphereSSLv2.Pages
 
             if (string.IsNullOrEmpty(sessionData))
             {
-                
+
                 return new JsonResult(new { success = false, redirect = "/Index" });
             }
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
@@ -678,7 +682,7 @@ namespace SphereSSLv2.Pages
 
             try
             {
-               
+
                 bool success = await _dnsProviderRepository.DeleteDNSProviderById(providerId);
                 return new JsonResult(new { success = success });
             }
@@ -688,7 +692,6 @@ namespace SphereSSLv2.Pages
                 return new JsonResult(new { success = false, message = "Internal error occurred." });
             }
         }
-
 
         public async Task<IActionResult> OnPostUpdateDNSProviderAsync([FromBody] UpdateDNSProviderRequest provider)
         {
@@ -708,7 +711,7 @@ namespace SphereSSLv2.Pages
 
             if (string.IsNullOrEmpty(sessionData))
             {
-               
+
                 return new JsonResult(new { success = false, redirect = "/Index" });
             }
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
@@ -716,9 +719,9 @@ namespace SphereSSLv2.Pages
             {
                 return new JsonResult(new { success = false, redirect = "/Index" });
             }
-                DNSProvider existingProvider = await _dnsProviderRepository.GetDNSProviderById(provider.ProviderId);
+            DNSProvider existingProvider = await _dnsProviderRepository.GetDNSProviderById(provider.ProviderId);
 
-            if (existingProvider.UserId != CurrentUser.UserId && !CurrentUser.IsAdmin )
+            if (existingProvider.UserId != CurrentUser.UserId && !CurrentUser.IsAdmin)
             {
                 return new JsonResult(new { success = false, message = "You do not own this DNS provider." });
             }
@@ -752,7 +755,7 @@ namespace SphereSSLv2.Pages
                     existingProvider.Ttl = provider.Ttl;
                 }
 
-                if (existingProvider.Username != CurrentUser.Username  && existingProvider.UserId == CurrentUser.UserId)
+                if (existingProvider.Username != CurrentUser.Username && existingProvider.UserId == CurrentUser.UserId)
                 {
                     existingProvider.Username = CurrentUser.Username;
                 }
@@ -765,6 +768,31 @@ namespace SphereSSLv2.Pages
                 await _logger.Error($"Error Restarting Server: {ex.Message}");
                 return new JsonResult(new { success = false, message = "Internal error occurred." });
             }
+        }
+
+        public async Task<IActionResult> OnPostUpdateCAUrlAsync([FromBody] CAUpdateRequest caUrlRequest)
+        {
+            Console.WriteLine($"Updating CA URLs: {caUrlRequest.CAPrimeUrl}, {caUrlRequest.CAStagingUrl}");
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null)
+                return RedirectToPage("/Index");
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null || !CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                return RedirectToPage("/Index");
+
+            StoredConfig config = await ConfigureService.LoadConfigFile();
+
+            config.CAPrimeUrl = caUrlRequest.CAPrimeUrl;
+            config.CAStagingUrl = caUrlRequest.CAStagingUrl;
+
+            ConfigureService.CAPrimeUrl = caUrlRequest.CAPrimeUrl;
+            ConfigureService.CAStagingUrl = caUrlRequest.CAStagingUrl;
+
+            var json = JsonConvert.SerializeObject(config, Formatting.Indented);
+            System.IO.File.WriteAllText(ConfigureService.ConfigFilePath, json);
+
+            return new JsonResult(new { success = true, message = "CA URLs updated!" });
         }
     }
 }

@@ -5,7 +5,7 @@ namespace SphereSSLv2.Models.ConfigModels
     public class StoredConfig
     {
         [JsonPropertyName("serverURL")]
-        public string ServerURL {get; set; }
+        public string ServerURL { get; set; }
 
         [JsonPropertyName("serverPort")]
         public int ServerPort { get; set; }

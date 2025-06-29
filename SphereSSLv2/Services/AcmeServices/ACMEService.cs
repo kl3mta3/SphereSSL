@@ -49,9 +49,6 @@ namespace SphereSSLv2.Services.AcmeServices
         {
             _logger = logger;
             _signer = LoadOrCreateSigner(this);
-            //_UseStaging = useStaging;
-
-
 
             string _baseAddress = _UseStaging
 
@@ -64,8 +61,6 @@ namespace SphereSSLv2.Services.AcmeServices
                 };
 
             _client = new AcmeProtocolClient(http, null, null, _signer);
-            
-
         }
 
         public async Task<bool> InitAsync( string email)
@@ -123,8 +118,6 @@ namespace SphereSSLv2.Services.AcmeServices
         {
             var authz = await _client.GetAuthorizationDetailsAsync(order.Payload.Authorizations[0]);
             var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
-
-       
             using SHA256 algor = SHA256.Create();
             var thumbprintBytes = JwsHelper.ComputeThumbprint(_signer, algor);
             var thumbprint = Base64UrlEncode(thumbprintBytes);
@@ -148,8 +141,6 @@ namespace SphereSSLv2.Services.AcmeServices
             _order = new OrderDetails();
             _domain = "";
 
-
-
             if (string.IsNullOrWhiteSpace(requestDomain))
             {
                 await _logger.Error("Domain name is empty.");
@@ -157,10 +148,8 @@ namespace SphereSSLv2.Services.AcmeServices
             }
            _domain = requestDomain;
 
-
             try
             {
-
                 var account = await InitAsync(email);
                 if (!account)
                 {
@@ -172,9 +161,9 @@ namespace SphereSSLv2.Services.AcmeServices
             catch (Exception ex)
             {
                 _ = _logger.Debug("Unexpected error during account creation.");
-
                 _ = _logger.Error(ex.Message);
                 _ = _logger.Error(ex.StackTrace);
+
                 return (null, null);
             }
 
@@ -182,7 +171,6 @@ namespace SphereSSLv2.Services.AcmeServices
             {
 
                 _order = await BeginOrder(_domain);
-
 
                 if (_order.Payload.Status == "invalid")
                 {
@@ -198,10 +186,7 @@ namespace SphereSSLv2.Services.AcmeServices
                 return (null, null);
             }
 
-
-
             var (domain, dnsValue) = await GetDnsChallengeToken(_order);
-
 
             return (dnsValue, domain);
         }
@@ -209,9 +194,6 @@ namespace SphereSSLv2.Services.AcmeServices
        
         internal  async Task<bool> ProcessCertificateGeneration( bool useSeperateFiles, string savePath, string dnsChallengeToken, string domain, string username)
         {
-
-            
-            // Generate CSR first
             var key = KeyFactory.NewKey(KeyAlgorithm.RS256);
             var csrBuilder = new CertificationRequestBuilder(key);
             csrBuilder.AddName("CN", _domain);
@@ -220,7 +202,6 @@ namespace SphereSSLv2.Services.AcmeServices
 
             _= _logger.Info("Submitting challenge to Let's Encrypt...");
 
-            // Get authorization details
             string authUrl = _order.Payload.Authorizations[0];
             var authz = await _client.GetAuthorizationDetailsAsync(authUrl);
             var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
@@ -229,11 +210,10 @@ namespace SphereSSLv2.Services.AcmeServices
             _= _logger.Info($"[{username}]: Challenge URL: {dnsChallenge.Url}");
             _= _logger.Info($"[{username}]: Challenge status: {dnsChallenge.Status}");
 
-            // Only submit challenge if it's pending
             if (dnsChallenge.Status == "pending")
             {
               
-             if (_client.Directory == null || _client.Directory.NewNonce == null)
+                if (_client.Directory == null || _client.Directory.NewNonce == null)
                 {
                     var directory = await _client.GetDirectoryAsync();
                     _client.Directory = directory;
@@ -273,7 +253,7 @@ namespace SphereSSLv2.Services.AcmeServices
 
                     if (updatedAuthz.Status == "invalid" || updatedChallenge.Status == "invalid")
                     {
-                        // Get error details
+         
                         string errorDetail = "Unknown error";
                         if (updatedChallenge.Error != null)
                         {
@@ -291,14 +271,14 @@ namespace SphereSSLv2.Services.AcmeServices
                         continue;
                     }
 
-                    // Handle other statuses
+        
                     _= _logger.Info($"[{username}]: Unexpected status - Auth: {updatedAuthz.Status}, Challenge: {updatedChallenge.Status}");
                     await Task.Delay(5000);
                 }
                 catch (Exception ex)
                 {
                     _= _logger.Info($"[{username}]: Error during polling attempt {i + 1}: {ex.Message}");
-                    if (i == maxPollingAttempts - 1) throw; // Re-throw on last attempt
+                    if (i == maxPollingAttempts - 1) throw; 
                     await Task.Delay(5000);
                 }
             }
@@ -311,10 +291,10 @@ namespace SphereSSLv2.Services.AcmeServices
 
             _ = _logger.Info($"[{username}]: Finalizing certificate order...");
 
-            // Finalize the order
+         
             await _client.FinalizeOrderAsync(_order.Payload.Finalize, csr);
 
-            // Wait for certificate to be ready
+         
             _= _logger.Info($"[{username}]: Waiting for certificate to be issued...");
 
             OrderDetails finalizedOrder;

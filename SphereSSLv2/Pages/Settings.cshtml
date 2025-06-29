@@ -23,9 +23,13 @@
 
                                 <!-- Tabs Navigation -->
                                 <ul class="nav nav-tabs mb-4" id="settingsTab" role="tablist">
-                                    <li class="nav-item" role="presentation">
-                                        <button class="nav-link active" id="cert-tab" data-bs-toggle="tab" data-bs-target="#cert" type="button" role="tab" aria-controls="cert" aria-selected="true">Cert</button>
-                                    </li>
+
+                                    @if (isSuperadmin)
+                                    {
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="cert-tab" data-bs-toggle="tab" data-bs-target="#cert" type="button" role="tab" aria-controls="cert" aria-selected="true">Cert</button>
+                                        </li>
+                                    }
 
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link" id="dns-tab" data-bs-toggle="tab" data-bs-target="#dns" type="button" role="tab" aria-controls="dns" aria-selected="false">DNS </button>
@@ -50,10 +54,38 @@
                                 <!-- Tab Content -->
                                 <div class="tab-content" id="settingsTabContent">
                                     <div class="tab-pane fade show active" id="cert" role="tabpanel" aria-labelledby="cert-tab">
-                                        <!-- Section 1 Content Here -->
+                                        <div class="card ca-card mx-auto shadow p-4">
+                                            <div class="text-center mb-2">
+                                                <h4 class="fw-bold mb-1">Certificate Authority Address</h4>
+                                                <p class="mb-3 text-muted">You can change the Certificate Authority used. Enter the CA's URL.</p>
+                                            </div>
+                                            <form>
+                                                <div class="mb-3">
+                                                    <label for="caPrimeUrl" class="form-label">Certificate Authority Main URL</label>
+                                                    <input type="text"
+                                                           class="form-control url-input"
+                                                           id="caPrimeUrl"
+                                                           name="CAPrimeUrl"
+                                                           value="@Model.CAPrimeUrl" />
+                                                    <p class="small text-muted mt-1 mb-0">This is the main URL used for creating Certificates. (Must accept ACME protocol)</p>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="caStagingUrl" class="form-label">Certificate Authority Staging URL</label>
+                                                    <input type="text"
+                                                           class="form-control url-input"
+                                                           id="caStagingUrl"
+                                                           name="CAStagingUrl"
+                                                           value="@Model.CAStagingUrl" />
+                                                    <p class="small text-muted mt-1 mb-0">This is the URL used for staging (testing).</p>
+                                                </div>
+                                                <div class="text-center mt-4">
+                                                    <button type="button" class="btn btn-primary px-5 py-2" onclick="submitCAUpdateCreds()">Update</button>
+                                                </div>
+                                            </form>
+                                        </div>
                                     </div>
 
-                                    <!-- DNS Settings  -->
+                                   <!-- DNS Settings  -->
                                     <div class="tab-pane fade" id="dns" role="tabpanel" aria-labelledby=dns-tab">
                                         <div class="card bg-light text-dark shadow-sm p-4">
                                             <h6 class="fw-semibold mb-3">DNS Providers</h6>
@@ -98,9 +130,8 @@
                                         </div>
                                     </div>
                               
-
-                                        <!-- Device Settings  -->
-                                          <div class="tab-pane fade" id="device" role="tabpanel" aria-labelledby="device-tab">
+                                   <!-- Device Settings  -->
+                                    <div class="tab-pane fade" id="device" role="tabpanel" aria-labelledby="device-tab">
                                         @if (isSuperadmin)
                                         {
 
@@ -195,10 +226,8 @@
                                         }
                                     </div>
 
-
-
-                                       <!-- Advanced  Settings -->  
-                                     <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
+                                   <!-- Advanced  Settings -->  
+                                    <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
 
                                                 <!-- Only SuperAdmin sees these controls -->
                                         @if (isSuperadmin)
@@ -308,9 +337,6 @@
 
 
 
-
-
-
 <!--Change Password Modal-->
 <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -363,7 +389,6 @@
     </div>
 </div>
 
-
 <!-- Confirm Reset Server Modal -->
 <div class="modal fade" id="confirmRestartServerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -382,7 +407,6 @@
         </div>
     </div>
 </div>
-
 
 <!-- Confirm Factory Reset Modal -->
 <div class="modal fade" id="confirmResetServerModal" tabindex="-1" aria-hidden="true">
@@ -479,8 +503,8 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
 
 <!-- Sort Table -->
@@ -639,7 +663,6 @@
     });
 </script>
 
-
 <!-- Submit DB setting Update -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -707,7 +730,6 @@
         });
     });
 </script>
-
 
 <!-- Show View User Modal -->
 <script>
@@ -975,7 +997,6 @@
     });
 </script>
 
-
 <!--Delete User-->
 <script>
     let pendingUserIdToDelete = null;
@@ -1021,7 +1042,6 @@
         }
     });
 </script>
-
 
 <!--Edit User-->
 <script>
@@ -1115,10 +1135,38 @@
 
 </script>
 
+<!--submit CA Update Creds -->
+<script>
 
+      function submitCAUpdateCreds() {
+        const caPrimeUrl = document.getElementById("caPrimeUrl").value.trim();
+        const caStagingUrl = document.getElementById("caStagingUrl").value.trim();
 
+        const data = {
+            caPrimeUrl: caPrimeUrl,
+            caStagingUrl: caStagingUrl
+        };
 
-
+        fetch('/Settings?handler=UpdateCAUrl', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        .then(resp => resp.json())
+        .then(result => {
+            if (result.success) {
+                showToast(result.message || "CA URLs updated!", false);
+            } else {
+                showToast(result.message || "Something went wrong updating CA URLs.", true);
+            }
+        })
+        .catch(err => {
+            showToast("Failed to update: " + err, true);
+        });
+    }
+</script>
 
 
 <style>
@@ -1143,6 +1191,52 @@
             outline: none;
             border-color: #80bdff;
             box-shadow: 0 0 8px #007bff80;
+        }
+
+
+
+    .ca-card {
+        max-width: 500px;
+        border-radius: 18px;
+        border: 1.5px solid #e6eaf0;
+        background: #fff;
+    }
+
+    .url-input {
+        font-family: 'Fira Mono', monospace, monospace;
+        font-size: 1rem;
+        background: #f9fbff;
+        border: 1px solid #cfd8dc;
+        border-radius: 8px;
+        padding: 10px 12px;
+        transition: border 0.2s;
+        width: 100%;
+        word-break: break-all;
+    }
+
+        .url-input:focus {
+            border-color: #3273fa;
+            box-shadow: 0 0 0 2px #e3ebfd;
+            background: #f3f7ff;
+        }
+
+    .ca-card label {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .ca-card .btn-primary {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1.06rem;
+        background: linear-gradient(90deg, #3273fa, #3ec6fd 95%);
+        border: none;
+        box-shadow: 0 1px 4px 0 #e6eaf0;
+        transition: background 0.2s;
+    }
+
+        .ca-card .btn-primary:hover {
+            background: linear-gradient(90deg, #205fd6, #1fa6e0 90%);
         }
 
 </style>

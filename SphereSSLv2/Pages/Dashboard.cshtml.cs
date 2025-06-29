@@ -52,7 +52,8 @@ namespace SphereSSLv2.Pages
         private readonly Logger _logger;
         private readonly ConfigureService _spheressl;
         public static Dictionary<string, AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
-
+        public string CAPrimeUrl;
+        public string CAStagingUrl;
         public UserSession CurrentUser = new();
 
         public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, ConfigureService spheressl, DatabaseManager database, CertRepository certRepository, DnsProviderRepository dnsProviderRepository, UserRepository userRepository )
@@ -84,10 +85,14 @@ namespace SphereSSLv2.Pages
 
             if (CurrentUser == null)
             {
+                
                 return RedirectToPage("/Index");
             }
 
             bool _isSuperAdmin = string.Equals(CurrentUser.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+
+            CAPrimeUrl = ConfigureService.CAPrimeUrl;
+            CAStagingUrl = ConfigureService.CAStagingUrl;
 
             if (CurrentUser.IsEnabled && _isSuperAdmin)
             {
@@ -115,8 +120,6 @@ namespace SphereSSLv2.Pages
     
         public async Task<IActionResult> OnPostQuickCreate([FromBody] QuickCreateRequest request)
         {
-           
-
             if (!_runningCertGeneration)
             {
                 _runningCertGeneration = true;
@@ -133,7 +136,9 @@ namespace SphereSSLv2.Pages
 
                 CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
                 if (CurrentUser == null)
-                    return RedirectToPage("/Index"); // or return an error
+                {
+                    return RedirectToPage("/Index"); 
+                }
 
 
 
@@ -143,10 +148,13 @@ namespace SphereSSLv2.Pages
                 order.Provider = providerName;
                 order.OrderId = orderID;
                 order.UserId = CurrentUser.UserId;
+
+
+
                 string _baseAddress = request.UseStaging
 
-                     ? "https://acme-staging-v02.api.letsencrypt.org/"
-                     : "https://acme-v02.api.letsencrypt.org/";
+                     ? ConfigureService.CAStagingUrl
+                     : ConfigureService.CAPrimeUrl;
 
                     var http = new HttpClient
                     {
@@ -165,10 +173,7 @@ namespace SphereSSLv2.Pages
                     
                 };
                
-
-
                 AcmeServiceCache.Add(request.Order.OrderId, ACME);
-
 
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
                 DNSProvider provider = DNSProviders.FirstOrDefault(p => p.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
