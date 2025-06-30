@@ -28,6 +28,7 @@ using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Data.Database;
+using Certes.Acme.Resource;
 namespace SphereSSLv2.Pages
 {
     public class DashboardModel : PageModel
@@ -50,7 +51,7 @@ namespace SphereSSLv2.Pages
         private readonly CertRepository _certRepository;
         private readonly Logger _logger;
         private readonly ConfigureService _spheressl;
-        public static Dictionary<string, AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
+
         public string CAPrimeUrl;
         public string CAStagingUrl;
         public UserSession CurrentUser = new();
@@ -142,7 +143,6 @@ namespace SphereSSLv2.Pages
                 var order = request.Order;
                 var providerName = request.Provider;
                 string orderID = AcmeService.GenerateCertRequestId();
-                order.ProviderId = providerName;
                 order.OrderId = orderID;
                 order.UserId = CurrentUser.UserId;
 
@@ -170,16 +170,16 @@ namespace SphereSSLv2.Pages
                     
                 };
                
-                AcmeServiceCache.Add(request.Order.OrderId, ACME);
+                ConfigureService.AcmeServiceCache.Add(request.Order.OrderId, ACME);
 
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
                 DNSProvider provider = DNSProviders.FirstOrDefault(p => p.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
 
                 var autoAdd = request.AutoAdd;
 
-                var (dnsChallengeToken, domain) = await ACME.CreateUserAccountForCert( order.Email, order.Domains);
+                var challenges = await ACME.CreateUserAccountForCert( order.Email, request.Domains);
 
-                if (string.IsNullOrWhiteSpace(domain))
+                if ( challenges == null)
                 {
 
                 
@@ -188,29 +188,53 @@ namespace SphereSSLv2.Pages
                     return BadRequest("Failed to create ACME order: domain is empty/null.");
                 }
 
+                foreach (var challenge in challenges)
+                {
+                    AcmeChallenge orderChallenge = new AcmeChallenge
+                    {
+                        ChallengeId = new Guid().ToString("N"),
+                        OrderId = order.OrderId,
+                        UserId = order.UserId,
+                        Domain = challenge.Domain,
+                        DnsChallengeToken = challenge.Token,
+                        Status = "inProgress",
+                        ProviderId = provider?.ProviderId ?? string.Empty
+                    };
 
-                order.DnsChallengeToken = dnsChallengeToken;
-                order.Domains = domain;
+                    order.Challenges.Add(orderChallenge);
+                }   
+
                 order.ChallengeType = "DNS-01";
                 string zoneID = String.Empty;
                 bool added = false;
+
                 if (autoAdd)
                 {
-                    await _logger.Info($"[{CurrentUser.Username}]: Auto-adding DNS record using provider: {provider.ProviderName}");
-                    zoneID = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domains, order.DnsChallengeToken, CurrentUser.Username);
+                    foreach (var _challenge in order.Challenges)
+                    {
+                        if (string.IsNullOrWhiteSpace(_challenge.Domain))
+                        {
+                            await _logger.Error($"[{CurrentUser.Username}]: Domain is null or empty for auto-adding DNS record.");
+                            return BadRequest("Domain is null or empty for auto-adding DNS record.");
+                        }
+                        DNSProvider _provider = DNSProviders.FirstOrDefault(p => p.ProviderId.Equals(_challenge.ProviderId, StringComparison.OrdinalIgnoreCase));
+                        await _logger.Info($"[{CurrentUser.Username}]: Auto-adding DNS record using provider: {_provider.ProviderName}");
+                        zoneID = await DNSProvider.TryAutoAddDNS(_logger, _provider, _challenge.Domain, _challenge.DnsChallengeToken, CurrentUser.Username);
 
-                    if (String.IsNullOrWhiteSpace(zoneID))
-                    {
-                        await _logger.Info($"[{CurrentUser.Username}]: Failed to auto-add DNS record for provider: {provider}");
-                        added = false;
-                    }
-                    else
-                    {
-                        added = true;
-                        order.ZoneId = zoneID;
+                        if (String.IsNullOrWhiteSpace(zoneID))
+                        {
+                            await _logger.Info($"[{CurrentUser.Username}]: Failed to auto-add DNS record for provider: {_provider}");
+                            added = false;
+                        }
+                        else
+                        {
+                            added = true;
+                            _challenge.ZoneId = zoneID;
+                        }
+
                     }
                 }
-
+                ConfigureService.CertRecordCache.Add(order.OrderId, order);
                 QuickCreateResponse response = new QuickCreateResponse
                 {
                     Order = order,
@@ -228,32 +252,50 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostShowChallangeModal([FromBody] QuickCreateResponse _order)
         {
-            CertRecord order = _order.Order;
+            ConfigureService.CertRecordCache.TryGetValue(_order.Order.OrderId, out CertRecord order);
+            if (order == null)
+            {
+                await _logger.Error($"[{CurrentUser.Username}]: No ACME service found for Order ID: {_order.Order.OrderId}");
+                return BadRequest("ACME service not found for the specified order.");
+            }
 
-
-            AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService Acme);
+            ConfigureService.AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService Acme);
             if(Acme == null)
             {
                 await _logger.Error($"[{CurrentUser.Username}]: No ACME service found for Order ID: {order.OrderId}");
                 return BadRequest("ACME service not found for the specified order.");
             }
            
-            (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domains);
-                var nsList = await ConfigureService.GetNameServers(order.Domains);
+           
 
-                using SHA256 algor = SHA256.Create();
+
+
+            List<(string, string, string)> nsDict = new();
+
+            foreach (var challenge in order.Challenges)
+            {
+                (string provider, string link) = await _spheressl.GetNameServersProvider(challenge.Domain);
+                var nsList = await ConfigureService.GetNameServers(challenge.Domain);
+
+                string fullLink = "https://" + link;
+                string fullDomainName = "_acme-challenge." + challenge.Domain;
+                var ns = (fullLink, fullDomainName, challenge.DnsChallengeToken);
+                nsDict.Add(ns);
+            }
+
+
+
+
+            using SHA256 algor = SHA256.Create();
                 var thumbprintBytes = JwsHelper.ComputeThumbprint(Acme._signer, algor);
                 var thumbprint = AcmeService.Base64UrlEncode(thumbprintBytes);
                 order.UserId = CurrentUser.UserId;
-                order.ProviderId = provider;
                 order.Signer = Acme._signer.Export();
                 order.Thumbprint = thumbprint;
                 order.AccountID = Acme._account.Kid;
                 order.OrderUrl = Acme._order.OrderUrl;
                 order.CreationDate = DateTime.UtcNow;
                 order.ExpiryDate = DateTime.UtcNow.AddDays(90);
-                string fullLink = "https://" + link;
-                string fullDomainName = "_acme-challenge." + order.Domains;
 
                 string addedStatus = "";
                 if (_order.AutoAddedSuccessfully)
@@ -270,73 +312,77 @@ namespace SphereSSLv2.Pages
                     try
                     {
                         var html = $@"
-                    <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
-                        <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
-                        <input type='hidden' id='orderId' value='{order.OrderId}' />
-                        <input type='hidden' id='email' value='{order.Email}' />
-                        <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
-                        <input type='hidden' id='useSeperateFiles' value='{order.UseSeparateFiles}' />
-                        <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
-                        <input type='hidden' id='zoneID' value='{order.ZoneId}' />
-                        <input type='hidden' id='provider' value='{order.ProviderId}' />
-                        <input type='hidden' id='signer' value='{order.Signer}' />
-                        <input type='hidden' id='accountID' value='{order.AccountID}' />
-                        <input type='hidden' id='orderUrl' value='{order.OrderUrl}' />
-                        <input type='hidden' id='thumbprint' value='{order.Thumbprint}' />
-                        <input type='hidden' id='challengeType' value='{order.ChallengeType}' />
-                        <input type='hidden' id='creationDate' value='{order.CreationDate.ToString("o")}' />
-                        <input type='hidden' id='expiryDate' value='{order.ExpiryDate.ToString("o")}' />
+                        <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
+                            <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
+                            <input type='hidden' id='orderId' value='{order.OrderId}' />
 
-                       <div class='mb-3'>
-                            <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
-                         <div class='form-control text-break px-3 py-2 bg-light border'>
-                             <div> Domain: <a href='{order.Domains}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
-                                {order.Domains} </a>  </div>   
-                            
-                           <div> Provider: {ConfigureService.CapitalizeFirstLetter(order.ProviderId)} </div>
-                           <div> Website: <a href='{fullLink}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
-                                ({fullLink}) </a> </div>
-                                <div> NameServer1: {nsList[0]} </div>  
-                                <div> NameServer2: {nsList[1]} </div>  
-                             
-                        </div>
-                        </div>
-
-                        <div class='mb-3'>
-                            <p class='mb-1'>{addedStatus}</p>
-                            <div class='bg-white border rounded p-3'>
-                         
-                              <div class='d-flex align-items-center'>
-                                    <strong class='me-2'>Name:</strong>
-                                    <span id='domainName' class='text-monospace flex-grow-1'>{fullDomainName}</span>
-                                    <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='copyDNSName(this)' title='Copy to clipboard'>
-                                        <i class=""bi bi-clipboard""></i>
-                                    </button>
+                            <div class='mb-3'>
+                                <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
+                                <div class='form-control text-break px-3 py-2 bg-light border mb-2'>
+                                    <div><strong>Domains:</strong>
+                                        {string.Join(", ", order.Challenges.Select(x => $"<a href='https://{x.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>{x.Domain}</a>"))}
+                                    </div>
+                                    <div><strong>Provider:</strong> {ConfigureService.CapitalizeFirstLetter(order.ProviderId)}</div>
                                 </div>
-                                <div class='d-flex align-items-center'>
-                                    <strong class='me-2'>Value:</strong>
-                                    <span id='dnsToken' class='text-monospace flex-grow-1'>{order.DnsChallengeToken}</span>
-                                    <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='copyDnsToken(this)' title='Copy to clipboard'>
-                                        <i class=""bi bi-clipboard""></i>
-                                    </button>
-                                </div>
-
                             </div>
-                        </div>
 
+                            <div class='challenge-list border rounded p-3 mb-3' style='max-height: 320px; overflow-y: auto; background: #f9f9fa;'>
+                        ";
+
+                        foreach (var challenge in order.Challenges)
+                        {
+                            // If you have ns info per domain:
+                            (string providerLink, string fullDomainName, string dnsToken) = nsDict.FirstOrDefault(x => x.Item2 == $"_acme-challenge.{challenge.Domain}");
+                            string ns1 = "—", ns2 = "—";
+                            try
+                            {
+                                var nsList = await ConfigureService.GetNameServers(challenge.Domain);
+                                ns1 = nsList.ElementAtOrDefault(0) ?? "—";
+                                ns2 = nsList.ElementAtOrDefault(1) ?? "—";
+                            }
+                            catch { }
+
+                            html += $@"
+                            <div class='mb-3 pb-2 border-bottom'>
+                                <div class='mb-1'>
+                                    <strong>Domain:</strong> {challenge.Domain}
+                                    <span class='text-muted' style='font-size: 0.95em'>({ConfigureService.CapitalizeFirstLetter(order.ProviderId)})</span>
+                                </div>
+                                <div><strong>NameServer1:</strong> {ns1}</div>
+                                <div><strong>NameServer2:</strong> {ns2}</div>
+                                <div class='d-flex align-items-center mt-2'>
+                                    <strong class='me-2'>Name:</strong>
+                                    <span class='text-monospace flex-grow-1'>{fullDomainName}</span>
+                                    <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='navigator.clipboard.writeText(""{fullDomainName}"")' title='Copy to clipboard'>
+                                        <i class='bi bi-clipboard'></i>
+                                    </button>
+                                </div>
+                                <div class='d-flex align-items-center mt-1'>
+                                    <strong class='me-2'>Value:</strong>
+                                    <span class='text-monospace flex-grow-1'>{dnsToken}</span>
+                                    <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='navigator.clipboard.writeText(""{dnsToken}"")' title='Copy to clipboard'>
+                                        <i class='bi bi-clipboard'></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ";
+                        }
+
+                        html += @"
+                        </div>
                         <div class='mb-4' justify-content-center>
-                            <p class='mb-0'>Once you've added the record, click <strong>Ready</strong>.</p>
+                            <p class='mb-0'>Once you've added all records, click <strong>Ready</strong>.</p>
                             <small class='text-muted'>Need help? Click <strong>Learn More</strong>.</small>
                         </div>
-                        
                         <div class='d-flex justify-content-end gap-2'>
                             <button type='button' class='btn btn-outline-info' onclick='learnMore()'>Learn More</button>
                             <button type='button' class='btn btn-success' onclick='verifyChallange()'>Ready</button>
                         </div>
-                    </form>";
+                        </form>
+                        ";
 
                         return Content(html, "text/html");
-                    }
+                }
                     catch (Exception ex)
                     {
                         return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
@@ -349,77 +395,79 @@ namespace SphereSSLv2.Pages
 
                     try
                     {
-                        var html = $@"
+                    var html = $@"
                     <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
-
-                            <input type='hidden' id='orderId' value='{order.OrderId}' />
-                            <input type='hidden' id='email' value='{order.Email}' />
-                            <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal}' />
-                            <input type='hidden' id='useSeperateFiles' value='{order.UseSeparateFiles}' />
-                            <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
-                            <input type='hidden' id='zoneID' value='{order.ZoneId}' />
-                            <input type='hidden' id='provider' value='{order.ProviderId}' />
-                            <input type='hidden' id='signer' value='{order.Signer}' />
-                            <input type='hidden' id='accountID' value='{order.AccountID}' />
-                            <input type='hidden' id='orderUrl' value='{order.OrderUrl}' />
-                            <input type='hidden' id='thumbprint' value='{order.Thumbprint}' />
-                            <input type='hidden' id='challengeType' value='{order.ChallengeType}' />
-                            <input type='hidden' id='creationDate' value='{order.CreationDate.ToString("o")}' />
-                            <input type='hidden' id='expiryDate' value='{order.ExpiryDate.ToString("o")}' />
-
-                            <div class='mb-3'>
-                            <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
-                            <div class='form-control text-break px-3 py-2 bg-light border'>
-                            <div> Domain: <a href='{order.Domains}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
-                                {order.Domains} </a>  </div>   
-                            
-                           <div> Provider: {ConfigureService.CapitalizeFirstLetter(order.ProviderId)} </div>
-                           <div> Website: <a href='{fullLink}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
-                                ({fullLink}) </a> </div>
-                                <div> NameServer1: {nsList[0]} </div>  
-                                <div> NameServer2: {nsList[1]} </div>  
-                             
-                        </div>
-                        </div>
+                        <input type='hidden' id='orderId' value='{order.OrderId}' />
 
                         <div class='mb-3'>
-                            <p class='mb-1'>Add this to a new TXT record on your DNS:</p>
-                            <div class='bg-white border rounded p-3'>
-                         
-                              <div class='d-flex align-items-center'>
-                                    <strong class='me-2'>Name:</strong>
-                                    <span id='domainName' class='text-monospace flex-grow-1'>{fullDomainName}</span>
-                                    <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='copyDNSName(this)' title='Copy to clipboard'>
-                                        <i class=""bi bi-clipboard""></i>
-                                    </button>
+                            <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
+                            <div class='form-control text-break px-3 py-2 bg-light border mb-2'>
+                                <div><strong>Domains:</strong>
+                                    {string.Join(", ", order.Challenges.Select(x => $"<a href='https://{x.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>{x.Domain}</a>"))}
                                 </div>
-                                <div class='d-flex align-items-center'>
-                                    <strong class='me-2'>Value:</strong>
-                                    <span id='dnsToken' class='text-monospace flex-grow-1'>{order.DnsChallengeToken}</span>
-                                    <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='copyDnsToken(this)' title='Copy to clipboard'>
-                                        <i class=""bi bi-clipboard""></i>
-                                    </button>
-                                </div>
-
+                                <div><strong>Provider:</strong> {ConfigureService.CapitalizeFirstLetter(order.ProviderId)}</div>
                             </div>
                         </div>
 
+                        <div class='challenge-list border rounded p-3 mb-3' style='max-height: 320px; overflow-y: auto; background: #f9f9fa;'>
+                    ";
+
+                    foreach (var challenge in order.Challenges)
+                    {
+                        string ns1 = "—", ns2 = "—", fullDomainName = $"_acme-challenge.{challenge.Domain}", dnsToken = challenge.DnsChallengeToken;
+                        string fullLink = $"https://{challenge.Domain}";
+
+                        // If you have ns info for each, get it here:
+                        try
+                        {
+                            var nsList = await ConfigureService.GetNameServers(challenge.Domain);
+                            ns1 = nsList.ElementAtOrDefault(0) ?? "—";
+                            ns2 = nsList.ElementAtOrDefault(1) ?? "—";
+                        }
+                        catch { }
+
+                        html += $@"
+                        <div class='mb-3 pb-2 border-bottom'>
+                            <div class='mb-1'>
+                                <strong>Domain:</strong> <a href='{fullLink}' target='_blank' class='text-primary text-decoration-underline'>{challenge.Domain}</a>
+                            </div>
+                            <div><strong>NameServer1:</strong> {ns1}</div>
+                            <div><strong>NameServer2:</strong> {ns2}</div>
+                            <div class='d-flex align-items-center mt-2'>
+                                <strong class='me-2'>Name:</strong>
+                                <span class='text-monospace flex-grow-1'>{fullDomainName}</span>
+                                <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='navigator.clipboard.writeText(""{fullDomainName}"")' title='Copy to clipboard'>
+                                    <i class='bi bi-clipboard'></i>
+                                </button>
+                            </div>
+                            <div class='d-flex align-items-center mt-1'>
+                                <strong class='me-2'>Value:</strong>
+                                <span class='text-monospace flex-grow-1'>{dnsToken}</span>
+                                <button type='button' class='btn btn-sm btn-outline-secondary ms-2' onclick='navigator.clipboard.writeText(""{dnsToken}"")' title='Copy to clipboard'>
+                                    <i class='bi bi-clipboard'></i>
+                                </button>
+                            </div>
+                        </div>
+                    ";
+                    }
+
+                    html += @"
+                        </div>
                         <div class='mb-4' justify-content-center>
-                            <p class='mb-0'>Once you've added the record, click <strong>Ready</strong>.</p>
+                            <p class='mb-0'>Once you've added <strong>all records</strong>, click <strong>Ready</strong>.</p>
                             <small class='text-muted'>Need help? Click <strong>Learn More</strong>.</small>
                         </div>
-                        
                         <div class='d-flex justify-content-end gap-2'>
                             <button type='button' class='btn btn-outline-info' onclick='learnMore()'>Learn More</button>
                             <button type='button' class='btn btn-success' onclick='verifyChallange()'>Ready</button>
                         </div>
-                    </form>";
+                    </form>
+                    ";
 
+                    return Content(html, "text/html");
 
-                        return Content(html, "text/html");
-
-                    }
+                }
                     catch (Exception ex)
                     {
                         return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
@@ -674,17 +722,24 @@ namespace SphereSSLv2.Pages
                 return Content(html, "text/html");
         }
    
-        public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord order)
+        public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord _order)
         {
-            AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService ACME);
+            ConfigureService.CertRecordCache.TryGetValue(_order.Order.OrderId, out CertRecord order);
+            if (order == null)
+            {
+                await _logger.Error($"[{CurrentUser.Username}]: No ACME service found for Order ID: {_order.OrderId}");
+                return BadRequest("ACME service not found for the specified order.");
+            }
+
+            ConfigureService.AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService ACME);
 
             var sessionData = HttpContext.Session.GetString("UserSession");
             if (string.IsNullOrEmpty(sessionData))
-                return RedirectToPage("/Index"); // or return an error
+                return RedirectToPage("/Index"); 
 
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
             if (CurrentUser == null)
-                return RedirectToPage("/Index"); // or return an error
+                return RedirectToPage("/Index"); 
             var acme = ACME;
             order.UserId = CurrentUser.UserId;
             if (order == null || string.IsNullOrWhiteSpace(order.Domains) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))

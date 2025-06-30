@@ -14,7 +14,7 @@ namespace SphereSSLv2.Models.CertModels
         public string Email { get; set; } = string.Empty;
 
         [JsonProperty("challenges")]
-        public List<AcmeChallenge> Challanges { get; set; } = new();
+        public List<AcmeChallenge> Challenges { get; set; } = new();
 
         [JsonProperty("savePath")]
         public string SavePath { get; set; } = string.Empty;
@@ -39,9 +39,6 @@ namespace SphereSSLv2.Models.CertModels
 
         [JsonProperty("successfulRenewals")]
         public int SuccessfulRenewals { get; set; } = 0;
-
-        [JsonProperty("zoneId")]
-        public string ZoneId { get; set; } = string.Empty;
 
         [JsonProperty("signer")]
         public string Signer { get; set; } = string.Empty;

@@ -6,8 +6,6 @@ namespace SphereSSLv2.Models.Dtos
     public class QuickCreateResponse
     {
 
-
-
         [JsonProperty("order")]
         public CertRecord Order { get; set; }
 

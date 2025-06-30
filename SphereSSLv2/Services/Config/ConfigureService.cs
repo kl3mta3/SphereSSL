@@ -45,6 +45,7 @@ namespace SphereSSLv2.Services.Config
         internal static bool IsSetup = false;
         private readonly Logger _logger;
         public static Dictionary<string, AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
+        public static Dictionary<string, CertRecord> CertRecordCache = new Dictionary<string, CertRecord>();
         public ConfigureService(Logger logger)
         {
             _logger = logger;

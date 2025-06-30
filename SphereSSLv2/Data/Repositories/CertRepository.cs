@@ -20,26 +20,21 @@ namespace SphereSSLv2.Data.Repositories
             var command = connection.CreateCommand();
 
             command.CommandText = @"
-        INSERT INTO CertRecords (
-            UserId, OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
-            CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
-            FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-            ChallengeType, Thumbprint, ZoneId
-        )
-        VALUES (
-            @UserId, @OrderId, @Domain, @Email, @DnsChallengeToken, @SavePath, @Provider,
-            @CreationTime, @ExpiryDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
-            @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl,
-            @ChallengeType, @Thumbprint, @ZoneId
-        );";
+            INSERT INTO CertRecords (
+                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
+                FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
+                ChallengeType, Thumbprint
+            )
+            VALUES (
+                @UserId, @OrderId, @Email, @SavePath, @CreationTime, @ExpiryDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
+                @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl,
+                @ChallengeType, @Thumbprint
+            );";
 
             command.Parameters.AddWithValue("@UserId", record.UserId);
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
-            command.Parameters.AddWithValue("@Domain", record.Domains);
             command.Parameters.AddWithValue("@Email", record.Email);
-            command.Parameters.AddWithValue("@DnsChallengeToken", record.DnsChallengeToken);
             command.Parameters.AddWithValue("@SavePath", record.SavePath);
-            command.Parameters.AddWithValue("@Provider", record.ProviderId);
             command.Parameters.AddWithValue("@CreationTime", record.CreationDate.ToString("o"));
             command.Parameters.AddWithValue("@ExpiryDate", record.ExpiryDate.ToString("o"));
             command.Parameters.AddWithValue("@UseSeparateFiles", record.UseSeparateFiles ? 1 : 0);
@@ -52,9 +47,17 @@ namespace SphereSSLv2.Data.Repositories
             command.Parameters.AddWithValue("@OrderUrl", record.OrderUrl);
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
-            command.Parameters.AddWithValue("@ZoneId", record.ZoneId ?? string.Empty);
 
             await command.ExecuteNonQueryAsync();
+
+            foreach (var challenge in record.Challenges)
+            {
+
+                await InsertAcmeChallengeAsync(challenge);
+
+            }
+
+
             await HealthRepository.AdjustTotalCertsInDB(1);
 
             if (!ConfigureService.CertRecords.Any(r => r.OrderId == record.OrderId))
@@ -74,11 +77,8 @@ namespace SphereSSLv2.Data.Repositories
 
             command.CommandText = @"
         UPDATE CertRecords SET
-            Domain = @Domain,
             Email = @Email,
-            DnsChallengeToken = @DnsChallengeToken,
             SavePath = @SavePath,
-            Provider = @Provider,
             CreationTime = @CreationTime,
             ExpiryDate = @ExpiryDate,
             UseSeparateFiles = @UseSeparateFiles,
@@ -90,8 +90,7 @@ namespace SphereSSLv2.Data.Repositories
             AccountID = @AccountID,
             OrderUrl = @OrderUrl,
             ChallengeType = @ChallengeType,
-            Thumbprint = @Thumbprint,
-            ZoneId = @ZoneId
+            Thumbprint = @Thumbprint
 
         WHERE OrderId = @OrderId";
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
@@ -109,12 +108,12 @@ namespace SphereSSLv2.Data.Repositories
             command.Parameters.AddWithValue("@OrderUrl", record.OrderUrl);
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
-            command.Parameters.AddWithValue("@ZoneId", record.ZoneId ?? string.Empty);
+        
 
             await command.ExecuteNonQueryAsync();
 
 
-            foreach (var challenge in record.Challanges)
+            foreach (var challenge in record.Challenges)
             {
 
                 await UpdateAcmeChallengeAsync(challenge);
@@ -163,9 +162,9 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT * FROM CertRecords
-        WHERE OrderId = @OrderId;
-    ";
+            SELECT * FROM CertRecords
+            WHERE OrderId = @OrderId;
+            ";
 
             command.Parameters.AddWithValue("@OrderId", orderId);
 
@@ -173,60 +172,12 @@ namespace SphereSSLv2.Data.Repositories
 
             if (await reader.ReadAsync())
             {
-                return new CertRecord
+                var cert = new CertRecord
                 {
                     UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
-                    Challanges = await GetAllCertsForOrderIdAsync(reader["OrderId"].ToString()),
-                    Email = reader["Email"].ToString(),          
-                    SavePath = reader["SavePath"].ToString(),
-                    CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
-                    ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
-                    UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
-                    SaveForRenewal = Convert.ToBoolean(reader["SaveForRenewal"]),
-                    autoRenew = Convert.ToBoolean(reader["AutoRenew"]),
-                    FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
-                    SuccessfulRenewals = Convert.ToInt32(reader["SuccessfulRenewals"]),
-                    Signer = reader["Signer"].ToString(),
-                    AccountID = reader["AccountID"].ToString(),
-                    OrderUrl = reader["OrderUrl"].ToString(),
-                    ChallengeType = reader["ChallengeType"].ToString(),
-                    Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString()
-                };
-
-
-            }
-
-            return null;
-        }
-
-        public static async Task<CertRecord?> GetCertRecordByDomain(string domain)
-        {
-            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-            await connection.OpenAsync();
-
-            var command = connection.CreateCommand();
-            command.CommandText = @"
-        SELECT * FROM CertRecords
-        WHERE Domain = @Domain
-        LIMIT 1;
-    ";
-
-            command.Parameters.AddWithValue("@Domain", domain);
-
-            using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return new CertRecord
-                {
-                    UserId = reader["UserId"].ToString(),
-                    OrderId = reader["OrderId"].ToString(),
-                    Domains = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
-                    DnsChallengeToken = reader["DnsChallengeToken"].ToString(),
                     SavePath = reader["SavePath"].ToString(),
-                    ProviderId = reader["Provider"].ToString(),
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
@@ -239,12 +190,18 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString()
+                    Challenges = new List<AcmeChallenge>()
                 };
+
+
+                cert.Challenges = await GetAllCertsForOrderIdAsync(cert.OrderId);
+                return cert;
+
             }
 
             return null;
         }
+
 
         public static async Task<List<CertRecord>> GetAllCertRecords()
         {
@@ -255,26 +212,22 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT 
-            UserId, OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider,
-            CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
-            FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-            ChallengeType, Thumbprint, ZoneId
-        FROM CertRecords;
-    ";
+            SELECT 
+                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
+                FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
+                ChallengeType, Thumbprint
+            FROM CertRecords;
+            ";
 
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                var record = new CertRecord
+                var cert = new CertRecord
                 {
                     UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
-                    Domains = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
-                    DnsChallengeToken = reader["DnsChallengeToken"].ToString(),
                     SavePath = reader["SavePath"].ToString(),
-                    ProviderId = reader["Provider"].ToString(),
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
@@ -287,10 +240,13 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString()
+                    Challenges = new List<AcmeChallenge>()
                 };
 
-                records.Add(record);
+
+                cert.Challenges = await GetAllCertsForOrderIdAsync(cert.OrderId);
+
+                records.Add(cert);
             }
 
             return records;
@@ -325,15 +281,13 @@ namespace SphereSSLv2.Data.Repositories
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
+              
                 var cert = new CertRecord
                 {
                     UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
-                    Domains = reader["Domain"].ToString(),
                     Email = reader["Email"].ToString(),
-                    DnsChallengeToken = reader["DnsChallengeToken"].ToString(),
                     SavePath = reader["SavePath"].ToString(),
-                    ProviderId = reader["Provider"].ToString(),
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
@@ -346,8 +300,11 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString()
+                    Challenges = new List<AcmeChallenge>()
                 };
+
+
+                cert.Challenges = await GetAllCertsForOrderIdAsync(cert.OrderId);
                 records.Add(cert);
             }
 
@@ -376,11 +333,9 @@ namespace SphereSSLv2.Data.Repositories
                 {
                     UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
-                    Domains = reader["Domain"].ToString(),
-                    Email = reader["Email"].ToString(),
-                    DnsChallengeToken = reader["DnsChallengeToken"].ToString(),
+                    Challenges = await GetAllCertsForOrderIdAsync(reader["OrderId"].ToString()),
+                    Email = reader["Email"].ToString(), 
                     SavePath = reader["SavePath"].ToString(),
-                    ProviderId = reader["Provider"].ToString(),
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
@@ -392,8 +347,7 @@ namespace SphereSSLv2.Data.Repositories
                     AccountID = reader["AccountID"].ToString(),
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
-                    Thumbprint = reader["Thumbprint"].ToString(),
-                    ZoneId = reader["ZoneId"].ToString()
+                    Thumbprint = reader["Thumbprint"].ToString()
                 };
 
                 records.Add(record);
@@ -410,57 +364,41 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-            SELECT * FROM CertRecords;
-            ";
+        SELECT * FROM CertRecords
+        WHERE julianday(ExpiryDate) - julianday('now') <= 0;
+    ";
 
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 var record = new CertRecord
                 {
-                    UserId = reader.GetString(0),
-                    OrderId = reader.GetString(1),
-                    Domains = reader.GetString(2),
-                    Email = reader.GetString(3),
-                    DnsChallengeToken = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                    SavePath = reader.IsDBNull(5) ? "" : reader.GetString(5),
-                    ProviderId = reader.IsDBNull(6) ? "" : reader.GetString(6),
-                    CreationDate = DateTime.Parse(reader.GetString(7)),
-                    ExpiryDate = DateTime.Parse(reader.GetString(8)),
-                    UseSeparateFiles = reader.GetInt32(9) != 0,
-                    SaveForRenewal = reader.GetInt32(10) != 0,
-                    autoRenew = reader.GetInt32(11) != 0,
-                    FailedRenewals = reader.GetInt32(12),
-                    SuccessfulRenewals = reader.GetInt32(13),
-                    Signer = reader.IsDBNull(14) ? "" : reader.GetString(14),
-                    AccountID = reader.IsDBNull(15) ? "" : reader.GetString(15),
-                    OrderUrl = reader.IsDBNull(16) ? "" : reader.GetString(16),
-                    ChallengeType = reader.IsDBNull(17) ? "" : reader.GetString(17),
-                    Thumbprint = reader.IsDBNull(18) ? "" : reader.GetString(18),
-                    ZoneId = reader.IsDBNull(19) ? "" : reader.GetString(19)
+                    UserId = reader["UserId"]?.ToString() ?? "",
+                    OrderId = reader["OrderId"]?.ToString() ?? "",
+                    Email = reader["Email"]?.ToString() ?? "",
+                    SavePath = reader["SavePath"]?.ToString() ?? "",
+                    Signer = reader["Signer"]?.ToString() ?? "",
+                    AccountID = reader["AccountID"]?.ToString() ?? "",
+                    OrderUrl = reader["OrderUrl"]?.ToString() ?? "",
+                    ChallengeType = reader["ChallengeType"]?.ToString() ?? "",
+                    Thumbprint = reader["Thumbprint"]?.ToString() ?? "",
+                    CreationDate = DateTime.TryParse(reader["CreationTime"]?.ToString(), out var created) ? created : DateTime.MinValue,
+                    ExpiryDate = DateTime.TryParse(reader["ExpiryDate"]?.ToString(), out var expired) ? expired : DateTime.MinValue,
+                    UseSeparateFiles = Convert.ToInt32(reader["UseSeparateFiles"]) == 1,
+                    SaveForRenewal = Convert.ToInt32(reader["SaveForRenewal"]) == 1,
+                    autoRenew = Convert.ToInt32(reader["AutoRenew"]) == 1,
+                    FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
+                    SuccessfulRenewals = Convert.ToInt32(reader["SuccessfulRenewals"]),
+                    Challenges = new List<AcmeChallenge>(),
                 };
+
+               
+                record.Challenges = await GetAllCertsForOrderIdAsync(record.OrderId);
+
                 records.Add(record);
             }
 
             return records;
-        }
-
-        public static async Task MigrateExpiredCert()
-        {
-            List<CertRecord> certList = await GetAllExpiredCerts();
-            if (certList == null || certList.Count == 0) return;
-
-            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
-            await connection.OpenAsync();
-            using var transaction = connection.BeginTransaction();
-
-            foreach (CertRecord record in certList)
-            {
-                await InsertExpiredCert(record, connection, transaction);
-                await DeleteCertRecordByOrderId(record.OrderId, connection, transaction);
-            }
-
-            await transaction.CommitAsync();
         }
 
         public async Task<List<CertRecord>> GetAllCertsForUserIdAsync(string userId)
@@ -476,7 +414,7 @@ namespace SphereSSLv2.Data.Repositories
             Id, UserId, OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider, 
             CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew, 
             FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, 
-            ChallengeType, Thumbprint, ZoneId
+            ChallengeType, Thumbprint
         FROM CertRecords
         WHERE UserId = @UserId;
     ";
@@ -486,15 +424,12 @@ namespace SphereSSLv2.Data.Repositories
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                certs.Add(new CertRecord
+                CertRecord cert = new CertRecord
                 {
                     UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
-                    Domains = reader["Domain"].ToString(),
-                    Email = reader["Email"].ToString(),
-                    DnsChallengeToken = reader["DnsChallengeToken"]?.ToString(),
+                    Email = reader["Email"].ToString(),           
                     SavePath = reader["SavePath"]?.ToString(),
-                    ProviderId = reader["Provider"]?.ToString(),
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString()),
                     UseSeparateFiles = reader.GetInt32(reader.GetOrdinal("UseSeparateFiles")) == 1,
@@ -507,8 +442,11 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"]?.ToString(),
                     ChallengeType = reader["ChallengeType"]?.ToString(),
                     Thumbprint = reader["Thumbprint"]?.ToString(),
-                    ZoneId = reader["ZoneId"]?.ToString()
-                });
+                    Challenges = new List<AcmeChallenge>()
+                };
+
+                cert.Challenges = await GetAllCertsForOrderIdAsync(cert.OrderId);
+                certs.Add(cert);
             }
 
             return certs;
@@ -527,8 +465,8 @@ namespace SphereSSLv2.Data.Repositories
             await conn.OpenAsync();
 
             using var cmd = conn.CreateCommand();
-           cmd.CommandText = @"
-            SELECT ChallengeId, OrderId, UserId, Domain, ChallengeToken, ProviderId, Status
+            cmd.CommandText = @"
+            SELECT ChallengeId, OrderId, UserId, Domain, ChallengeToken, ProviderId, Status, ZoneId
             FROM Challenges
             WHERE OrderId = @OrderId";
             cmd.Parameters.AddWithValue("@OrderId", orderId);
@@ -538,13 +476,14 @@ namespace SphereSSLv2.Data.Repositories
             {
                 challenges.Add(new AcmeChallenge
                 {
-                    ChallangeId = reader["ChallengeId"]?.ToString() ?? string.Empty,
+                    ChallengeId = reader["ChallengeId"]?.ToString() ?? string.Empty,
                     OrderId = reader["OrderId"]?.ToString() ?? string.Empty,
                     UserId = reader["UserId"]?.ToString() ?? string.Empty,
                     Domain = reader["Domain"]?.ToString() ?? string.Empty,
                     DnsChallengeToken = reader["ChallengeToken"]?.ToString() ?? string.Empty,
                     ProviderId = reader["ProviderId"]?.ToString() ?? string.Empty,
-                    Status = reader["Status"]?.ToString() ?? string.Empty
+                    Status = reader["Status"]?.ToString() ?? string.Empty,
+                    ZoneId= reader["ZoneId"]?.ToString() ?? string.Empty
                 });
             }
 
@@ -553,20 +492,21 @@ namespace SphereSSLv2.Data.Repositories
 
         public static async Task UpdateAcmeChallengeAsync(AcmeChallenge challenge)
         {
-            // Replace with your actual connection string
-            using var conn = new SqliteConnection("Data Source=your_database_path.db");
+            
+            using var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
             await conn.OpenAsync();
 
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
-        UPDATE Challenges SET
-            OrderId = @OrderId,
-            UserId = @UserId,
-            Domain = @Domain,
-            ChallengeToken = @ChallengeToken,
-            ProviderId = @ProviderId,
-            Status = @Status
-        WHERE ChallengeId = @ChallengeId";
+            UPDATE Challenges SET
+                OrderId = @OrderId,
+                UserId = @UserId,
+                Domain = @Domain,
+                ChallengeToken = @ChallengeToken,
+                ProviderId = @ProviderId,
+                Status = @Status,
+                ZoneId = @ZoneId
+            WHERE ChallengeId = @ChallengeId";
 
             cmd.Parameters.AddWithValue("@OrderId", challenge.OrderId ?? string.Empty);
             cmd.Parameters.AddWithValue("@UserId", challenge.UserId ?? string.Empty);
@@ -574,7 +514,49 @@ namespace SphereSSLv2.Data.Repositories
             cmd.Parameters.AddWithValue("@ChallengeToken", challenge.DnsChallengeToken ?? string.Empty);
             cmd.Parameters.AddWithValue("@ProviderId", challenge.ProviderId ?? string.Empty);
             cmd.Parameters.AddWithValue("@Status", challenge.Status ?? string.Empty);
-            cmd.Parameters.AddWithValue("@ChallengeId", challenge.ChallangeId ?? string.Empty);
+            cmd.Parameters.AddWithValue("@ChallengeId", challenge.ChallengeId ?? string.Empty);
+            cmd.Parameters.AddWithValue("@ZoneId", challenge.ZoneId ?? string.Empty);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public static async Task InsertAcmeChallengeAsync(AcmeChallenge challenge)
+        {
+            using var conn = new SqliteConnection($"Data Source ={ ConfigureService.dbPath }");
+            await conn.OpenAsync();
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+            INSERT INTO Challenges (
+                ChallengeId,
+                OrderId,
+                UserId,
+                Domain,
+                ChallengeToken,
+                ProviderId,
+                Status, 
+                ZoneId
+            )
+            VALUES (
+                @ChallengeId,
+                @OrderId,
+                @UserId,
+                @Domain,
+                @ChallengeToken,
+                @ProviderId,
+                @Status,
+                @ZoneId
+            );
+            ";
+
+            cmd.Parameters.AddWithValue("@ChallengeId", challenge.ChallengeId ?? string.Empty);
+            cmd.Parameters.AddWithValue("@OrderId", challenge.OrderId ?? string.Empty);
+            cmd.Parameters.AddWithValue("@UserId", challenge.UserId ?? string.Empty);
+            cmd.Parameters.AddWithValue("@Domain", challenge.Domain ?? string.Empty);
+            cmd.Parameters.AddWithValue("@ChallengeToken", challenge.DnsChallengeToken ?? string.Empty);
+            cmd.Parameters.AddWithValue("@ProviderId", challenge.ProviderId ?? string.Empty);
+            cmd.Parameters.AddWithValue("@Status", challenge.Status ?? string.Empty);
+            cmd.Parameters.AddWithValue("@ZoneId", challenge.ZoneId ?? string.Empty);
 
             await cmd.ExecuteNonQueryAsync();
         }

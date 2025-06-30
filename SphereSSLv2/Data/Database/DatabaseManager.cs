@@ -57,7 +57,6 @@ namespace SphereSSLv2.Data.Database
                     OrderUrl TEXT,
                     ChallengeType TEXT,
                     Thumbprint TEXT,
-                    ZoneId TEXT,
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
                 );
 
@@ -69,9 +68,10 @@ namespace SphereSSLv2.Data.Database
                     Domain TEXT NOT NULL,
                     ChallengeToken TEXT NOT NULL,
                     ProviderId TEXT NOT NULL,
+                    ZoneId TEXT,
                     Status TEXT NOT NULL CHECK(Status IN ('Pending', 'Valid', 'Invalid', 'Processing')),
 
-                     FOREIGN KEY(OrderId ) REFERENCES CertRecords(OrderId) ON DELETE CASCADE
+                    FOREIGN KEY(OrderId ) REFERENCES CertRecords(OrderId) ON DELETE CASCADE
                      );
 
 
@@ -80,12 +80,12 @@ namespace SphereSSLv2.Data.Database
                     TotalCertsInDB INTEGER,
                     ExpiredCertCount INTEGER,
                     TotalDNSProviderCount INTEGER,
-                    DateLastBooted TEXT
+                    DateLastBooted TEXT,
                 );
 
                 CREATE TABLE IF NOT EXISTS DbVersion (
                     Id INTEGER PRIMARY KEY CHECK (Id = 1),
-                    Version INTEGER NOT NULL
+                    Version INTEGER NOT NULL,
                 );
 
                 CREATE TABLE IF NOT EXISTS DNSProviders (
@@ -110,7 +110,7 @@ namespace SphereSSLv2.Data.Database
                     CreationTime TEXT NOT NULL, 
                     LastUpdated TEXT,
                     UUID TEXT UNIQUE,
-                    Notes TEXT
+                    Notes TEXT,
                 ); 
 
                 CREATE TABLE IF NOT EXISTS UserLogins (

@@ -99,13 +99,13 @@ namespace SphereSSLv2.Services.AcmeServices
             }
         }
 
-        public async Task<OrderDetails> BeginOrder(string domain)
+        public async Task<OrderDetails> BeginOrder(List<string> domains)
         {
             try
             {
 
                 _client.Account = _account;
-                return await _client.CreateOrderAsync(new[] { domain });
+                return await _client.CreateOrderAsync(domains);
             }
             catch (Exception ex)
             {
@@ -156,17 +156,17 @@ namespace SphereSSLv2.Services.AcmeServices
                 .Replace('/', '_');
         }
 
-        public async Task<(string Token, string Domain)> CreateUserAccountForCert(string email, string requestDomain)
+        public async Task <List<(string Token, string Domain)>> CreateUserAccountForCert(string email, List<string> requestDomains)
         {
             _order = new OrderDetails();
             _domain = "";
 
-            if (string.IsNullOrWhiteSpace(requestDomain))
+            if (requestDomains.Count==0)
             {
                 await _logger.Error("Domain name is empty.");
-                return (null, null);
+                return null;
             }
-           _domain = requestDomain;
+           _domain = requestDomains[0];
 
             try
             {
@@ -175,7 +175,7 @@ namespace SphereSSLv2.Services.AcmeServices
                 {
 
                     _ = _logger.Debug("Account creation failed. Please check your email.");
-                    return (null, null);
+                    return null;
                 }
             }
             catch (Exception ex)
@@ -184,18 +184,18 @@ namespace SphereSSLv2.Services.AcmeServices
                 _ = _logger.Error(ex.Message);
                 _ = _logger.Error(ex.StackTrace);
 
-                return (null, null);
+                return null;
             }
 
             try
             {
 
-                _order = await BeginOrder(_domain);
+                _order = await BeginOrder(requestDomains);
 
                 if (_order.Payload.Status == "invalid")
                 {
                     _ = _logger.Debug("Order is invalid. Please check your domain.");
-                    return (null, null);
+                    return null;
                 }
 
             }
@@ -203,12 +203,12 @@ namespace SphereSSLv2.Services.AcmeServices
             {
                 _= _logger.Info("Order creation failed. Please check your domain.");
                 _= _logger.Info(ex.Message);
-                return (null, null);
+                return null;
             }
 
-            var (domain, dnsValue) = await GetDnsChallengeToken(_order);
+            var dnsChallangeList = await GetAllDnsChallengeTokens(_order);
 
-            return (dnsValue, domain);
+            return dnsChallangeList;
         }
 
        

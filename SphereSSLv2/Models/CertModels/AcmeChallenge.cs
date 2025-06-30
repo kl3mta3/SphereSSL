@@ -5,7 +5,7 @@ namespace SphereSSLv2.Models.CertModels
     public class AcmeChallenge
     {
         [JsonProperty("challangeId")]
-        public string ChallangeId { get; set; } = string.Empty;
+        public string ChallengeId { get; set; } = string.Empty;
 
         [JsonProperty("orderId")]
         public string OrderId { get; set; } = string.Empty;
@@ -23,7 +23,10 @@ namespace SphereSSLv2.Models.CertModels
         public string ProviderId { get; set; } = string.Empty;
 
         [JsonProperty("status")]
-        public string Status { get; set; } 
+        public string Status { get; set; }
+
+        [JsonProperty("zoneId")]
+        public string ZoneId { get; set; }
 
     }
 }
