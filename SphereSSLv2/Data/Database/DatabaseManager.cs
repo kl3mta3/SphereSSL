@@ -42,7 +42,7 @@ namespace SphereSSLv2.Data.Database
                 CREATE TABLE IF NOT EXISTS CertRecords (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId TEXT,
-                    OrderId TEXT NOT NULL,
+                    OrderId TEXT NOT NULL UNIQUE,
                     Email TEXT NOT NULL,
                     SavePath TEXT,
                     CreationTime TEXT NOT NULL,
@@ -62,7 +62,7 @@ namespace SphereSSLv2.Data.Database
 
                   CREATE TABLE IF NOT EXISTS Challenges (
                   Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    ChallengeId TEXT NOT NULL UNIQUE,
+                    ChallengeId TEXT NOT NULL,
                     OrderId TEXT NOT NULL,
                     UserId TEXT,
                     Domain TEXT NOT NULL,
@@ -71,7 +71,6 @@ namespace SphereSSLv2.Data.Database
                     ProviderId TEXT NOT NULL,
                     ZoneId TEXT,
                     Status TEXT NOT NULL CHECK(Status IN ('Pending', 'Valid', 'Invalid', 'Processing')),
-
                     FOREIGN KEY(OrderId ) REFERENCES CertRecords(OrderId) ON DELETE CASCADE
                      );
 
@@ -81,12 +80,12 @@ namespace SphereSSLv2.Data.Database
                     TotalCertsInDB INTEGER,
                     ExpiredCertCount INTEGER,
                     TotalDNSProviderCount INTEGER,
-                    DateLastBooted TEXT,
+                    DateLastBooted TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS DbVersion (
                     Id INTEGER PRIMARY KEY CHECK (Id = 1),
-                    Version INTEGER NOT NULL,
+                    Version INTEGER NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS DNSProviders (
@@ -111,7 +110,7 @@ namespace SphereSSLv2.Data.Database
                     CreationTime TEXT NOT NULL, 
                     LastUpdated TEXT,
                     UUID TEXT UNIQUE,
-                    Notes TEXT,
+                    Notes TEXT
                 ); 
 
                 CREATE TABLE IF NOT EXISTS UserLogins (

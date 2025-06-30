@@ -2,6 +2,7 @@
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Services.Config;
 using System.Security.AccessControl;
+using System.Text.Json;
 
 namespace SphereSSLv2.Data.Repositories
 {
@@ -192,7 +193,7 @@ namespace SphereSSLv2.Data.Repositories
                 };
 
 
-                cert.Challenges = await GetAllCertsForOrderIdAsync(cert.OrderId);
+                cert.Challenges = await GetAllChallengesForOrderIdAsync(cert.OrderId);
                 return cert;
 
             }
@@ -242,7 +243,7 @@ namespace SphereSSLv2.Data.Repositories
                 };
 
 
-                cert.Challenges = await GetAllCertsForOrderIdAsync(cert.OrderId);
+                cert.Challenges = await GetAllChallengesForOrderIdAsync(cert.OrderId);
 
                 records.Add(cert);
             }
@@ -302,7 +303,7 @@ namespace SphereSSLv2.Data.Repositories
                 };
 
 
-                cert.Challenges = await GetAllCertsForOrderIdAsync(cert.OrderId);
+                cert.Challenges = await GetAllChallengesForOrderIdAsync(cert.OrderId);
                 records.Add(cert);
             }
 
@@ -331,7 +332,7 @@ namespace SphereSSLv2.Data.Repositories
                 {
                     UserId = reader["UserId"].ToString(),
                     OrderId = reader["OrderId"].ToString(),
-                    Challenges = await GetAllCertsForOrderIdAsync(reader["OrderId"].ToString()),
+                    Challenges = await GetAllChallengesForOrderIdAsync(reader["OrderId"].ToString()),
                     Email = reader["Email"].ToString(), 
                     SavePath = reader["SavePath"].ToString(),
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
@@ -391,7 +392,7 @@ namespace SphereSSLv2.Data.Repositories
                 };
 
                
-                record.Challenges = await GetAllCertsForOrderIdAsync(record.OrderId);
+                record.Challenges = await GetAllChallengesForOrderIdAsync(record.OrderId);
 
                 records.Add(record);
             }
@@ -443,7 +444,7 @@ namespace SphereSSLv2.Data.Repositories
                     Challenges = new List<AcmeChallenge>()
                 };
 
-                cert.Challenges = await GetAllCertsForOrderIdAsync(cert.OrderId);
+                cert.Challenges = await GetAllChallengesForOrderIdAsync(cert.OrderId);
                 certs.Add(cert);
             }
 
@@ -454,17 +455,17 @@ namespace SphereSSLv2.Data.Repositories
 
 
         // AcmeChallenge Management
-        public static async Task<List<AcmeChallenge>> GetAllCertsForOrderIdAsync(string orderId)
+        public static async Task<List<AcmeChallenge>> GetAllChallengesForOrderIdAsync(string orderId)
         {
             var challenges = new List<AcmeChallenge>();
 
             // Replace with your actual connection string
-            using var conn = new SqliteConnection("Data Source=your_database_path.db");
+            using var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
             await conn.OpenAsync();
 
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
-            SELECT ChallengeId, OrderId, UserId, Domain, ChallengeToken, ProviderId, Status, ZoneId
+            SELECT ChallengeId, AuthorizationUrl,  OrderId, UserId, Domain, ChallengeToken, ProviderId, Status, ZoneId
             FROM Challenges
             WHERE OrderId = @OrderId";
             cmd.Parameters.AddWithValue("@OrderId", orderId);
@@ -525,7 +526,7 @@ namespace SphereSSLv2.Data.Repositories
         {
             using var conn = new SqliteConnection($"Data Source ={ ConfigureService.dbPath }");
             await conn.OpenAsync();
-
+            Console.WriteLine($"Inserting challenge: {JsonSerializer.Serialize( challenge)}");
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
             INSERT INTO Challenges (

@@ -89,14 +89,15 @@ namespace SphereSSLv2.Testing
                         ChallengeId = Guid.NewGuid().ToString("N"),
                         OrderId = cert.OrderId,
                         UserId = cert.UserId,
+                        AuthorizationUrl = $"https://acme.fake/authorize/{i}",
                         Domain =  $"test{i}.example.com",
                         DnsChallengeToken =  $"token-{i}",
-                        Status = "valid",
+                        Status = "Valid",
                         ZoneId = $"zone-{i}",
                         ProviderId=ConfigureService.CapitalizeFirstLetter(fakeProvider)
                     }
                 };
-
+                
                 await CertRepository.InsertCertRecord(cert);
             }
         }
