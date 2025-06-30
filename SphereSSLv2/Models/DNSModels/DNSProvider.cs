@@ -65,7 +65,7 @@ namespace SphereSSLv2.Models.DNSModels
 
 
 
-                    zoneID = await CloudflareHelper.AddOrUpdateDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                    zoneID = await CloudflareHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                     break;
 
                 //case ProviderType.DigitalOcean:
