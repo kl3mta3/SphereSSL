@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Services.Config;
+using System.Security.AccessControl;
 
 namespace SphereSSLv2.Data.Repositories
 {
@@ -12,7 +13,6 @@ namespace SphereSSLv2.Data.Repositories
         //CertRecord Management
         public static async Task InsertCertRecord(CertRecord record)
         {
-
 
             using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
             await connection.OpenAsync();
@@ -52,9 +52,7 @@ namespace SphereSSLv2.Data.Repositories
 
             foreach (var challenge in record.Challenges)
             {
-
                 await InsertAcmeChallengeAsync(challenge);
-
             }
 
 
@@ -480,6 +478,7 @@ namespace SphereSSLv2.Data.Repositories
                     OrderId = reader["OrderId"]?.ToString() ?? string.Empty,
                     UserId = reader["UserId"]?.ToString() ?? string.Empty,
                     Domain = reader["Domain"]?.ToString() ?? string.Empty,
+                    AuthorizationUrl = reader["AuthorizationUrl"]?.ToString() ?? string.Empty,
                     DnsChallengeToken = reader["ChallengeToken"]?.ToString() ?? string.Empty,
                     ProviderId = reader["ProviderId"]?.ToString() ?? string.Empty,
                     Status = reader["Status"]?.ToString() ?? string.Empty,
@@ -502,6 +501,7 @@ namespace SphereSSLv2.Data.Repositories
                 OrderId = @OrderId,
                 UserId = @UserId,
                 Domain = @Domain,
+                AuthorizationUrl = @AuthorizationUrl,
                 ChallengeToken = @ChallengeToken,
                 ProviderId = @ProviderId,
                 Status = @Status,
@@ -511,6 +511,7 @@ namespace SphereSSLv2.Data.Repositories
             cmd.Parameters.AddWithValue("@OrderId", challenge.OrderId ?? string.Empty);
             cmd.Parameters.AddWithValue("@UserId", challenge.UserId ?? string.Empty);
             cmd.Parameters.AddWithValue("@Domain", challenge.Domain ?? string.Empty);
+            cmd.Parameters.AddWithValue("@AuthorizationUrl", challenge.AuthorizationUrl ?? string.Empty);
             cmd.Parameters.AddWithValue("@ChallengeToken", challenge.DnsChallengeToken ?? string.Empty);
             cmd.Parameters.AddWithValue("@ProviderId", challenge.ProviderId ?? string.Empty);
             cmd.Parameters.AddWithValue("@Status", challenge.Status ?? string.Empty);
@@ -532,6 +533,7 @@ namespace SphereSSLv2.Data.Repositories
                 OrderId,
                 UserId,
                 Domain,
+                AuthorizationUrl,
                 ChallengeToken,
                 ProviderId,
                 Status, 
@@ -542,6 +544,7 @@ namespace SphereSSLv2.Data.Repositories
                 @OrderId,
                 @UserId,
                 @Domain,
+                @AuthorizationUrl,
                 @ChallengeToken,
                 @ProviderId,
                 @Status,
@@ -553,6 +556,7 @@ namespace SphereSSLv2.Data.Repositories
             cmd.Parameters.AddWithValue("@OrderId", challenge.OrderId ?? string.Empty);
             cmd.Parameters.AddWithValue("@UserId", challenge.UserId ?? string.Empty);
             cmd.Parameters.AddWithValue("@Domain", challenge.Domain ?? string.Empty);
+            cmd.Parameters.AddWithValue("@AuthorizationUrl", challenge.AuthorizationUrl ?? string.Empty);
             cmd.Parameters.AddWithValue("@ChallengeToken", challenge.DnsChallengeToken ?? string.Empty);
             cmd.Parameters.AddWithValue("@ProviderId", challenge.ProviderId ?? string.Empty);
             cmd.Parameters.AddWithValue("@Status", challenge.Status ?? string.Empty);

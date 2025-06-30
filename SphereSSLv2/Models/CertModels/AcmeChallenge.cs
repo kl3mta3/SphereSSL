@@ -16,6 +16,9 @@ namespace SphereSSLv2.Models.CertModels
         [JsonProperty("domain")]
         public string Domain { get; set; } = string.Empty;
 
+        [JsonProperty("authorizationUrl")]
+        public string AuthorizationUrl { get; set; } = string.Empty;
+
         [JsonProperty("dnsChallengeToken")]
         public string DnsChallengeToken { get; set; } = string.Empty;
 

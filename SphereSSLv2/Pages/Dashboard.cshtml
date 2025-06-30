@@ -135,43 +135,50 @@
 
 
 
+                                                        @foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow.AddDays(60)).OrderByDescending(r => r.CreationDate))
+                                                        {
+                                                            var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
+                                                            var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
+                                                            // Get a list of all domains (if you want a single domain for the link, use .FirstOrDefault())
+                                                            var allDomains = record.Challenges?.Select(c => c.Domain).Distinct().ToList() ?? new List<string>();
+                                                            var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
+                                                            var primaryDomain = allDomains.FirstOrDefault() ?? "(none)";
+                                                            var primaryProvider = allProviders.FirstOrDefault() ?? "(none)";
 
-                                                            foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow.AddDays(60))
-                                                            .OrderByDescending(r => r.CreationDate))
-                                                            {
-
-                                                                var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
-
-                                                                var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
-                                                                <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
-                                                                    <div class="card-body d-flex justify-content-between align-items-center">
-                                                                        <div class="d-flex flex-column text-start">
-
-                                                                            <a href="https://@record.Domains"
-                                                                            target="_blank"
-                                                                            title="Go to @record.Domains"
-                                                                            class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
-                                                                                @record.Domains
-                                                                            </a>
-
-                                                                            <div class="provider"><strong>@record.ProviderId</strong></div>
-
-                                                                            <div class="d-flex align-items-center gap-2 ">
-                                                                                <small class="expires-in text-dark text-start">
-                                                                                    <strong>Expires in @ExpiresIn</strong>
-                                                                                </small>
-
-
-                                                                                <div class="auto-renew d-flex align-items-center">
-                                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
-                                                                                    title="@autorenewString"></i>
-                                                                                </div>
+                                                            <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
+                                                                <div class="card-body d-flex justify-content-between align-items-center">
+                                                                    <div class="d-flex flex-column text-start">
+                                                                        <!-- Show all domains as links -->
+                                                                        <div>
+                                                                            @foreach (var domain in allDomains)
+                                                                            {
+                                                                                <a href="https://@domain"
+                                                                                   target="_blank"
+                                                                                   title="Go to @domain"
+                                                                                   class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap me-2">
+                                                                                    @domain
+                                                                                </a>
+                                                                            }
+                                                                        </div>
+                                                                        <!-- Show all providers (could be multiple, but usually one) -->
+                                                                        <div class="provider">
+                                                                            <strong>
+                                                                                @string.Join(", ", allProviders)
+                                                                            </strong>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center gap-2 ">
+                                                                            <small class="expires-in text-dark text-start">
+                                                                                <strong>Expires in @ExpiresIn</strong>
+                                                                            </small>
+                                                                            <div class="auto-renew d-flex align-items-center">
+                                                                                <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
+                                                                                   title="@autorenewString"></i>
                                                                             </div>
-
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                            }
+                                                            </div>
+                                                        }
                                                         }
                                                         else
                                                         {
@@ -205,38 +212,44 @@
                                                         {
 
 
-                                                            foreach (var record in Model.ExpiringSoonRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow)
-                                                            .OrderBy(r => r.ExpiryDate))
+                                                            @foreach (var record in Model.ExpiringSoonRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow)
+                                                           .OrderBy(r => r.ExpiryDate))
                                                             {
                                                                 var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
                                                                 var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
+                                                                var allDomains = record.Challenges?.Select(c => c.Domain).Distinct().ToList() ?? new List<string>();
+                                                                var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
+
                                                                 <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
                                                                     <div class="card-body d-flex justify-content-between align-items-center">
                                                                         <div class="d-flex flex-column text-start">
-
-                                                                            <a href="https://@record.Domains"
-                                                                            target="_blank"
-                                                                            title="Go to @record.Domains"
-                                                                            class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
-                                                                                @record.Domains
-                                                                            </a>
-
-                                                                            <div class="provider"><strong>@record.ProviderId</strong></div>
-
-
+                                                                            <!-- Show all domains as links -->
+                                                                            <div>
+                                                                                @foreach (var domain in allDomains)
+                                                                                {
+                                                                                    <a href="https://@domain"
+                                                                                       target="_blank"
+                                                                                       title="Go to @domain"
+                                                                                       class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap me-2">
+                                                                                        @domain
+                                                                                    </a>
+                                                                                }
+                                                                            </div>
+                                                                            <!-- Show all unique providers -->
+                                                                            <div class="provider">
+                                                                                <strong>
+                                                                                    @string.Join(", ", allProviders)
+                                                                                </strong>
+                                                                            </div>
                                                                             <div class="d-flex align-items-center gap-2 mt-1">
                                                                                 <small class="expires-in text-dark text-start">
-                                                                                    <strong> Expires in @ExpiresIn</strong>
+                                                                                    <strong>Expires in @ExpiresIn</strong>
                                                                                 </small>
-
-
-
                                                                                 <div class="auto-renew d-flex align-items-center">
                                                                                     <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
-                                                                                    title="@autorenewString"></i>
+                                                                                       title="@autorenewString"></i>
                                                                                 </div>
                                                                             </div>
-
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -277,47 +290,50 @@
                                                             foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate < DateTime.UtcNow)
                                                             .OrderByDescending(r => r.ExpiryDate))
                                                             {
-                                                         
                                                                 var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
-
                                                                 var expiresRaw = (record.ExpiryDate - DateTime.UtcNow).TotalDays;
                                                                 var ExpiresIn = $"{Math.Abs(expiresRaw):N0} days ago";
-                                                            
-                                                                                                              
+
+                                                                var allDomains = record.Challenges?.Select(c => c.Domain).Distinct().ToList() ?? new List<string>();
+                                                                var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
+
                                                                 <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
-                                                    <div class="card-body d-flex justify-content-between align-items-center">
-                                                        <div class="d-flex flex-column text-start">
-
-                                                            <a href="https://@record.Domains"
-                                                               target="_blank"
-                                                               title="Go to @record.Domains"
-                                                               class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
-                                                                @record.Domains
-                                                            </a>
-
-                                                            <div class="provider"><strong>@record.ProviderId</strong></div>
-
-                                                            <div class="d-flex align-items-center gap-2 ">
-                                                                <small class="expires-in text-dark text-start">
-                                                                    <strong>Expired @ExpiresIn</strong>
-                                                                </small>
-
-
-                                                                <div class="auto-renew d-flex align-items-center">
-                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
-                                                                       title="@autorenewString"></i>
+                                                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                                                        <div class="d-flex flex-column text-start">
+                                                                            <!-- Show all domains as links -->
+                                                                            <div>
+                                                                                @foreach (var domain in allDomains)
+                                                                                {
+                                                                                    <a href="https://@domain"
+                                                                                       target="_blank"
+                                                                                       title="Go to @domain"
+                                                                                       class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap me-2">
+                                                                                        @domain
+                                                                                    </a>
+                                                                                }
+                                                                            </div>
+                                                                            <!-- Show all unique providers -->
+                                                                            <div class="provider">
+                                                                                <strong>@string.Join(", ", allProviders)</strong>
+                                                                            </div>
+                                                                            <div class="d-flex align-items-center gap-2">
+                                                                                <small class="expires-in text-dark text-start">
+                                                                                    <strong>Expired @ExpiresIn</strong>
+                                                                                </small>
+                                                                                <div class="auto-renew d-flex align-items-center">
+                                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
+                                                                                       title="@autorenewString"></i>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <div class="list-group-item disabled text-muted">No Certs found.</div>
-                                        }
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="list-group-item disabled text-muted">No expired certs found.</div>
+                                                        }
                                     </div>
                                 </div>
 

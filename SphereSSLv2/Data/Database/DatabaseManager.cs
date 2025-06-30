@@ -66,6 +66,7 @@ namespace SphereSSLv2.Data.Database
                     OrderId TEXT NOT NULL,
                     UserId TEXT,
                     Domain TEXT NOT NULL,
+                    AuthorizationUrl TEXT NOT NULL,
                     ChallengeToken TEXT NOT NULL,
                     ProviderId TEXT NOT NULL,
                     ZoneId TEXT,

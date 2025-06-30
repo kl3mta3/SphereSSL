@@ -120,7 +120,7 @@ namespace SphereSSLv2.Services.APISupportedProviders
             if (string.IsNullOrEmpty(recordId))
             {
 
-                await AddDNSRecord(_logger, domain, apiToken, content);
+                await AddDNSRecord(_logger, domain, apiToken, content, username);
                 return zoneId;
             }
             else
@@ -132,7 +132,7 @@ namespace SphereSSLv2.Services.APISupportedProviders
             }
         }
 
-        private static async Task<string> AddDNSRecord(Logger _logger, string domain, string apiToken, string content, string username)
+        internal static async Task<string> AddDNSRecord(Logger _logger, string domain, string apiToken, string content, string username)
         {
             int ttl = 120;
             bool proxied = false;

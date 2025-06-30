@@ -74,7 +74,6 @@ namespace SphereSSLv2.Testing
                     autoRenew = i % 2 == 0,
                     FailedRenewals = Random.Shared.Next(0, 3),
                     SuccessfulRenewals = Random.Shared.Next(0, 10),
-                    ZoneId = $"zone-{i}",
                     Signer = "MockSigner",
                     AccountID = $"acct-{i}",
                     OrderUrl = $"https://acme.fake/{i}",
@@ -93,6 +92,7 @@ namespace SphereSSLv2.Testing
                         Domain =  $"test{i}.example.com",
                         DnsChallengeToken =  $"token-{i}",
                         Status = "valid",
+                        ZoneId = $"zone-{i}",
                         ProviderId=ConfigureService.CapitalizeFirstLetter(fakeProvider)
                     }
                 };

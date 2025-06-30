@@ -41,7 +41,27 @@
                                     int daysRemaining = (cert.ExpiryDate - DateTime.UtcNow).Days;
                                 
                                     <tr data-cert-id="@cert.OrderId">
-                                        <td id="certTableDomain">@cert.Domains</td>
+                                        <td id="certTableDomain">
+                                            @if (cert.Challenges != null && cert.Challenges.Any())
+                                            {
+                                                <div class="d-flex flex-wrap align-items-center gap-1">
+                                                    @foreach (var challenge in cert.Challenges.DistinctBy(x => x.Domain))
+                                                    {
+                                                        <a href="https://@challenge.Domain" target="_blank"
+                                                           class="badge rounded-pill bg-secondary text-decoration-underline fw-normal me-1 mb-1"
+                                                           style="font-size: 1em;"
+                                                           title="View @challenge.Domain">@challenge.Domain</a>
+                                                    }
+                                                </div>
+                                                <div class="mt-1 small text-muted">
+                                                    Providers: @string.Join(", ", cert.Challenges.Select(x => x.ProviderId).Distinct())
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">No domains</span>
+                                            }
+                                        </td>
                                         <td class="text-center">
                                             @if (status == "Expired")
                                             {
@@ -49,7 +69,7 @@
                                             }
                                             else if (status == "Expiring")
                                             {
-                                                <span class="badge" style="background:#eab308; color:#222;" title="This certificate will expire soon!" class="badge-pulse">Expiring</span>
+                                                <span class="badge-pulse" style="background:#eab308; color:#222;" title="This certificate will expire soon!">Expiring</span>
                                             }
                                             else
                                             {
