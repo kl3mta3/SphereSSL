@@ -16,6 +16,7 @@ using SphereSSLv2.Models.ConfigModels;
 using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Services.Security.Auth;
 using static Org.BouncyCastle.Math.EC.ECCurve;
+using SphereSSLv2.Services.AcmeServices;
 
 namespace SphereSSLv2.Services.Config
 {
@@ -43,7 +44,7 @@ namespace SphereSSLv2.Services.Config
         internal static List<DNSProvider> DNSProviders = new List<DNSProvider>();
         internal static bool IsSetup = false;
         private readonly Logger _logger;
-
+        public static Dictionary<string, AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
         public ConfigureService(Logger logger)
         {
             _logger = logger;

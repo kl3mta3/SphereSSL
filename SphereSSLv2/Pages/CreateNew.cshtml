@@ -5,42 +5,693 @@
 }
 <div class="container-fluid px-4">
     <div class="row justify-content-center">
-        <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
+       
             <h3 class="title text-center mb-3">Create a Certificate</h3>
 
-            <div class="card shadow-sm p-4">
-                <div class="row">
+                    <div class="col-lg-4 mb-4">
+                        <h3 class="title text-center mb-4">Basic</h3>
+                        <div class="card quick-create shadow-sm cert-form p-4">
+                            <form onsubmit="event.preventDefault(); submitOrder();">
+                                <h5>Email Address</h5>
+                                <input type="email" id="email" name="email" class="form-control mb-3" placeholder="you@example.com" required />
+
+                                <h5>Domain Address</h5>
+                                <input type="text" id="domain" name="domain" class="form-control mb-3" placeholder="example.com" required />
+
+                                <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
+                                    <div class="format-option text-center">
+                                        <input type="radio" name="certFormat" value="false" id="useSingleFile" />
+                                        <label for="useSingleFile">
+                                            <strong>Single File</strong><br>
+                                            <span class="format-subtext">.pem</span>
+                                        </label>
+                                    </div>
+                                    <div class="format-option text-center">
+                                        <input type="radio" name="certFormat" value="true" id="useSeparateFiles" />
+                                        <label for="useSeparateFiles">
+                                            <strong>Separate Files</strong><br>
+                                            <span class="format-subtext">.crt and .key</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <h5>Save Path</h5>
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath" />
+                                    <button class="btn btn-outline-secondary" type="button" id="browseBtn2">Browse</button>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="autoAddRecord" onchange="toggleProviderDropdown()" />
+                                    <label class="form-check-label" for="autoAddRecord">
+                                        Auto add DNS Record
+                                    </label>
+                                </div>
+                                <div class="mb-3" id="providerDropdownContainer" style="display: none;">
+                                    <label for="dnsProvider" class="form-label">DNS Provider</label>
+
+                                    <div class="d-flex gap-2">
+                                        <select class="form-select" id="dnsProvider" name="dnsProvider" style="flex: 1;">
+                                            @foreach (var provider in Model.DNSProviders)
+                                            {
+                                                if (Model.CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <option value="@provider.ProviderName"> [@provider.Username]:@provider.ProviderName</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@provider.ProviderName">@provider.ProviderName</option>
+                                                }
+                                            }
+                                        </select>
+
+                                        <button class="btn btn-outline-secondary" onclick="showAddProviderModal()" type="button" id="browseBtn">Add</button>
+                                    </div>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="saveForRenewal" />
+                                    <label class="form-check-label" for="saveForRenewal">
+                                        Save Order
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="autoRenew" />
+                                    <label class="form-check-label" for="autoRenew">
+                                        Auto Renew (DNS via API)
+                                    </label>
+                                </div>
+
+                                <button type="submit" id="startButton" class="btn-glow w-40">Start</button>
 
 
-                    <div class="col-md-4 mb-3">
-                        <h2>Create Multi Domain Cert</h2>
+                                <div class="d-flex align-items-center justify-content-between mb-0">
+
+                                    <div class="form-check form-switch ms-3">
+                                        <input class="form-check-input" type="checkbox" id="useStaging" />
+                                        <label class="form-check-label" for="useStaging" title="Use Let's Encrypt Staging (for testing)">
+                                            Staging
+                                        </label>
+                                    </div>
+                                </div>
+
+                            </form>
+
+                        </div>
+                    </div>
+                
+
+       
+            
+             <div class="col-md-8 mb-3">
+
+            <h3 class="title text-center mb-4">Advanced</h3>
+                    <div class="card shadow-sm p-4">
                         <div class="card shadow-sm p-4">
+
+
+
+                            <!-- Tabs Navigation -->
+                            <ul class="nav nav-tabs mb-4" id="createCertTab" role="tablist">
+
+
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="wildcard-tab" data-bs-toggle="tab" data-bs-target="#wildcard" type="button" role="tab" aria-controls="wildcard" aria-selected="true">Wildcard Certs</button>
+                                </li>
+
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="multidomain-tab" data-bs-toggle="tab" data-bs-target="#multidomain" type="button" role="tab" aria-controls="multidomain" aria-selected="false">Multi-domain (SANs)</button>
+                                </li>
+
+
+                            </ul>
+
+                            <div class="tab-content" id="createCertTabContent">
+
+                                <!-- Wildcard  -->
+                                <div class="tab-pane fade show active" id="wildcard" role="tabpanel" aria-labelledby="wildcard-tab">
+                                    <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                            <h4 class="fw-bold mb-1 text-dark">Create a Wildcard Cert</h4>
+                                        <div class="text-center mb-3">
+
+                              
+                                        <form onsubmit="event.preventDefault(); submitOrder3();">
+                                            <h5>Email Address</h5>
+                                            <input type="email" id="email3" name="email3" class="form-control mb-3" placeholder="you@example.com" required />
+
+                                            <h5>Domain Address</h5>
+                                            <p>Wildcard Domains start with a "*"</p>
+                                            <input type="text" id="domain3" name="domain3" class="form-control mb-3" placeholder="example.com" required />
+
+                                            <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
+                                                <div class="format-option text-center">
+                                                    <input type="radio" name="certFormat3" value="false" id="useSingleFile3" />
+                                                    <label for="useSingleFile3">
+                                                        <strong>Single File</strong><br>
+                                                        <span class="format-subtext">.pem</span>
+                                                    </label>
+                                                </div>
+                                                <div class="format-option text-center">
+                                                    <input type="radio" name="certFormat3" value="true" id="useSeparateFiles3" />
+                                                    <label for="useSeparateFiles3">
+                                                        <strong>Separate Files</strong><br>
+                                                        <span class="format-subtext">.crt and .key</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <h5>Save Path</h5>
+                                            <div class="input-group mb-3">
+                                                <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath3" />
+                                                <button class="btn btn-outline-secondary" type="button" id="browseBtn">Browse</button>
+                                            </div>
+
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="autoAddRecord3" onchange="toggleProviderDropdown()" />
+                                                <label class="form-check-label" for="autoAddRecord3">
+                                                    Auto add DNS Record
+                                                </label>
+                                            </div>
+                                            <div class="mb-3" id="providerDropdownContainer3" style="display: none;">
+                                                <label for="dnsProvider3" class="form-label">DNS Provider</label>
+
+                                                <div class="d-flex gap-2">
+                                                    <select class="form-select" id="dnsProvider3" name="dnsProvider3" style="flex: 1;">
+                                                        @foreach (var provider3 in Model.DNSProviders)
+                                                        {
+                                                            if (Model.CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                                                            {
+                                                                <option value="@provider3.ProviderName"> [@provider3.Username]:@provider3.ProviderName</option>
+                                                            }
+                                                            else
+                                                            {
+                                                                <option value="@provider3.ProviderName">@provider3.ProviderName</option>
+                                                            }
+                                                        }
+                                                    </select>
+
+                                                    <button class="btn btn-outline-secondary" onclick="showAddProviderModal()" type="button" id="browseBtn3">Add</button>
+                                                </div>
+                                            </div>
+
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" id="saveForRenewal3" />
+                                                <label class="form-check-label" for="saveForRenewal3">
+                                                    Save Order
+                                                </label>
+                                            </div>
+
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="autoRenew3" />
+                                                <label class="form-check-label" for="autoRenew3">
+                                                    Auto Renew (DNS via API)
+                                                </label>
+                                            </div>
+
+                                            <button type="submit" id="startButton3" class="btn-glow w-40">Start</button>
+
+
+                                            <div class="d-flex align-items-center justify-content-between mb-0">
+
+                                                <div class="form-check form-switch ms-3">
+                                                    <input class="form-check-input" type="checkbox" id="useStaging3" />
+                                                    <label class="form-check-label" for="useStaging3" title="Use Let's Encrypt Staging (for testing)">
+                                                        Staging
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                        </form>
+
+
+                                        </div>
+                                  
+                                </div>
+
+                                <!-- Multi-Domain  -->
+                                <div class="tab-pane fade" id="multidomain" role="tabpanel" aria-labelledby="multidomain-tab">
+                                    <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                        <div class="text-center mb-3">
+                                            <h4 class="fw-bold mb-1 text-primary">Multi-Domain</h4>
+              
+                                        </div>
+                                    </div>
+                                </div>
+
+
                             </div>
-                    </div>
 
-                    <div class="col-md-4 mb-3">
-                        <h2>Create Wildcard Cert</h2>
-                        <div class="card shadow-sm p-4">
+
 
 
                         </div>
+
+
+
                     </div>
 
-                     <div class="col-md-4 mb-3">
-                        <h2>Create Local Cert</h2>
-                        <div class="card shadow-sm p-4">
+                    
 
+             </div>
 
-                        </div>
-                    </div>
-
-                </div>
-
-
-
-            </div>
         </div>
 
-    </div>
+ </div>
 
-</div>
+
+
+
+    <!-- Toggle Preview Dropdown -->
+    <script>
+        function toggleProviderDropdown() {
+            const checkbox = document.getElementById('autoAddRecord');
+            const container = document.getElementById('providerDropdownContainer');
+            if (checkbox.checked) {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+    </script>
+
+    <!-- Browse btn listener -->
+    <script>
+        document.getElementById('browseBtn').addEventListener('click', async () => {
+            const res = await fetch('/select-folder');
+            const path = await res.text();
+            if (path) {
+                document.getElementById('savePath').value = path;
+            }
+        });
+    </script>
+
+    <!-- Listener for clicking links in renewals -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll('.no-modal-link').forEach(link => {
+                link.addEventListener('click', e => {
+                    // prevents the card's onclick from triggering when clicking the link
+                    e.stopImmediatePropagation();
+                });
+            });
+        });
+    </script>
+
+    <!-- Submit Quick Connect -->
+    <script>
+        async function submitOrder() {
+            // Show waiting modal
+            const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+            const modalHtml = await waitModalResponse.text();
+            document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+            // Disable Start button
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = true;
+                startButton.hidden = true;
+            }
+
+            // Get cert format
+            const selectedFormat = document.querySelector('input[name="certFormat"]:checked');
+            const useSeparateFiles = selectedFormat ? selectedFormat.value === "true" : false;
+
+            // Get useStaging toggle
+            const useStaging = document.getElementById('useStaging').checked;
+
+            // Build order object
+            let order = {
+                orderId: "",
+                domain: document.getElementById("domain").value,
+                email: document.getElementById("email").value,
+                dnsChallengeToken: "",
+                savePath: document.getElementById("savePath").value,
+                creationTime: "",
+                useSeparateFiles: useSeparateFiles,
+                saveForRenewal: document.getElementById("saveForRenewal").checked,
+                autoRenew: document.getElementById("autoRenew").checked
+            };
+            let provider = document.getElementById("dnsProvider")?.value || "";
+            let autoAdd = document.getElementById("autoAddRecord")?.checked || false;
+
+            // Main request object
+            const request = {
+                order: order,
+                provider: provider,
+                autoAdd: autoAdd,
+                useStaging: useStaging
+            };
+
+            // Submit order
+            const response = await fetch("/Dashboard?handler=QuickCreate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(request)
+            });
+
+            // Error handling
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("QuickCreate failed:", errorText);
+
+                const overlay = document.getElementById("waitingModalOverlay");
+                if (overlay) overlay.remove();
+
+                const startButton = document.getElementById("startButton");
+                if (startButton) {
+                    startButton.disabled = false;
+                    startButton.hidden = false;
+                }
+
+                showToast("Failed to create order: " + errorText, true);
+                return;
+            }
+
+            // Success
+            const updatedOrder = await response.json();
+            console.log("UpdatedOrder from QuickCreate:", updatedOrder);
+
+            // Remove waiting modal
+            const overlay = document.getElementById("waitingModalOverlay");
+            if (overlay) overlay.remove();
+
+            // Show challenge modal
+            const modalResponse = await fetch(`/Dashboard?handler=ShowChallangeModal`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(updatedOrder)
+            });
+
+            const challengeHtml = await modalResponse.text();
+            document.getElementById("dnsChallengeModalBody").innerHTML = challengeHtml;
+
+            const modal = new bootstrap.Modal(document.getElementById("dnsChallengeModal"));
+            modal.show();
+        }
+    </script>
+
+    <!-- Copy DNS Token to Clipboard -->
+    <script>
+        function copyDnsToken(button) {
+            const token = document.getElementById("dnsToken").innerText;
+            navigator.clipboard.writeText(token).then(() => {
+                const icon = button.querySelector('i');
+                icon.classList.remove("bi-clipboard");
+                icon.classList.add("bi-clipboard-check");
+
+                setTimeout(() => {
+                    icon.classList.remove("bi-clipboard-check");
+                    icon.classList.add("bi-clipboard");
+                }, 1500);
+            }).catch(err => {
+                alert("Failed to copy token.");
+                console.error(err);
+            });
+        }
+    </script>
+
+    <!-- Copy DNS Name to Clipboard -->
+    <script>
+        function copyDNSName(button) {
+            const token = document.getElementById("domainName").innerText;
+            navigator.clipboard.writeText(token).then(() => {
+                const icon = button.querySelector('i');
+                icon.classList.remove("bi-clipboard");
+                icon.classList.add("bi-clipboard-check");
+
+                setTimeout(() => {
+                    icon.classList.remove("bi-clipboard-check");
+                    icon.classList.add("bi-clipboard");
+                }, 1500);
+            }).catch(err => {
+                alert("Failed to copy token.");
+                console.error(err);
+            });
+        }
+    </script>
+
+    <!-- Copy OrderUrl to Clipboard -->
+    <script>
+        function copyOderUrl(button) {
+            const token = document.getElementById("orderUrl").innerText;
+            navigator.clipboard.writeText(token).then(() => {
+                const icon = button.querySelector('i');
+                icon.classList.remove("bi-clipboard");
+                icon.classList.add("bi-clipboard-check");
+
+                setTimeout(() => {
+                    icon.classList.remove("bi-clipboard-check");
+                    icon.classList.add("bi-clipboard");
+                }, 1500);
+            }).catch(err => {
+                alert("Failed to copy token.");
+                console.error(err);
+            });
+        }
+    </script>
+
+    <!-- Copy AccountID to Clipboard -->
+    <script>
+        function copyAccountID(button) {
+            const token = document.getElementById("accountID").innerText;
+            navigator.clipboard.writeText(token).then(() => {
+                const icon = button.querySelector('i');
+                icon.classList.remove("bi-clipboard");
+                icon.classList.add("bi-clipboard-check");
+
+                setTimeout(() => {
+                    icon.classList.remove("bi-clipboard-check");
+                    icon.classList.add("bi-clipboard");
+                }, 1500);
+            }).catch(err => {
+                alert("Failed to copy token.");
+                console.error(err);
+            });
+        }
+    </script>
+
+    <!--Toggle DNS Visibility-->
+    <script>
+        function toggleDnsVisibility() {
+          const field = document.getElementById("dnsTokenField");
+          field.type = field.type === "password" ? "text" : "password";
+        }
+
+        function copyToClipboard(inputId) {
+          const input = document.getElementById(inputId);
+          navigator.clipboard.writeText(input.value);
+        }
+    </script>
+
+    <!-- Show Cert Modal -->
+    <script>
+        function showCertRecordModal(orderId) {
+            const modalBody = document.getElementById("certRecordModalBody");
+            modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+            fetch(`/Dashboard?handler=GetRecordModal&orderId=${encodeURIComponent(orderId)}`)
+                .then(res => res.text())
+                .then(html => {
+                    modalBody.innerHTML = html;
+                    const modal = new bootstrap.Modal(document.getElementById('certRecordModal'));
+                    modal.show();
+                })
+                .catch(err => {
+                    modalBody.innerHTML = `<p class="text-danger">Failed to load record.</p>`;
+                    console.error(err);
+                });
+        }
+    </script>
+
+
+    <!-- Verify Challenge -->
+    <script>
+        async function verifyChallange() {
+
+            console.log({
+                saveForRenewal: document.getElementById("saveForRenewal")?.value,
+                autoRenew: document.getElementById("autoRenew")?.value
+            });
+
+            const order = {
+                orderId: document.getElementById("orderId")?.value || "",
+                domain: document.getElementById("domainName")?.textContent.trim() || "",
+                dnsChallengeToken: document.getElementById("dnsToken")?.textContent.trim() || "",
+                email: document.getElementById("email")?.value || "",
+                useSeparateFiles:document.getElementById("useSeparateFiles").checked || false,
+                saveForRenewal: document.getElementById("saveForRenewal").checked || false,
+                autoRenew: document.getElementById("autoRenew").checked || false,
+                savePath: document.getElementById("savePath")?.value || "",
+                zoneId: document.getElementById("zoneID")?.value || "",
+                provider: document.getElementById("provider")?.value || "",
+                signer: document.getElementById("signer")?.value || "",
+                accountID: document.getElementById("accountID")?.value || "",
+                orderUrl: document.getElementById("orderUrl")?.value || "",
+                thumbprint: document.getElementById("thumbprint")?.value || "",
+                challengeType: document.getElementById("challengeType")?.value || "",
+                creationDate: document.getElementById("creationDate")?.value || "",
+                expiryDate: document.getElementById("expiryDate")?.value || "",
+            };
+
+            const response = await fetch("/Dashboard?handler=ShowVerifyModal", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(order)
+            });
+
+            const modalHtml = await response.text();
+            document.getElementById("VerifyModalBody").innerHTML = modalHtml;
+
+            const prevModal = bootstrap.Modal.getInstance(document.getElementById("dnsChallengeModal"));
+            if (prevModal) {
+                prevModal.hide();
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById("dnsVerifyModal"));
+            certDownloadReady = false;
+            certDownloadsReady = false;
+
+            const downloadPem = document.getElementById("downloadButton");
+            if (downloadPem) downloadPem.style.display = "none";
+
+            const downloadBoth = document.getElementById("downloadButtons");
+            if (downloadBoth) downloadBoth.style.display = "none";
+            modal.show();
+
+            // Self-removing reload event
+            const verifyModal = document.getElementById("dnsVerifyModal");
+            function reloadOnHide() {
+                location.reload();
+                verifyModal.removeEventListener('hidden.bs.modal', reloadOnHide);
+            }
+            verifyModal.addEventListener('hidden.bs.modal', reloadOnHide);
+        }
+    </script>
+
+    <!-- Close DNS Challenge Modal -->
+    <script>
+           function closeDnsModal() {
+            const modalEl = document.getElementById("dnsChallengeModal");
+            const modal = bootstrap.Modal.getInstance(modalEl);
+
+            const overlay = document.getElementById("waitingModalOverlay");
+            if (overlay) overlay.remove();
+
+                const startButton = document.getElementById("startButton");
+                if (startButton) {
+                    startButton.disabled = false;
+                    startButton.hidden = false;
+                }
+
+
+            if (modal) {
+                modal.hide();
+            }
+        }
+    </script>
+
+    <!--Get Current User Username-->
+    <script>
+
+        let currentUsername = null;
+
+        async function fetchCurrentUsername() {
+            try {
+                const resp = await fetch('/Dashboard?handler=GetCurrentUserUsername');
+                const data = await resp.json();
+                if (data.username) {
+                    currentUsername = data.username;
+                } else {
+                    console.warn("Username not found in session.");
+                }
+            } catch (err) {
+                console.error("Failed to fetch current username:", err);
+            }
+        }
+    </script>
+
+    <!-- starting Signal listener -->
+    <script>
+        console.log("Starting Signal listener:");
+
+        async function startSignalR() {
+            await fetchCurrentUsername(); // make sure username is set first!
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/logHub")
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+            connection.on("UpdateLog", msg => {
+                if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+                console.log("Received UpdateLog:", msg)
+                appendToLog(msg, "update");
+
+                if (msg.includes("Certificate stored successfully!")) {
+                    certDownloadReady = true;
+                    console.log("Certificate download ready:", certDownloadReady);
+                    tryShowDownloadButton();
+                }
+                if (msg.includes("Certificates stored successfully!")) {
+                    certDownloadsReady = true;
+                    console.log("Certificates download ready:", certDownloadsReady);
+                    tryShowDownloadButtons();
+                }
+            });
+
+            connection.on("InfoLog", msg => {
+                if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+                console.log("Received InfoLog:", msg);
+                appendToLog(msg, "info");
+            });
+
+            connection.on("DebugLog", msg => {
+                if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+                console.debug("Received DebugLog:", msg);
+                appendToLog(msg, "debug");
+            });
+
+            connection.start()
+                .then(() => {
+                    console.log("SignalR connection successfully established!");
+                })
+                .catch(err => {
+                    console.error("SignalR connection failed: ", err);
+                });
+
+            window.signalHub = connection;
+        }
+
+        // Call it!
+        startSignalR();
+
+    </script>
+
+    <!-- append Signal Log -->
+    <script>
+        function appendToLog(text, level) {
+              console.log("Signal Line Heard:");
+            const logLine = document.createElement("div");
+            logLine.textContent = text;
+            logLine.className = `log-line ${level}`;
+
+            const container = document.getElementById("signalLogOutput");
+
+            if (!container) {
+                setTimeout(() => appendToLog(text, level), 100);
+                return;
+            }
+
+            container.appendChild(logLine);
+            container.scrollTop = container.scrollHeight;
+
+            console.log("Appending log to:", container);
+        }
+    </script>

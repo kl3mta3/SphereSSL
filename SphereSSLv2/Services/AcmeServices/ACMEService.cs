@@ -27,6 +27,8 @@ using Certes.Acme.Resource;
 using Org.BouncyCastle.Tls;
 using System;
 using SphereSSLv2.Services.Config;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
+using SphereSSLv2.Models.CertModels;
 
 
 namespace SphereSSLv2.Services.AcmeServices
@@ -125,6 +127,25 @@ namespace SphereSSLv2.Services.AcmeServices
             string dnsValue = Base64UrlEncode(hash);
 
             return (authz.Identifier.Value, dnsValue);
+        }
+
+        public async Task<List<(string Domain, string DnsValue)>> GetAllDnsChallengeTokens(OrderDetails order)
+        {
+            var results = new List<(string Domain, string DnsValue)>();
+            foreach (var authzUrl in order.Payload.Authorizations)
+            {
+                var authz = await _client.GetAuthorizationDetailsAsync(authzUrl);
+                var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
+                using SHA256 algor = SHA256.Create();
+                var thumbprintBytes = JwsHelper.ComputeThumbprint(_signer, algor);
+                var thumbprint = Base64UrlEncode(thumbprintBytes);
+                var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
+                byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
+                string dnsValue = Base64UrlEncode(hash);
+
+                results.Add((authz.Identifier.Value, dnsValue));
+            }
+            return results;
         }
 
         internal static string Base64UrlEncode(byte[] data)
@@ -512,6 +533,61 @@ namespace SphereSSLv2.Services.AcmeServices
             RandomNumberGenerator.Fill(randomBytes);
 
             return BitConverter.ToString(randomBytes).Replace("-", "").ToLower();
+        }
+
+
+        internal async Task RevokeCert(CertRecord record)
+        {
+            ESJwsTool signer = LoadOrCreateSigner(this, "signer.pem");
+            var client = new AcmeProtocolClient(new HttpClient(), null, null, signer);
+            client.Directory = await client.GetDirectoryAsync();
+            await client.GetNonceAsync();
+
+            var account = await _client.CreateAccountAsync(
+                new[] { $"mailto:{record.Email}" },
+                termsOfServiceAgreed: true,
+                externalAccountBinding: null,
+                throwOnExistingAccount: false
+            );
+
+            client.Account = account;
+
+            var order = await client.GetOrderDetailsAsync(record.OrderUrl);
+            if (order == null)
+            {
+                await _logger.Error($"Order with ID {record.OrderId} not found.");
+                return;
+            }
+            if (order.Payload.Status != "valid")
+            {
+                await _logger.Error($"Order with ID {record.OrderId} is not valid. Cannot revoke.");
+                return;
+            }
+            try
+            {
+           
+                string certBase64 = order.Payload.Certificate;
+
+                // If the string is PEM, strip headers/footers and whitespace
+                if (certBase64.Contains("BEGIN CERTIFICATE"))
+                {
+                    certBase64 = certBase64
+                        .Replace("-----BEGIN CERTIFICATE-----", "")
+                        .Replace("-----END CERTIFICATE-----", "")
+                        .Replace("\r", "")
+                        .Replace("\n", "")
+                        .Trim();
+                }
+
+                var certBytes = Convert.FromBase64String(certBase64);
+                await client.RevokeCertificateAsync(certBytes, RevokeReason.Unspecified);
+
+                await _logger.Info($"Certificate for order {record.OrderId} has been successfully revoked.");
+            }
+            catch (Exception ex)
+            {
+                await _logger.Error($"Failed to revoke certificate for order {record.OrderId}: {ex.Message}");
+            }
         }
     }
 }
