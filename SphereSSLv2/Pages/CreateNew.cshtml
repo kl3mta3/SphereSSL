@@ -115,6 +115,9 @@
                             <!-- Tabs Navigation -->
                             <ul class="nav nav-tabs mb-4" id="createCertTab" role="tablist">
 
+                                <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab" aria-controls="basic" aria-selected="false">Basic</button>
+                                </li>
 
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="wildcard-tab" data-bs-toggle="tab" data-bs-target="#wildcard" type="button" role="tab" aria-controls="wildcard" aria-selected="true">Wildcard Certs</button>
@@ -129,6 +132,7 @@
 
                             <div class="tab-content" id="createCertTabContent">
 
+
                                 <!-- Wildcard  -->
                                 <div class="tab-pane fade show active" id="wildcard" role="tabpanel" aria-labelledby="wildcard-tab">
                                     <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
@@ -136,7 +140,7 @@
                                         <div class="text-center mb-3">
 
                               
-                                        <form onsubmit="event.preventDefault(); submitOrder3();">
+                                        <form onsubmit="event.preventDefault(); submitWildcardOrder();">
                                             <h5>Email Address</h5>
                                             <input type="email" id="email3" name="email3" class="form-control mb-3" placeholder="you@example.com" required />
 

@@ -49,7 +49,6 @@ namespace SphereSSLv2.Models.CertModels
         [JsonProperty("zoneId")]
         public string ZoneId { get; set; } = string.Empty;
 
-
         [JsonProperty("signer")]
         public string Signer { get; set; } = string.Empty;
 
