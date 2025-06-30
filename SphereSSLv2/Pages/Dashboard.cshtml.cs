@@ -142,7 +142,7 @@ namespace SphereSSLv2.Pages
                 var order = request.Order;
                 var providerName = request.Provider;
                 string orderID = AcmeService.GenerateCertRequestId();
-                order.Provider = providerName;
+                order.ProviderId = providerName;
                 order.OrderId = orderID;
                 order.UserId = CurrentUser.UserId;
 
@@ -177,7 +177,7 @@ namespace SphereSSLv2.Pages
 
                 var autoAdd = request.AutoAdd;
 
-                var (dnsChallengeToken, domain) = await ACME.CreateUserAccountForCert( order.Email, order.Domain);
+                var (dnsChallengeToken, domain) = await ACME.CreateUserAccountForCert( order.Email, order.Domains);
 
                 if (string.IsNullOrWhiteSpace(domain))
                 {
@@ -190,14 +190,14 @@ namespace SphereSSLv2.Pages
 
 
                 order.DnsChallengeToken = dnsChallengeToken;
-                order.Domain = domain;
+                order.Domains = domain;
                 order.ChallengeType = "DNS-01";
                 string zoneID = String.Empty;
                 bool added = false;
                 if (autoAdd)
                 {
                     await _logger.Info($"[{CurrentUser.Username}]: Auto-adding DNS record using provider: {provider.ProviderName}");
-                    zoneID = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domain, order.DnsChallengeToken, CurrentUser.Username);
+                    zoneID = await DNSProvider.TryAutoAddDNS(_logger, provider, order.Domains, order.DnsChallengeToken, CurrentUser.Username);
 
                     if (String.IsNullOrWhiteSpace(zoneID))
                     {
@@ -238,14 +238,14 @@ namespace SphereSSLv2.Pages
                 return BadRequest("ACME service not found for the specified order.");
             }
            
-            (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domain);
-                var nsList = await ConfigureService.GetNameServers(order.Domain);
+            (string provider, string link) = await _spheressl.GetNameServersProvider(order.Domains);
+                var nsList = await ConfigureService.GetNameServers(order.Domains);
 
                 using SHA256 algor = SHA256.Create();
                 var thumbprintBytes = JwsHelper.ComputeThumbprint(Acme._signer, algor);
                 var thumbprint = AcmeService.Base64UrlEncode(thumbprintBytes);
                 order.UserId = CurrentUser.UserId;
-                order.Provider = provider;
+                order.ProviderId = provider;
                 order.Signer = Acme._signer.Export();
                 order.Thumbprint = thumbprint;
                 order.AccountID = Acme._account.Kid;
@@ -253,7 +253,7 @@ namespace SphereSSLv2.Pages
                 order.CreationDate = DateTime.UtcNow;
                 order.ExpiryDate = DateTime.UtcNow.AddDays(90);
                 string fullLink = "https://" + link;
-                string fullDomainName = "_acme-challenge." + order.Domain;
+                string fullDomainName = "_acme-challenge." + order.Domains;
 
                 string addedStatus = "";
                 if (_order.AutoAddedSuccessfully)
@@ -278,7 +278,7 @@ namespace SphereSSLv2.Pages
                         <input type='hidden' id='useSeperateFiles' value='{order.UseSeparateFiles}' />
                         <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
                         <input type='hidden' id='zoneID' value='{order.ZoneId}' />
-                        <input type='hidden' id='provider' value='{order.Provider}' />
+                        <input type='hidden' id='provider' value='{order.ProviderId}' />
                         <input type='hidden' id='signer' value='{order.Signer}' />
                         <input type='hidden' id='accountID' value='{order.AccountID}' />
                         <input type='hidden' id='orderUrl' value='{order.OrderUrl}' />
@@ -290,10 +290,10 @@ namespace SphereSSLv2.Pages
                        <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
                          <div class='form-control text-break px-3 py-2 bg-light border'>
-                             <div> Domain: <a href='{order.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
-                                {order.Domain} </a>  </div>   
+                             <div> Domain: <a href='{order.Domains}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
+                                {order.Domains} </a>  </div>   
                             
-                           <div> Provider: {ConfigureService.CapitalizeFirstLetter(order.Provider)} </div>
+                           <div> Provider: {ConfigureService.CapitalizeFirstLetter(order.ProviderId)} </div>
                            <div> Website: <a href='{fullLink}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
                                 ({fullLink}) </a> </div>
                                 <div> NameServer1: {nsList[0]} </div>  
@@ -359,7 +359,7 @@ namespace SphereSSLv2.Pages
                             <input type='hidden' id='useSeperateFiles' value='{order.UseSeparateFiles}' />
                             <input type='hidden' id='autoRenew' value='{order.autoRenew}' />
                             <input type='hidden' id='zoneID' value='{order.ZoneId}' />
-                            <input type='hidden' id='provider' value='{order.Provider}' />
+                            <input type='hidden' id='provider' value='{order.ProviderId}' />
                             <input type='hidden' id='signer' value='{order.Signer}' />
                             <input type='hidden' id='accountID' value='{order.AccountID}' />
                             <input type='hidden' id='orderUrl' value='{order.OrderUrl}' />
@@ -371,10 +371,10 @@ namespace SphereSSLv2.Pages
                             <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
                             <div class='form-control text-break px-3 py-2 bg-light border'>
-                            <div> Domain: <a href='{order.Domain}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
-                                {order.Domain} </a>  </div>   
+                            <div> Domain: <a href='{order.Domains}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
+                                {order.Domains} </a>  </div>   
                             
-                           <div> Provider: {ConfigureService.CapitalizeFirstLetter(order.Provider)} </div>
+                           <div> Provider: {ConfigureService.CapitalizeFirstLetter(order.ProviderId)} </div>
                            <div> Website: <a href='{fullLink}' target='_blank' class='ms-2 text-primary text-decoration-underline'>
                                 ({fullLink}) </a> </div>
                                 <div> NameServer1: {nsList[0]} </div>  
@@ -541,10 +541,10 @@ namespace SphereSSLv2.Pages
             var html = $@"
                 <div class='container-fluid'>
             <div class='row g-3'>
-                <div class='col-md-6'><strong>Domain:</strong><br> <a href='https://{record.Domain}' target='_blank'>{record.Domain}</a></div>
+                <div class='col-md-6'><strong>Domain:</strong><br> <a href='https://{record.Domains}' target='_blank'>{record.Domains}</a></div>
                 <div class='col-md-6'><strong>Email:</strong> <span>{record.Email}</span></div>
                 <div class='col-md-6'><strong>User:</strong> <span>{username}</span></div>
-                <div class='col-md-6'><strong>Provider:</strong> <span>{record.Provider}</span></div>
+                <div class='col-md-6'><strong>Provider:</strong> <span>{record.ProviderId}</span></div>
                 <div class='col-md-6'><strong>Created:</strong> <span>{record.CreationDate:g}</span></div>
                 <div class='col-md-6'>
                   <strong>Expires:</strong> 
@@ -687,7 +687,7 @@ namespace SphereSSLv2.Pages
                 return RedirectToPage("/Index"); // or return an error
             var acme = ACME;
             order.UserId = CurrentUser.UserId;
-            if (order == null || string.IsNullOrWhiteSpace(order.Domain) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
+            if (order == null || string.IsNullOrWhiteSpace(order.Domains) || string.IsNullOrWhiteSpace(order.DnsChallengeToken))
             {
                 await _logger.Error($"[{CurrentUser.Username}]: Invalid order data received for verification.");
                 return BadRequest("Invalid order data.");
@@ -704,7 +704,7 @@ namespace SphereSSLv2.Pages
                     <input type='hidden' id='saveForRenewal' value='{order.SaveForRenewal.ToString().ToLower()}' />
                     <input type='hidden' id='autoRenew' value='{order.autoRenew.ToString().ToLower()}' />
                     <input type='hidden' id='zoneID' value='{order.ZoneId}' />
-                    <input type='hidden' id='provider' value='{order.Provider}' />
+                    <input type='hidden' id='provider' value='{order.ProviderId}' />
                     <input type='hidden' id='signer' value='{order.Signer}' />
                     <input type='hidden' id='accountID' value='{order.AccountID}' />
                     <input type='hidden' id='orderUrl' value='{order.OrderUrl}' />
@@ -735,7 +735,7 @@ namespace SphereSSLv2.Pages
                     try
                     {
 
-                        verified = await acme.CheckTXTRecordMultipleDNS( order.DnsChallengeToken, order.Domain, CurrentUser.Username);
+                        verified = await acme.CheckTXTRecordMultipleDNS( order.DnsChallengeToken, order.Domains, CurrentUser.Username);
                     }
                     catch (Exception ex)
                     {
@@ -757,9 +757,9 @@ namespace SphereSSLv2.Pages
                         try
                         {
                            
-                            await acme.ProcessCertificateGeneration( order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domain, CurrentUser.Username);
+                            await acme.ProcessCertificateGeneration( order.UseSeparateFiles, order.SavePath, order.DnsChallengeToken, order.Domains, CurrentUser.Username);
 
-                            order.Domain =  order.Domain.StartsWith("_acme-challenge.") ? order.Domain.Substring(16) : order.Domain;
+                            order.Domains =  order.Domains.StartsWith("_acme-challenge.") ? order.Domains.Substring(16) : order.Domains;
 
 
                             if (order.SaveForRenewal)
@@ -832,7 +832,7 @@ namespace SphereSSLv2.Pages
                     else
                     {
                         await _logger.Debug($"[{CurrentUser.Username}]: \nDNS verification failed (attempt {attempt + 1})");
-                        await _logger.Debug($"[{CurrentUser.Username}]: Expected TXT record at: _acme-challenge.{order.Domain}");
+                        await _logger.Debug($"[{CurrentUser.Username}]: Expected TXT record at: _acme-challenge.{order.Domains}");
                         await _logger.Debug($"[{CurrentUser.Username}]: Expected value: {order.DnsChallengeToken}");
                         await _logger.Debug($"[{CurrentUser.Username}]: Make sure:");
                         await _logger.Debug($"[{CurrentUser.Username}]: 1. The TXT record is correctly added to your DNS");

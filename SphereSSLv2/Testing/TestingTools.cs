@@ -67,11 +67,11 @@ namespace SphereSSLv2.Testing
                 {
                     UserId = fakeUserId,
                     OrderId = AcmeService.GenerateCertRequestId(),
-                    Domain = $"test{i}.example.com",
+                    Domains = $"test{i}.example.com",
                     Email = $"user{i}@example.com",
                     DnsChallengeToken = $"token-{i}",
                     SavePath = $"/fake/path/cert{i}.pem",
-                    Provider = ConfigureService.CapitalizeFirstLetter(fakeProvider),
+                    ProviderId = ConfigureService.CapitalizeFirstLetter(fakeProvider),
                     UseSeparateFiles = i % 2 == 0,
                     SaveForRenewal = i % 3 == 0,
                     autoRenew = i % 2 == 0,

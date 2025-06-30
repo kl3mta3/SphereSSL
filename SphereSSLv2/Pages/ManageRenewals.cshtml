@@ -41,7 +41,7 @@
                                     int daysRemaining = (cert.ExpiryDate - DateTime.UtcNow).Days;
                                 
                                     <tr data-cert-id="@cert.OrderId">
-                                        <td id="certTableDomain">@cert.Domain</td>
+                                        <td id="certTableDomain">@cert.Domains</td>
                                         <td class="text-center">
                                             @if (status == "Expired")
                                             {

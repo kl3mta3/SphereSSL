@@ -10,20 +10,14 @@ namespace SphereSSLv2.Models.CertModels
         [JsonProperty("userId")]
         public string UserId { get; set; } = string.Empty;
 
-        [JsonProperty("domain")]
-        public string Domain { get; set; } = string.Empty;
-
         [JsonProperty("email")]
         public string Email { get; set; } = string.Empty;
 
-        [JsonProperty("dnsChallengeToken")]
-        public string DnsChallengeToken { get; set; } = string.Empty;
+        [JsonProperty("challenges")]
+        public List<AcmeChallenge> Challanges { get; set; } = new();
 
         [JsonProperty("savePath")]
         public string SavePath { get; set; } = string.Empty;
-
-        [JsonProperty("provider")]
-        public string Provider { get; set; } = string.Empty;
 
         [JsonProperty("creationTime")]
         public DateTime CreationDate { get; set; }

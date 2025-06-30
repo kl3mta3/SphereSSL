@@ -43,11 +43,8 @@ namespace SphereSSLv2.Data.Database
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId TEXT,
                     OrderId TEXT NOT NULL,
-                    Domain TEXT NOT NULL,
                     Email TEXT NOT NULL,
-                    DnsChallengeToken TEXT,
                     SavePath TEXT,
-                    Provider TEXT,
                     CreationTime TEXT NOT NULL,
                     ExpiryDate TEXT NOT NULL,
                     UseSeparateFiles INTEGER DEFAULT 0,
@@ -64,30 +61,19 @@ namespace SphereSSLv2.Data.Database
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
                 );
 
-                CREATE TABLE IF NOT EXISTS ExpiredCerts (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    UserId TEXT,
+                  CREATE TABLE IF NOT EXISTS Challenges (
+                  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ChallengeId TEXT NOT NULL UNIQUE,
                     OrderId TEXT NOT NULL,
+                    UserId TEXT,
                     Domain TEXT NOT NULL,
-                    Email TEXT NOT NULL,
-                    DnsChallengeToken TEXT,
-                    SavePath TEXT,
-                    Provider TEXT,
-                    CreationTime TEXT NOT NULL,
-                    ExpiryDate TEXT NOT NULL,
-                    UseSeparateFiles INTEGER DEFAULT 0,
-                    SaveForRenewal INTEGER DEFAULT 0,
-                    AutoRenew INTEGER DEFAULT 0,
-                    FailedRenewals INTEGER DEFAULT 0,
-                    SuccessfulRenewals INTEGER DEFAULT 0,
-                    Signer TEXT,
-                    AccountID TEXT,
-                    OrderUrl TEXT,
-                    ChallengeType TEXT,
-                    Thumbprint TEXT,
-                    ZoneId TEXT,
-                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
-                );
+                    ChallengeToken TEXT NOT NULL,
+                    ProviderId TEXT NOT NULL,
+                    Status TEXT NOT NULL CHECK(Status IN ('Pending', 'Valid', 'Invalid', 'Processing')),
+
+                     FOREIGN KEY(OrderId ) REFERENCES CertRecords(OrderId) ON DELETE CASCADE
+                     );
+
 
                 CREATE TABLE IF NOT EXISTS Health (
                     Id INTEGER PRIMARY KEY CHECK (Id = 1),
