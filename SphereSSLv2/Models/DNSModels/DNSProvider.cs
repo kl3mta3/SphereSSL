@@ -48,11 +48,17 @@ namespace SphereSSLv2.Models.DNSModels
 
         public static async  Task<string> TryAutoAddDNS(Logger _logger, DNSProvider dnsProvider, string domain, string DnsChallange, string username)
         {
+
+            
             if (dnsProvider == null)
             {
                 throw new ArgumentNullException(nameof(dnsProvider));
             }
-     
+            
+            if(domain.Contains("*."))
+            {
+                domain = domain.Substring(2);
+            }
 
             ProviderType providerType;
 
@@ -62,8 +68,6 @@ namespace SphereSSLv2.Models.DNSModels
             switch (providerType)
             {
                 case ProviderType.Cloudflare:
-
-
 
                     zoneID = await CloudflareHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                     break;

@@ -29,6 +29,7 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0-preview.5.25277.114" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0-preview.5.25277.114" />
+    <PackageReference Include="Nager.PublicSuffix" Version="3.5.0" />
   </ItemGroup>
     
 <ItemGroup>

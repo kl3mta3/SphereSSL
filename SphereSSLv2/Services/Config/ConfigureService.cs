@@ -17,6 +17,8 @@ using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Services.Security.Auth;
 using static Org.BouncyCastle.Math.EC.ECCurve;
 using SphereSSLv2.Services.AcmeServices;
+using Nager.PublicSuffix.RuleProviders;
+using Nager.PublicSuffix;
 
 namespace SphereSSLv2.Services.Config
 {
@@ -234,8 +236,18 @@ namespace SphereSSLv2.Services.Config
 
         public static async Task<List<string>> GetNameServers(string domain)
         {
+            if (domain.StartsWith("*."))
+            {
+                domain = domain.Substring(2);
+            }
+
+            var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
+            await ruleProvider.BuildAsync();
+            var domainParser = new DomainParser(ruleProvider);
+            var domainInfo = domainParser.Parse(domain);
+            string strippedDomain = domainInfo.RegistrableDomain;
             var lookup = new LookupClient();
-            var result = await lookup.QueryAsync(domain, QueryType.NS);
+            var result = await lookup.QueryAsync(strippedDomain, QueryType.NS);
 
             return result.Answers
                 .OfType<NsRecord>()

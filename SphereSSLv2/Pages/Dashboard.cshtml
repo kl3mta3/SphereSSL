@@ -460,9 +460,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         // Build order object
         let order = {
             orderId: "",
-            domain: document.getElementById("domain").value,
             email: document.getElementById("email").value,
-            dnsChallengeToken: "",
             savePath: document.getElementById("savePath").value,
             creationTime: "",
             useSeparateFiles: useSeparateFiles,
@@ -472,11 +470,15 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         let provider = document.getElementById("dnsProvider")?.value || "";
         let autoAdd = document.getElementById("autoAddRecord")?.checked || false;
 
+        //here we need that list of domains. 
+        let domains = document.getElementById("domain").value.split(", ").map(d => d.trim()).filter(d => d.length > 0);
+
         // Main request object
         const request = {
             order: order,
             provider: provider,
             autoAdd: autoAdd,
+            domains: domains,
             useStaging: useStaging
         };
 
@@ -657,22 +659,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 
         const order = {
             orderId: document.getElementById("orderId")?.value || "",
-            domain: document.getElementById("domainName")?.textContent.trim() || "",
-            dnsChallengeToken: document.getElementById("dnsToken")?.textContent.trim() || "",
-            email: document.getElementById("email")?.value || "",
-            useSeparateFiles:document.getElementById("useSeparateFiles").checked || false,
-            saveForRenewal: document.getElementById("saveForRenewal").checked || false,
-            autoRenew: document.getElementById("autoRenew").checked || false,
-            savePath: document.getElementById("savePath")?.value || "",
-            zoneId: document.getElementById("zoneID")?.value || "",
-            provider: document.getElementById("provider")?.value || "",
-            signer: document.getElementById("signer")?.value || "",
-            accountID: document.getElementById("accountID")?.value || "",
-            orderUrl: document.getElementById("orderUrl")?.value || "",
-            thumbprint: document.getElementById("thumbprint")?.value || "",
-            challengeType: document.getElementById("challengeType")?.value || "",
-            creationDate: document.getElementById("creationDate")?.value || "",
-            expiryDate: document.getElementById("expiryDate")?.value || "",
+
         };
 
         const response = await fetch("/Dashboard?handler=ShowVerifyModal", {

@@ -1,4 +1,6 @@
-﻿using SphereSSLv2.Data;
+﻿using Nager.PublicSuffix.RuleProviders;
+using Nager.PublicSuffix;
+using SphereSSLv2.Data;
 using SphereSSLv2.Services.Config;
 using System.DirectoryServices.ActiveDirectory;
 using System.Net.Http.Headers;
@@ -134,10 +136,21 @@ namespace SphereSSLv2.Services.APISupportedProviders
 
         internal static async Task<string> AddDNSRecord(Logger _logger, string domain, string apiToken, string content, string username)
         {
+            Console.WriteLine($"Adding DNS record for {domain} with content: {content}");
+
+            var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
+            await ruleProvider.BuildAsync();
+            var domainParser = new DomainParser(ruleProvider);
+            var domainInfo = domainParser.Parse(domain);
+            string strippedProvider = domainInfo.RegistrableDomain;
+
+
+
+
             int ttl = 120;
             bool proxied = false;
             string type = "TXT";
-            string zoneId = await GetZoneId(_logger, apiToken, domain);
+            string zoneId = await GetZoneId(_logger, apiToken, strippedProvider);
             string name = $"_acme-challenge.{domain}";
             if (string.IsNullOrEmpty(zoneId))
             {
@@ -158,6 +171,7 @@ namespace SphereSSLv2.Services.APISupportedProviders
             };
 
             var json = JsonSerializer.Serialize(requestBody);
+
             var contentBody = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await client.PostAsync($"{BaseUrl}/zones/{zoneId}/dns_records", contentBody);

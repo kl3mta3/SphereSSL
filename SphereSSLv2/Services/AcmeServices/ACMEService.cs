@@ -30,6 +30,8 @@ using SphereSSLv2.Services.Config;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 using SphereSSLv2.Models.CertModels;
 using Org.BouncyCastle.Asn1.Cmp;
+using Newtonsoft.Json.Linq;
+using System.DirectoryServices.ActiveDirectory;
 
 
 namespace SphereSSLv2.Services.AcmeServices
@@ -102,6 +104,12 @@ namespace SphereSSLv2.Services.AcmeServices
 
         public async Task<OrderDetails> BeginOrder(List<string> domains)
         {
+            foreach (string domain in domains)
+            {
+                Console.WriteLine($"[BeginOrder]: Adding domain: {domain} to order.");
+                _domain += $"{domain},";
+            }
+
             try
             {
 
@@ -126,34 +134,77 @@ namespace SphereSSLv2.Services.AcmeServices
             var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
             byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
             string dnsValue = Base64UrlEncode(hash);
+
+            Console.WriteLine($"[GetDnsChallengeToken]: Domain: {authz.Identifier.Value},");
             return (authz.Identifier.Value, dnsValue);
+
+
         }
+
 
         public async Task<List<AcmeChallenge>> GetAllDnsChallengeTokens(OrderDetails order)
         {
             var results = new List<AcmeChallenge>();
-            foreach (var authzUrl in order.Payload.Authorizations)
+
+            foreach (var ident in order.Payload.Identifiers)
             {
-                var authz = await _client.GetAuthorizationDetailsAsync(authzUrl);
-                var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
-                using SHA256 algor = SHA256.Create();
-                var thumbprintBytes = JwsHelper.ComputeThumbprint(_signer, algor);
-                var thumbprint = Base64UrlEncode(thumbprintBytes);
-                var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
-                byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
-                string dnsValue = Base64UrlEncode(hash);
+                Console.WriteLine("Order Ident: " + ident.Value);
 
-                AcmeChallenge challenge = new AcmeChallenge
-                {
-                    Domain= authz.Identifier.Value,
-                    DnsChallengeToken = dnsValue,
-                    AuthorizationUrl= authzUrl
-                };
-
-                results.Add(challenge);
             }
+
+            for (int i = 0; i < order.Payload.Identifiers.Length; i++)
+            {
+
+                if (order.Payload.Identifiers[i].Value.Contains("*"))
+                {
+
+
+                    var authz = await _client.GetAuthorizationDetailsAsync(order.Payload.Authorizations[i]);
+                    authz.Wildcard = true;
+                    var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
+                    using SHA256 algor = SHA256.Create();
+                    var thumbprintBytes = JwsHelper.ComputeThumbprint(_signer, algor);
+                    var thumbprint = Base64UrlEncode(thumbprintBytes);
+                    var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
+                    byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
+                    string dnsValue = Base64UrlEncode(hash);
+                    AcmeChallenge challenge = new AcmeChallenge
+                    {
+                        Domain = order.Payload.Identifiers[i].Value,
+                        DnsChallengeToken = dnsValue,
+                        AuthorizationUrl = order.Payload.Authorizations[i]
+                    };
+
+                    results.Add(challenge);
+                }
+                else
+                {
+
+                    var authz = await _client.GetAuthorizationDetailsAsync(order.Payload.Authorizations[i]);
+                    authz.Wildcard = true;
+                    var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
+                    using SHA256 algor = SHA256.Create();
+                    var thumbprintBytes = JwsHelper.ComputeThumbprint(_signer, algor);
+                    var thumbprint = Base64UrlEncode(thumbprintBytes);
+                    var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
+                    byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
+                    string dnsValue = Base64UrlEncode(hash);
+                    AcmeChallenge challenge = new AcmeChallenge
+                    {
+                        Domain = order.Payload.Identifiers[i].Value,
+                        DnsChallengeToken = dnsValue,
+                        AuthorizationUrl = order.Payload.Authorizations[i]
+                    };
+
+                    results.Add(challenge);
+
+                }
+
+            }
+
             return results;
         }
+
 
         internal static string Base64UrlEncode(byte[] data)
         {
@@ -221,36 +272,39 @@ namespace SphereSSLv2.Services.AcmeServices
         }
 
 
-        internal async Task<bool> ProcessCertificateGeneration(
-            bool useSeperateFiles,
-            string savePath,
-            List<AcmeChallenge> challenges,
-            string username)
+        internal async Task<bool> ProcessCertificateGeneration(bool useSeperateFiles, string savePath, List<AcmeChallenge> challenges, string username)
         {
-            // Key & CSR: One for the whole order
+
+            Console.WriteLine($"[{username}]: Processing certificate generation for {challenges.Count} domains...");
+
             var key = KeyFactory.NewKey(KeyAlgorithm.RS256);
             var csrBuilder = new CertificationRequestBuilder(key);
 
-            // Use *first* domain for CN; SANs for all domains
+           
             csrBuilder.AddName("CN", challenges[0].Domain);
+
             foreach (var ch in challenges)
+            {
+
                 csrBuilder.SubjectAlternativeNames.Add(ch.Domain);
+            }
+
             var csr = csrBuilder.Generate();
 
             _ = _logger.Info("Submitting challenges to Let's Encrypt...");
 
-            // Loop through each challenge for each domain
+            
             foreach (var challenge in challenges)
             {
                 string domain = challenge.Domain;
                 string authUrl = challenge.AuthorizationUrl;
-
+                Console.WriteLine($"[{username}]: Processing challenge for domain: {domain} with AuthUrl: {authUrl}");
                 var authz = await _client.GetAuthorizationDetailsAsync(authUrl);
                 var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
 
-                _ = _logger.Info($"[{username}]: Domain: {domain}");
-                _ = _logger.Info($"[{username}]: Challenge URL: {dnsChallenge.Url}");
-                _ = _logger.Info($"[{username}]: Challenge status: {dnsChallenge.Status}");
+                _ = _logger.Error($"[{username}]: Domain: {domain}");
+                _ = _logger.Error($"[{username}]: Challenge URL: {dnsChallenge.Url}");
+                _ = _logger.Error($"[{username}]: Challenge status: {dnsChallenge.Status}");
 
                 if (dnsChallenge.Status == "pending")
                 {
@@ -352,7 +406,11 @@ namespace SphereSSLv2.Services.AcmeServices
 
             foreach (AcmeChallenge challenge in challenges)
             {
-                string fullRecordName = challenge.Domain;
+                if (challenge.Domain.StartsWith("*."))
+                {
+                    challenge.Domain = challenge.Domain.Substring(2);
+                }
+                string fullRecordName = $"_acme-challenge.{challenge.Domain}";
                 bool matchFound = false;
 
                 foreach (var dnsServer in dnsServers)
@@ -361,7 +419,7 @@ namespace SphereSSLv2.Services.AcmeServices
                     {
                         var lookup = new LookupClient(dnsServer);
                         _ = _logger.Info($"[{username}]: Checking DNS server {dnsServer} for TXT record at {fullRecordName}");
-
+                        Console.WriteLine($"[{username}]: Checking DNS server {dnsServer} for TXT record at {fullRecordName}");
                         var result = await lookup.QueryAsync(fullRecordName, QueryType.TXT);
                         var txtRecords = result.Answers.TxtRecords();
 

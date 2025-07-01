@@ -29,6 +29,9 @@ using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Data.Database;
 using Certes.Acme.Resource;
+using Nager.PublicSuffix;
+using Nager.PublicSuffix.RuleProviders;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace SphereSSLv2.Pages
 {
     public class DashboardModel : PageModel
@@ -138,7 +141,13 @@ namespace SphereSSLv2.Pages
                     return RedirectToPage("/Index"); 
                 }
 
-
+                //remove later
+                int index = 1;
+                foreach (var item in request.Domains)
+                {
+                    Console.WriteLine($"Incoming Quick Connect domain{index}:{item}");
+                    index++;
+                }
 
                 var order = request.Order;
                 var providerName = request.Provider;
@@ -188,8 +197,16 @@ namespace SphereSSLv2.Pages
                     return BadRequest("Failed to create ACME order: domain is empty/null.");
                 }
 
+                //removelater
+                int index2 = 1;
+                foreach (var domain in order.Challenges)
+                {
+                    Console.WriteLine($"[Quick Create]: Adding challenge for domain{index2}: {domain} ");
+                }
+
                 foreach (var challenge in challenges)
                 {
+                      Console.WriteLine($"[Quick Create]: Adding To challenge domain: {challenge.Domain} ");
                     AcmeChallenge orderChallenge = new AcmeChallenge
                     {
                         ChallengeId = new Guid().ToString("N"),
@@ -197,8 +214,10 @@ namespace SphereSSLv2.Pages
                         UserId = order.UserId,
                         Domain = challenge.Domain,
                         DnsChallengeToken = challenge.DnsChallengeToken,
-                        Status = "inProgress",
-                        ProviderId = provider?.ProviderId ?? string.Empty
+                        Status = "InProgress",
+                        ProviderId = provider?.ProviderId ?? string.Empty,
+                        AuthorizationUrl= challenge.AuthorizationUrl
+
                     };
 
                     order.Challenges.Add(orderChallenge);
@@ -234,6 +253,7 @@ namespace SphereSSLv2.Pages
 
                     }
                 }
+             
                 ConfigureService.CertRecordCache.Add(order.OrderId, order);
                 QuickCreateResponse response = new QuickCreateResponse
                 {
@@ -253,6 +273,8 @@ namespace SphereSSLv2.Pages
         public async Task<IActionResult> OnPostShowChallangeModal([FromBody] QuickCreateResponse _order)
         {
             ConfigureService.CertRecordCache.TryGetValue(_order.Order.OrderId, out CertRecord order);
+
+           
             if (order == null)
             {
                 await _logger.Error($"[{CurrentUser.Username}]: No ACME service found for Order ID: {_order.Order.OrderId}");
@@ -272,9 +294,10 @@ namespace SphereSSLv2.Pages
             {
                 (string provider, string link) = await _spheressl.GetNameServersProvider(challenge.Domain);
                 var nsList = await ConfigureService.GetNameServers(challenge.Domain);
-
                 string fullLink = "https://" + link;
                 string fullDomainName = "_acme-challenge." + challenge.Domain;
+
+
                 var ns = (fullLink, fullDomainName, challenge.DnsChallengeToken);
                 nsDict.Add(ns);
             }
@@ -301,18 +324,7 @@ namespace SphereSSLv2.Pages
 
                             <div class='mb-3'>
                                 <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
-                                <div class='form-control text-break px-3 py-2 bg-light border mb-2'>
-                                <div>
-                                    <strong>Domains & Providers:</strong>
-                                    <ul class='list-unstyled ms-3 mb-0'>
-                                        {string.Join("", order.Challenges.Select(x =>
-                                            $"<li class='mb-1'>" +
-                                            $"<a href='https://{x.Domain}' target='_blank' class='text-primary text-decoration-underline'>{x.Domain}</a>" +
-                                            $" <span class='badge bg-light text-dark ms-2'>{ConfigureService.CapitalizeFirstLetter(x.ProviderId)}</span>" +
-                                            $"</li>"))}
-                                    </ul>
-                                </div>
-                                </div>
+                              
                             </div>
 
                             <div class='challenge-list border rounded p-3 mb-3' style='max-height: 320px; overflow-y: auto; background: #f9f9fa;'>
@@ -320,7 +332,7 @@ namespace SphereSSLv2.Pages
 
                         foreach (var challenge in order.Challenges)
                         {
-                            // If you have ns info per domain:
+                           
                             (string providerLink, string fullDomainName, string dnsToken) = nsDict.FirstOrDefault(x => x.Item2 == $"_acme-challenge.{challenge.Domain}");
                             string ns1 = "—", ns2 = "—";
                             try
@@ -331,12 +343,22 @@ namespace SphereSSLv2.Pages
                             }
                             catch { }
 
-                            html += $@"
+
+                        var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
+                        await ruleProvider.BuildAsync();
+                        var domainParser = new DomainParser(ruleProvider);
+                        var domainInfo = domainParser.Parse(ns1);
+                        string strippedProvider = domainInfo.RegistrableDomain;
+
+                        string fullLink = $"https://{challenge.Domain}";
+                        html += $@"
                             <div class='mb-3 pb-2 border-bottom'>
 
                                 <div class='mb-1'>
-                                    <strong>Domain:</strong> {challenge.Domain}
-                                    <span class='text-muted' style='font-size: 0.95em'>({ConfigureService.CapitalizeFirstLetter(challenge.ProviderId)})</span>
+                                     <strong>Domain:</strong> <a href='{fullLink}' target='_blank' class='text-primary text-decoration-underline'>{challenge.Domain}</a>
+                                </div>
+                                 <div class='mb-1'>
+                                 <strong>Provider:</strong> {strippedProvider}  
                                 </div>
 
                                 <div><strong>NameServer1:</strong> {ns1}</div>
@@ -393,18 +415,7 @@ namespace SphereSSLv2.Pages
 
                         <div class='mb-3'>
                             <label class='form-label fw-bold'>Domain Name Server(DNS):</label>
-                            <div class='form-control text-break px-3 py-2 bg-light border mb-2'>
-                                <div>
-                                    <strong>Domains & Providers:</strong>
-                                    <ul class='list-unstyled ms-3 mb-0'>
-                                        {string.Join("", order.Challenges.Select(x =>
-                                            $"<li class='mb-1'>" +
-                                            $"<a href='https://{x.Domain}' target='_blank' class='text-primary text-decoration-underline'>{x.Domain}</a>" +
-                                            $" <span class='badge bg-light text-dark ms-2'>{ConfigureService.CapitalizeFirstLetter(x.ProviderId)}</span>" +
-                                            $"</li>"))}
-                                    </ul>
-                                </div>
-                            </div>
+                            
                         </div>
 
                         <div class='challenge-list border rounded p-3 mb-3' style='max-height: 320px; overflow-y: auto; background: #f9f9fa;'>
@@ -412,10 +423,11 @@ namespace SphereSSLv2.Pages
 
                     foreach (var challenge in order.Challenges)
                     {
+         
+
                         string ns1 = "—", ns2 = "—", fullDomainName = $"_acme-challenge.{challenge.Domain}", dnsToken = challenge.DnsChallengeToken;
                         string fullLink = $"https://{challenge.Domain}";
 
-                        // If you have ns info for each, get it here:
                         try
                         {
                             var nsList = await ConfigureService.GetNameServers(challenge.Domain);
@@ -423,12 +435,20 @@ namespace SphereSSLv2.Pages
                             ns2 = nsList.ElementAtOrDefault(1) ?? "—";
                         }
                         catch { }
+                        string[] parts = ns1.Split('.');
+                        string strippedProvider = string.Join('.', parts.TakeLast(2));
+
 
                         html += $@"
                         <div class='mb-3 pb-2 border-bottom'>
-                            <div class='mb-1'>
-                                <strong>Domain:</strong> <a href='{fullLink}' target='_blank' class='text-primary text-decoration-underline'>{challenge.Domain}</a>
-                            </div>
+            
+                                <div class='mb-1'>
+                                     <strong>Domain:</strong> <a href='{fullLink}' target='_blank' class='text-primary text-decoration-underline'>{challenge.Domain}</a>
+                                </div>
+                                 <div class='mb-1'>
+                                 <strong>Provider:</strong> {strippedProvider}  
+                                </div>
+                            
                             <div><strong>NameServer1:</strong> {ns1}</div>
                             <div><strong>NameServer2:</strong> {ns2}</div>
                             <div class='d-flex align-items-center mt-2'>
@@ -781,13 +801,13 @@ namespace SphereSSLv2.Pages
             order.UserId = CurrentUser.UserId;
 
             var html = $@"
-        <form id='showVerifyForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; min-height: 400px; margin: auto;'>
-            <h3 class='mb-2 text-center text-primary fw-bold'>Verify DNS Challenge</h3>
-            <input type='hidden' id='userId' value='{order.UserId}' />
-            <div id='verifyModalBody' class='modal-body'>
-                <div id='signalLogOutput' class='mt-3 p-2 bg-light border rounded text-monospace' style='max-height: 250px; overflow-y: auto;'></div>
-            </div>
-        </form>";
+            <form id='showVerifyForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; min-height: 400px; margin: auto;'>
+                <h3 class='mb-2 text-center text-primary fw-bold'>Verify DNS Challenge</h3>
+                <input type='hidden' id='userId' value='{order.UserId}' />
+                <div id='verifyModalBody' class='modal-body'>
+                    <div id='signalLogOutput' class='mt-3 p-2 bg-light border rounded text-monospace' style='max-height: 250px; overflow-y: auto;'></div>
+                </div>
+            </form>";
 
             _ = Task.Run(async () =>
             {
@@ -830,8 +850,66 @@ namespace SphereSSLv2.Pages
                     if (allVerified)
                     {
                         await _logger.Update($"[{CurrentUser.Username}]: DNS verification successful! Starting certificate generation...");
-                        // ... (rest of your success code unchanged)
-                        // This is where you process the cert, save it, etc.
+
+
+                        await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, CurrentUser.Username);
+
+
+                        if (order.SaveForRenewal)
+                        {
+
+
+
+                            await _logger.Update($"[{CurrentUser.Username}]: Saving order for renewal!");
+                            order.UserId = CurrentUser.UserId;
+
+                            await CertRepository.InsertCertRecord(order);
+
+                            foreach (var challenge in order.Challenges)
+                            {
+                                Console.WriteLine($"[OnPostShowVerifyModal]: Inserting challenge: {challenge.ChallengeId}, with Domain: {challenge.Domain}");
+                                await CertRepository.InsertAcmeChallengeAsync(challenge);
+
+
+                            }
+
+                            UserStat stats = await _userRepository.GetUserStatByIdAsync(CurrentUser.UserId);
+
+                            if (stats == null)
+                            {
+                                stats = new UserStat
+                                {
+                                    UserId = CurrentUser.UserId,
+                                    TotalCerts = 1,
+                                    CertsRenewed = 0,
+                                    CertCreationsFailed = 0,
+                                    LastCertCreated = DateTime.UtcNow
+                                };
+                            }
+                            else
+                            {
+                                stats.TotalCerts++;
+                                stats.LastCertCreated = DateTime.UtcNow;
+                            }
+
+                            CertRecords = ConfigureService.CertRecords;
+                        }
+
+
+
+
+
+                        if (!order.UseSeparateFiles)
+                        {
+                            await _logger.Update($"[{CurrentUser.Username}]: Certificate stored successfully!");
+                        }
+                        else
+                        {
+                            await _logger.Update($"[{CurrentUser.Username}]: Certificates stored successfully!");
+                        }
+
+
+
                         return;
                     }
                     else
