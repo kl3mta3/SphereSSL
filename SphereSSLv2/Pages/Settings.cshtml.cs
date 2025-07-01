@@ -679,7 +679,6 @@ namespace SphereSSLv2.Pages
         public async Task<IActionResult> OnPostDeleteDNSProviderAsync([FromBody] ProviderDeleteRequest request)
         {
             var providerId = request.ProviderId;
-            Console.WriteLine($"Deleting DNS Provider with ID: {providerId}");
             var sessionData = HttpContext.Session.GetString("UserSession");
 
             if (string.IsNullOrEmpty(sessionData))
@@ -708,20 +707,8 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostUpdateDNSProviderAsync([FromBody] UpdateDNSProviderRequest provider)
         {
-            Console.WriteLine($"Updating DNS Provider with ID: {provider.ProviderId}");
-
-
-            Console.WriteLine("---- PROVIDER RECEIVED ----");
-            Console.WriteLine($"providerId: {provider.ProviderId}");
-            Console.WriteLine($"providerName: {provider.ProviderName}");
-            Console.WriteLine($"provider: {provider.Provider}");
-            Console.WriteLine($"apiKey: {provider.APIKey}");
-            Console.WriteLine($"ttl: {provider.Ttl}");
 
             var sessionData = HttpContext.Session.GetString("UserSession");
-
-
-
             if (string.IsNullOrEmpty(sessionData))
             {
 
@@ -785,7 +772,6 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostUpdateCAUrlAsync([FromBody] CAUpdateRequest caUrlRequest)
         {
-            Console.WriteLine($"Updating CA URLs: {caUrlRequest.CAPrimeUrl}, {caUrlRequest.CAStagingUrl}");
             var sessionData = HttpContext.Session.GetString("UserSession");
             if (sessionData == null)
                 return RedirectToPage("/Index");

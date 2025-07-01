@@ -70,7 +70,7 @@ namespace SphereSSLv2.Data.Database
                     ChallengeToken TEXT NOT NULL,
                     ProviderId TEXT NOT NULL,
                     ZoneId TEXT,
-                    Status TEXT NOT NULL CHECK(Status IN ('Pending', 'Valid', 'Invalid', 'Processing')),
+                    Status TEXT NOT NULL CHECK(Status IN ('Valid', 'Invalid', 'Processing')),
                     FOREIGN KEY(OrderId ) REFERENCES CertRecords(OrderId) ON DELETE CASCADE
                      );
 

@@ -141,14 +141,6 @@ namespace SphereSSLv2.Pages
                     return RedirectToPage("/Index"); 
                 }
 
-                //remove later
-                int index = 1;
-                foreach (var item in request.Domains)
-                {
-                    Console.WriteLine($"Incoming Quick Connect domain{index}:{item}");
-                    index++;
-                }
-
                 var order = request.Order;
                 var providerName = request.Provider;
                 string orderID = AcmeService.GenerateCertRequestId();
@@ -188,10 +180,6 @@ namespace SphereSSLv2.Pages
 
                 var challenges = await ACME.CreateUserAccountForCert( order.Email, request.Domains);
 
-                foreach (var challenge in challenges)
-                {
-                    Console.WriteLine($"[Quick Create]: Domain is null or empty for challenge: {challenge.Domain}");
-                }
 
                 if ( challenges == null)
                 {
@@ -202,24 +190,19 @@ namespace SphereSSLv2.Pages
                     return BadRequest("Failed to create ACME order: domain is empty/null.");
                 }
 
-                //remove later
-                int index2 = 1;
-                foreach (var domain in order.Challenges)
-                {
-                    Console.WriteLine($"[Quick Create]: Adding challenge for domain{index2}: {domain} ");
-                }
+
 
                 foreach (var challenge in challenges)
                 {
-                      Console.WriteLine($"[Quick Create]: Adding To challenge domain: {challenge.Domain} ");
+                      
                     AcmeChallenge orderChallenge = new AcmeChallenge
                     {
-                        ChallengeId = new Guid().ToString("N"),
+                        ChallengeId = Guid.NewGuid().ToString("N"),
                         OrderId = order.OrderId,
                         UserId = order.UserId,
                         Domain = challenge.Domain,
                         DnsChallengeToken = challenge.DnsChallengeToken,
-                        Status = "InProgress",
+                        Status = "Processing",
                         ProviderId = provider?.ProviderId ?? string.Empty,
                         AuthorizationUrl= challenge.AuthorizationUrl
 
@@ -228,7 +211,7 @@ namespace SphereSSLv2.Pages
                     order.Challenges.Add(orderChallenge);
                 }   
 
-                order.ChallengeType = "DNS-01";
+                order.ChallengeType = "dns-01";
                 string zoneID = String.Empty;
                 bool added = false;
 
@@ -786,10 +769,6 @@ namespace SphereSSLv2.Pages
                 return BadRequest("ACME service not found for the specified order.");
             }
 
-            foreach (var challenge in order.Challenges)
-            {
-                Console.WriteLine($"[Start-OnPostShowVerifyModal]: Domain  for challenge: {challenge.Domain}");
-            }
 
             ConfigureService.AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService ACME);
 
@@ -831,18 +810,9 @@ namespace SphereSSLv2.Pages
 
                     List<(AcmeChallenge challange, bool verified)> challengesResult;
                     try
-                    {
-                        foreach (var challenge in order.Challenges)
-                        {
-                            Console.WriteLine($"[Just before CheckTXTRecordMultipleDNS]: Domain  for challenge: {challenge.Domain}");
-                        }
-
+                    { 
                         challengesResult = await ACME.CheckTXTRecordMultipleDNS(order.Challenges, CurrentUser.Username);
 
-                        foreach (var challenge in order.Challenges)
-                        {
-                            Console.WriteLine($"[Just after CheckTXTRecordMultipleDNS]: Domain  for challenge: {challenge.Domain}");
-                        }
                     }
                     catch (Exception ex)
                     {
@@ -864,6 +834,7 @@ namespace SphereSSLv2.Pages
                         if (!result.verified)
                         {
                             allVerified = false;
+                         
                             failedChallenges.Add(result.challange);
                         }
                     }
@@ -871,10 +842,9 @@ namespace SphereSSLv2.Pages
                     if (allVerified)
                     {
                         await _logger.Update($"[{CurrentUser.Username}]: DNS verification successful! Starting certificate generation...");
-
                         foreach (var challenge in order.Challenges)
                         {
-                            Console.WriteLine($"[pre ProcessCertificateGeneration]: Domain  for challenge: {challenge.Domain}");
+                            challenge.Status = "Valid";
                         }
 
                         await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, CurrentUser.Username);
@@ -887,16 +857,8 @@ namespace SphereSSLv2.Pages
 
                             await _logger.Update($"[{CurrentUser.Username}]: Saving order for renewal!");
                             order.UserId = CurrentUser.UserId;
-
+                           
                             await CertRepository.InsertCertRecord(order);
-
-                            foreach (var challenge in order.Challenges)
-                            {
-                                Console.WriteLine($"[OnPostShowVerifyModal]: Inserting challenge: {challenge.ChallengeId}, with Domain: {challenge.Domain}");
-                                await CertRepository.InsertAcmeChallengeAsync(challenge);
-
-
-                            }
 
                             UserStat stats = await _userRepository.GetUserStatByIdAsync(CurrentUser.UserId);
 
@@ -918,6 +880,14 @@ namespace SphereSSLv2.Pages
                             }
 
                             CertRecords = ConfigureService.CertRecords;
+                        }
+                        else
+                        {
+                            foreach (var challenge in failedChallenges)
+                            {
+                                challenge.Status = "Invalid";
+                            }
+
                         }
 
 

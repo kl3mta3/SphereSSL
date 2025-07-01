@@ -136,7 +136,6 @@ namespace SphereSSLv2.Services.APISupportedProviders
 
         internal static async Task<string> AddDNSRecord(Logger _logger, string domain, string apiToken, string content, string username)
         {
-            Console.WriteLine($"Adding DNS record for {domain} with content: {content}");
 
             var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
             await ruleProvider.BuildAsync();

@@ -106,7 +106,6 @@ namespace SphereSSLv2.Services.AcmeServices
         {
             foreach (string domain in domains)
             {
-                Console.WriteLine($"[BeginOrder]: Adding domain: {domain} to order.");
                 _domain += $"{domain},";
             }
 
@@ -134,8 +133,6 @@ namespace SphereSSLv2.Services.AcmeServices
             var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
             byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
             string dnsValue = Base64UrlEncode(hash);
-
-            Console.WriteLine($"[GetDnsChallengeToken]: Domain: {authz.Identifier.Value},");
             return (authz.Identifier.Value, dnsValue);
 
 
@@ -243,16 +240,6 @@ namespace SphereSSLv2.Services.AcmeServices
 
         internal async Task<bool> ProcessCertificateGeneration(bool useSeperateFiles, string savePath, List<AcmeChallenge> challenges, string username)
         {
-
-            Console.WriteLine($"[{username}]: Processing certificate generation for {challenges.Count} domains...");
-
-            foreach (var challenge in challenges)
-            {
-                Console.WriteLine($"[ProcessCertificateGeneration]: domain: {challenge.Domain}");
-             
-            }
-
-
             var key = KeyFactory.NewKey(KeyAlgorithm.RS256);
             var csrBuilder = new CertificationRequestBuilder(key);
 
@@ -261,7 +248,6 @@ namespace SphereSSLv2.Services.AcmeServices
 
             foreach (var ch in challenges)
             {
-                Console.WriteLine($"[{username}]: Adding Subject Alternative Name for domain: {ch.Domain}");
                 csrBuilder.SubjectAlternativeNames.Add(ch.Domain);
             }
 
@@ -274,7 +260,6 @@ namespace SphereSSLv2.Services.AcmeServices
             {
                 string domain = challenge.Domain;
                 string authUrl = challenge.AuthorizationUrl;
-                Console.WriteLine($"[{username}]: Processing challenge for domain: {domain} with AuthUrl: {authUrl}");
                 var authz = await _client.GetAuthorizationDetailsAsync(authUrl);
                 var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
 
@@ -408,7 +393,7 @@ namespace SphereSSLv2.Services.AcmeServices
                     {
                         var lookup = new LookupClient(dnsServer);
                         _ = _logger.Info($"[{username}]: Checking DNS server {dnsServer} for TXT record at {fullRecordName}");
-                        Console.WriteLine($"[{username}]: Checking DNS server {dnsServer} for TXT record at {fullRecordName}");
+                   
                         var result = await lookup.QueryAsync(fullRecordName, QueryType.TXT);
                         var txtRecords = result.Answers.TxtRecords();
 

@@ -526,7 +526,6 @@ namespace SphereSSLv2.Data.Repositories
         {
             using var conn = new SqliteConnection($"Data Source ={ ConfigureService.dbPath }");
             await conn.OpenAsync();
-            Console.WriteLine($"Inserting challenge: {JsonSerializer.Serialize( challenge)}");
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
             INSERT INTO Challenges (

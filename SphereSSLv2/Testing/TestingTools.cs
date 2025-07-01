@@ -5,6 +5,8 @@ using SphereSSLv2.Services.AcmeServices;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Services.Security.Auth;
 using SphereSSLv2.Models.UserModels;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Text.Json;
 
 namespace SphereSSLv2.Testing
 {
@@ -20,10 +22,6 @@ namespace SphereSSLv2.Testing
             .Cast<DNSProvider.ProviderType>()
             .Select(p => p.ToString())
             .ToList();
-
-            
-           
-
 
             for (int i = 0; i < 12; i++)
             {
@@ -41,6 +39,7 @@ namespace SphereSSLv2.Testing
                     Notes = $"Test User {i}"
 
                 };
+
                 var fakeRole = new UserRole
                 {
                     UserId = fakeUserId,
@@ -49,6 +48,7 @@ namespace SphereSSLv2.Testing
                     IsEnabled = false,
 
                 };
+
                 var fakeStat = new UserStat
                 {
                     UserId = fakeUserId,
@@ -62,7 +62,9 @@ namespace SphereSSLv2.Testing
                 await _userRepository.InsertUserintoDatabaseAsync(fakeUser);
                 await _userRepository.InsertUserRoleAsync(fakeRole);
                 await _userRepository.InsertUserStatAsync(fakeStat);
+
                 string fakeProvider = SupportedAutoProviders[Random.Shared.Next(SupportedAutoProviders.Count)];
+                DateTime creationDate = now.AddDays(-Random.Shared.Next(1, 100));
                 var cert = new CertRecord
                 {
                     UserId = fakeUserId,
@@ -70,7 +72,7 @@ namespace SphereSSLv2.Testing
                     Email = $"user{i}@example.com",
                     SavePath = $"/fake/path/cert{i}.pem",
                     UseSeparateFiles = i % 2 == 0,
-                    SaveForRenewal = i % 3 == 0,
+                    SaveForRenewal = true,
                     autoRenew = i % 2 == 0,
                     FailedRenewals = Random.Shared.Next(0, 3),
                     SuccessfulRenewals = Random.Shared.Next(0, 10),
@@ -79,7 +81,9 @@ namespace SphereSSLv2.Testing
                     OrderUrl = $"https://acme.fake/{i}",
                     ChallengeType = "dns-01",
                     Thumbprint = $"thumb-{i}",
-                    Challenges = new List<AcmeChallenge>()
+                    Challenges = new List<AcmeChallenge>(),
+                    CreationDate = creationDate,
+                    ExpiryDate = creationDate.AddDays(90)
                 };
 
                 cert.Challenges = new List<AcmeChallenge>
@@ -97,7 +101,7 @@ namespace SphereSSLv2.Testing
                         ProviderId=ConfigureService.CapitalizeFirstLetter(fakeProvider)
                     }
                 };
-                
+               
                 await CertRepository.InsertCertRecord(cert);
             }
         }

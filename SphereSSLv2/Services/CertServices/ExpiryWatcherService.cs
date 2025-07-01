@@ -1,4 +1,6 @@
-﻿using SphereSSLv2.Models;
+﻿using SphereSSLv2.Data.Repositories;
+using SphereSSLv2.Models;
+using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Services.Config;
 
 namespace SphereSSLv2.Services.CertServices
@@ -37,8 +39,9 @@ namespace SphereSSLv2.Services.CertServices
                 try
                 {
                     var now = DateTime.UtcNow;
+                    List<CertRecord> certRecords = await CertRepository.GetAllCertRecords();
 
-                    ConfigureService.ExpiringSoonCertRecords = ConfigureService.CertRecords
+                    ConfigureService.ExpiringSoonCertRecords = certRecords
                         .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.ExpiringNoticePeriodInDays));
                 }
                 catch (Exception ex)
@@ -49,5 +52,9 @@ namespace SphereSSLv2.Services.CertServices
                 await Task.Delay(TimeSpan.FromMinutes(ConfigureService.RefreshExpiringSoonRateInMinutes));
             }
         }
+
+
+
+
     }
 }

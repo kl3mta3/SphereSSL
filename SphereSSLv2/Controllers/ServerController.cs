@@ -45,7 +45,6 @@ namespace SphereSSLv2.Controllers
         public async Task<string> FactoryReset()
         {
             using var client = new HttpClient();
-            Console.WriteLine("Restarting server...");
             try
             {
                 var results = await client.GetStringAsync($"http://localhost:7172/factory-reset/");
