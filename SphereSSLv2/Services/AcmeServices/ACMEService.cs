@@ -146,18 +146,10 @@ namespace SphereSSLv2.Services.AcmeServices
         {
             var results = new List<AcmeChallenge>();
 
-            foreach (var ident in order.Payload.Identifiers)
-            {
-                Console.WriteLine("Order Ident: " + ident.Value);
-
-            }
 
             for (int i = 0; i < order.Payload.Identifiers.Length; i++)
             {
 
-                if (order.Payload.Identifiers[i].Value.Contains("*"))
-                {
-
 
                     var authz = await _client.GetAuthorizationDetailsAsync(order.Payload.Authorizations[i]);
                     authz.Wildcard = true;
@@ -176,29 +168,6 @@ namespace SphereSSLv2.Services.AcmeServices
                     };
 
                     results.Add(challenge);
-                }
-                else
-                {
-
-                    var authz = await _client.GetAuthorizationDetailsAsync(order.Payload.Authorizations[i]);
-                    authz.Wildcard = true;
-                    var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
-                    using SHA256 algor = SHA256.Create();
-                    var thumbprintBytes = JwsHelper.ComputeThumbprint(_signer, algor);
-                    var thumbprint = Base64UrlEncode(thumbprintBytes);
-                    var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
-                    byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
-                    string dnsValue = Base64UrlEncode(hash);
-                    AcmeChallenge challenge = new AcmeChallenge
-                    {
-                        Domain = order.Payload.Identifiers[i].Value,
-                        DnsChallengeToken = dnsValue,
-                        AuthorizationUrl = order.Payload.Authorizations[i]
-                    };
-
-                    results.Add(challenge);
-
-                }
 
             }
 
@@ -277,6 +246,13 @@ namespace SphereSSLv2.Services.AcmeServices
 
             Console.WriteLine($"[{username}]: Processing certificate generation for {challenges.Count} domains...");
 
+            foreach (var challenge in challenges)
+            {
+                Console.WriteLine($"[ProcessCertificateGeneration]: domain: {challenge.Domain}");
+             
+            }
+
+
             var key = KeyFactory.NewKey(KeyAlgorithm.RS256);
             var csrBuilder = new CertificationRequestBuilder(key);
 
@@ -285,7 +261,7 @@ namespace SphereSSLv2.Services.AcmeServices
 
             foreach (var ch in challenges)
             {
-
+                Console.WriteLine($"[{username}]: Adding Subject Alternative Name for domain: {ch.Domain}");
                 csrBuilder.SubjectAlternativeNames.Add(ch.Domain);
             }
 
@@ -326,6 +302,8 @@ namespace SphereSSLv2.Services.AcmeServices
             for (int i = 0; i < maxPollingAttempts; i++)
             {
                 bool allValid = true;
+
+
                 foreach (var challenge in challenges)
                 {
                     var authz = await _client.GetAuthorizationDetailsAsync(challenge.AuthorizationUrl);
@@ -342,15 +320,19 @@ namespace SphereSSLv2.Services.AcmeServices
                     }
                     allValid = false;
                 }
+
+
                 if (allValid)
                 {
                     _ = _logger.Info($"[{username}]: All domain challenges validated!");
                     break;
                 }
+
+
                 if (i == maxPollingAttempts - 1)
                     throw new Exception($"Challenge validation timed out after {maxPollingAttempts} attempts");
 
-                await Task.Delay(5000);
+                await Task.Delay(3000);
             }
 
             _ = _logger.Info($"[{username}]: Finalizing certificate order...");
@@ -406,11 +388,18 @@ namespace SphereSSLv2.Services.AcmeServices
 
             foreach (AcmeChallenge challenge in challenges)
             {
+                string domain = "";
+
+
                 if (challenge.Domain.StartsWith("*."))
                 {
-                    challenge.Domain = challenge.Domain.Substring(2);
+                    domain = challenge.Domain.Substring(2);
                 }
-                string fullRecordName = $"_acme-challenge.{challenge.Domain}";
+                else
+                {
+                    domain = challenge.Domain;
+                }
+                    string fullRecordName = $"_acme-challenge.{domain}";
                 bool matchFound = false;
 
                 foreach (var dnsServer in dnsServers)

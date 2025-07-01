@@ -188,6 +188,11 @@ namespace SphereSSLv2.Pages
 
                 var challenges = await ACME.CreateUserAccountForCert( order.Email, request.Domains);
 
+                foreach (var challenge in challenges)
+                {
+                    Console.WriteLine($"[Quick Create]: Domain is null or empty for challenge: {challenge.Domain}");
+                }
+
                 if ( challenges == null)
                 {
 
@@ -197,7 +202,7 @@ namespace SphereSSLv2.Pages
                     return BadRequest("Failed to create ACME order: domain is empty/null.");
                 }
 
-                //removelater
+                //remove later
                 int index2 = 1;
                 foreach (var domain in order.Challenges)
                 {
@@ -288,8 +293,8 @@ namespace SphereSSLv2.Pages
                 return BadRequest("ACME service not found for the specified order.");
             }
 
+            //name server
             List<(string, string, string)> nsDict = new();
-
             foreach (var challenge in order.Challenges)
             {
                 (string provider, string link) = await _spheressl.GetNameServersProvider(challenge.Domain);
@@ -344,11 +349,11 @@ namespace SphereSSLv2.Pages
                             catch { }
 
 
-                        var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
-                        await ruleProvider.BuildAsync();
-                        var domainParser = new DomainParser(ruleProvider);
-                        var domainInfo = domainParser.Parse(ns1);
-                        string strippedProvider = domainInfo.RegistrableDomain;
+                            var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
+                            await ruleProvider.BuildAsync();
+                            var domainParser = new DomainParser(ruleProvider);
+                            var domainInfo = domainParser.Parse(ns1);
+                            string strippedProvider = domainInfo.RegistrableDomain;
 
                         string fullLink = $"https://{challenge.Domain}";
                         html += $@"
@@ -394,7 +399,8 @@ namespace SphereSSLv2.Pages
                         </form>
                         ";
 
-                        return Content(html, "text/html");
+
+                    return Content(html, "text/html");
                 }
                     catch (Exception ex)
                     {
@@ -780,6 +786,11 @@ namespace SphereSSLv2.Pages
                 return BadRequest("ACME service not found for the specified order.");
             }
 
+            foreach (var challenge in order.Challenges)
+            {
+                Console.WriteLine($"[Start-OnPostShowVerifyModal]: Domain  for challenge: {challenge.Domain}");
+            }
+
             ConfigureService.AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService ACME);
 
             if (ACME == null)
@@ -821,7 +832,17 @@ namespace SphereSSLv2.Pages
                     List<(AcmeChallenge challange, bool verified)> challengesResult;
                     try
                     {
+                        foreach (var challenge in order.Challenges)
+                        {
+                            Console.WriteLine($"[Just before CheckTXTRecordMultipleDNS]: Domain  for challenge: {challenge.Domain}");
+                        }
+
                         challengesResult = await ACME.CheckTXTRecordMultipleDNS(order.Challenges, CurrentUser.Username);
+
+                        foreach (var challenge in order.Challenges)
+                        {
+                            Console.WriteLine($"[Just after CheckTXTRecordMultipleDNS]: Domain  for challenge: {challenge.Domain}");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -851,6 +872,10 @@ namespace SphereSSLv2.Pages
                     {
                         await _logger.Update($"[{CurrentUser.Username}]: DNS verification successful! Starting certificate generation...");
 
+                        foreach (var challenge in order.Challenges)
+                        {
+                            Console.WriteLine($"[pre ProcessCertificateGeneration]: Domain  for challenge: {challenge.Domain}");
+                        }
 
                         await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, CurrentUser.Username);
 
