@@ -43,10 +43,7 @@
                     <span class="sidebar-icon"><i class="bi bi-speedometer2"></i></span>
                     <span class="sidebar-text">Home</span>
                 </a>
-                <a asp-page="/CreateNew" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="bi bi-plus-square"></i></span>
-                    <span class="sidebar-text">Create</span>
-                </a>
+
                 <a asp-page="/ManageRenewals" class="sidebar-link">
                     <span class="sidebar-icon"><i class="bi bi-arrow-repeat"></i></span>
                     <span class="sidebar-text">Manage</span>
@@ -907,5 +904,25 @@
             const err = await response.text();
             showToast("Failed to update provider: " + err, true);
         }
+    }
+</script>
+
+<!-- Show Cert Modal -->
+<script>
+    function showCertRecordModal(orderId) {
+        const modalBody = document.getElementById("certRecordModalBody");
+        modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+        fetch(`/Dashboard?handler=GetRecordModal&orderId=${encodeURIComponent(orderId)}`)
+            .then(res => res.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+                const modal = new bootstrap.Modal(document.getElementById('certRecordModal'));
+                modal.show();
+            })
+            .catch(err => {
+                modalBody.innerHTML = `<p class="text-danger">Failed to load record.</p>`;
+                console.error(err);
+            });
     }
 </script>

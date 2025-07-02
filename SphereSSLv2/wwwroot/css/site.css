@@ -56,8 +56,8 @@
 
 
 .css-avatar {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     background-color: #0b71a7;
     border-radius: 50%;
     display: flex;
@@ -75,8 +75,8 @@
 
     .css-avatar::before {
         content: '';
-        width: 20px;
-        height: 20px;
+        width: 15px;
+        height: 15px;
         background-color: white;
         border-radius: 50%;
         position: absolute;
@@ -85,7 +85,7 @@
 
     .css-avatar::after {
         content: '';
-        width: 30px;
+        width: px;
         height: 18px;
         background-color: white;
         border-radius: 50% / 40%;
@@ -94,8 +94,8 @@
     }
 
 .top-bar-icons {
-    position: absolute;
-    top: 35px;
+    position: relative;
+    top: -60px;
     right: 30px;
     display: flex;
     align-items: center;
@@ -221,7 +221,7 @@
 
 
 .titleText {
-    font-size: 2rem;
+    font-size: 1.8em;
     font-weight: 600;
     color: white;
     text-align: center;
@@ -238,6 +238,7 @@
     width: 50%;
     margin-top: 40px;
     margin-right: -5px;
+    position: relative;
 }
 
 .minititleTag {
@@ -269,7 +270,7 @@
     font-weight: 600;
     font-size: 0.75rem;
     margin-right: -200px;
-    pointer-events: none; /* just in case */
+    pointer-events: none; 
 }
 
 .titleFooter {

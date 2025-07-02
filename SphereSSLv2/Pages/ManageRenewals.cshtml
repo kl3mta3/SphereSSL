@@ -15,8 +15,8 @@
                             <tr>
                                 <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(0)">Domain <span id="domainSortIcon">⇅</span></th>
                                 <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(1)">Status <span id="statusSortIcon">⇅</span></th>
-                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(2)">AutoRenew <span id="autorenewSortIcon">⇅</span></th>
-                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(3)">Days Left <span id="daysremainingSortIcon">⇅</span></th>
+                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(2)">Days Left <span id="daysremainingSortIcon">⇅</span></th>
+                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(3)">AutoRenew <span id="autorenewSortIcon">⇅</span></th>
                                 <th style="width:140px"></th>
                             </tr>
                         </thead>
@@ -173,9 +173,9 @@
             ? (sortDirection3[0] === 1 ? '↑' : '↓') : '⇅';
         document.getElementById('statusSortIcon').textContent = colIndex === 1
             ? (sortDirection3[1] === 1 ? '↑' : '↓') : '⇅';
-        document.getElementById('autorenewIcon').textContent = colIndex === 2
+        document.getElementById('autorenewIcon').textContent = colIndex === 3
             ? (sortDirection3[2] === 1 ? '↑' : '↓') : '⇅';
-        document.getElementById('daysremaining').textContent = colIndex === 3
+        document.getElementById('daysremaining').textContent = colIndex === 2
             ? (sortDirection3[3] === 1 ? '↑' : '↓') : '⇅';
     }
 </script>

@@ -22,8 +22,15 @@
                                     <input type="email" id="email" name="email" class="form-control mb-3" placeholder="you@example.com" required />
 
                                     <h5>Domain Address</h5>
-                                    <input type="text" id="domain" name="domain" class="form-control mb-3" placeholder="example.com" required />
 
+                                    <span class="format-subtext">
+                                        Separate SAN's with a
+                                        <strong style="font-size:1.5em; color:#4F46E5; vertical-align:middle;">,</strong>
+                                        &nbsp;and start Wildcards with&nbsp;
+                                        <strong style="font-size:1.5em; color:#DC2626; vertical-align:middle;">*.</strong>
+                                    </span>
+
+                                    <input type="text" id="domain" name="domain" class="form-control mb-3" placeholder="example.com" required />
                                     <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
                                         <div class="format-option text-center">
                                             <input type="radio" name="certFormat" value="false" id="useSingleFile" />
@@ -348,8 +355,6 @@
                         </div>
 
 
-
-
                         <!-- Helpful Links -->
                         <div class="col-lg-1 mb-4">
                             <h3 class="title mb-4" style="  min-width: 250px; ">Helpful Links</h3>
@@ -627,25 +632,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
-<!-- Show Cert Modal -->
-<script>
-    function showCertRecordModal(orderId) {
-        const modalBody = document.getElementById("certRecordModalBody");
-        modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
 
-        fetch(`/Dashboard?handler=GetRecordModal&orderId=${encodeURIComponent(orderId)}`)
-            .then(res => res.text())
-            .then(html => {
-                modalBody.innerHTML = html;
-                const modal = new bootstrap.Modal(document.getElementById('certRecordModal'));
-                modal.show();
-            })
-            .catch(err => {
-                modalBody.innerHTML = `<p class="text-danger">Failed to load record.</p>`;
-                console.error(err);
-            });
-    }
-</script>
 
 
 <!-- Verify Challenge -->
