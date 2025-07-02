@@ -63,17 +63,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
     .css-avatar:hover {
         transform: scale(1.15);
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 0 8px rgba(11, 113, 167, 0.6);
     }
 
-    .css-avatar::before {
+
+/*    .css-avatar::before {
         content: '';
         width: 15px;
         height: 15px;
@@ -91,12 +91,11 @@
         border-radius: 50% / 40%;
         position: absolute;
         bottom: 10px;
-    }
+    }*/
 
 .top-bar-icons {
     position: relative;
     top: -60px;
-    right: 30px;
     display: flex;
     align-items: center;
     gap: 20px;
@@ -263,22 +262,22 @@
 
 .footer-text {
     position: absolute;
-    bottom: 10px;
+    bottom: 0px;
     width: 100%;
     text-align: center;
     color: white;
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.55rem;
     margin-right: -200px;
     pointer-events: none; 
 }
 
 .titleFooter {
-    margin: 0 auto;
+    margin: 0;
     display: block;
     width: fit-content;
     text-align: center;
-    font-size: .75rem;
+    font-size: .55rem;
     font-weight: 600;
     color: white;
 }
@@ -299,13 +298,7 @@
     align-items: center;
 }
 
-.left-footer {
-    flex: 1;
-    display: flex;
-    margin-top: 0px;
-    justify-content: left;
-    align-items: start;
-}
+
 
 .log-line.update {
     color: limegreen;
@@ -329,7 +322,7 @@
 }
 
 .cert-accordion-container {
-    max-height: 70vh; /* controls total certificate card height */
+    max-height: 40vh; /* controls total certificate card height */
     overflow-y: auto;
     padding-right: 8px; /* for visual spacing from scrollbar */
 }
@@ -368,9 +361,9 @@
 
     .card.renewals {
         max-width: 700px;
-        padding: 25px 50px;
+        padding: 10px 25px;
         border-radius: 12px;
-        background-color: white;
+        background-color: blueviolet;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
         margin: 0 auto;
         text-align: center;
@@ -464,7 +457,20 @@
         transform: scale(1.03);
     }
 
+.accordion-button {
 
+    color: white;
+    max-height:35px;
+    font-weight: 600;
+    
+    padding: 10px 15px;
+   
+}
+
+    .accordion-button:hover {
+        background-color: white;
+        transform: scale(1.02);
+    }
 
 
 .cert-form {
@@ -490,14 +496,14 @@
 
 .title-cert-dropdown {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: black;
     text-align: center;
 }
 
 .accordion-body {
-    max-height: 500px;
+    max-height: 800px;
     overflow-y: auto;
 }
 
@@ -611,14 +617,14 @@
 
 .form-check-input {
     accent-color: #05131d;
-    transform: scale(1.2);
+    transform: scale(1);
     margin-right: 8px;
     cursor: pointer;
 }
 
 .form-check-label {
     text-align: left !important;
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: #333;
     cursor: pointer;
@@ -628,7 +634,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.9rem;
     text-align: left;
 }
 
@@ -807,15 +813,22 @@
 
 .title-cert-dropdown {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: black;
     text-align: center;
 }
 
 .accordion-body {
-    max-height: 500px;
+    max-height: 400px;
     overflow-y: auto;
+}
+.cert-domain {
+    font-size: .5rem;
+    font-weight: 600;
+    color: #0b71a7;
+    text-decoration: none;
+    transition: color 0.2s ease, text-decoration 0.2s ease;
 }
 
 .btn-glow {
@@ -881,13 +894,34 @@
 .expires-in,
 .domain-link {
     margin-bottom: 2px !important;
+
 }
 
 .domain-link {
     margin-top: 0 !important;
     margin-bottom: 4px !important;
 }
+.domain-comma {
+    font-size: 1rem;
+    font-weight: 800;
+    color: black ;
+    margin-right: 0.15em;
+    margin-left: -0.12em; 
+    user-select: none;
+    line-height: 1;
+    
+    text-shadow: 0 1px 2px rgba(0,0,0,0.11);
+}
+.domain-link::before {
+    content: "";
+}
 
+.domain-link[data-wildcard="true"]::before {
+    content: "*.";
+    color: #ec9f05;
+    font-weight: bold;
+    margin-right: 0.05em;
+}
 .domain-link,
 .expires-in,
 .provider,
@@ -899,17 +933,17 @@
 
 .provider {
     font-weight: 600;
-    font-size: 1rem;
+    font-size: .75rem;
 }
 
 .expires-in {
     font-weight: 600;
-    font-size: 1rem;
+    font-size: .75rem;
     font-style: italic;
 }
 
 .domain-link {
-    font-size: 1.5rem;
+    font-size: .9rem;
     font-weight: 900;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -919,12 +953,27 @@
 .auto-renew {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    margin-top: 0.25rem;
+    margin-top: 0.13rem;
     padding: 0;
     background-color: transparent;
+    gap: 0.20rem;
+    min-height: .8rem;
+    font-size: 0.79rem; /* Smaller overall text */
 }
 
+    .auto-renew i,
+    .auto-renew .bi {
+        font-size: 1.08rem !important; /* Shrink Bootstrap icon */
+        margin-right: 3px;
+        vertical-align: middle;
+    }
+
+.auto-renew-text {
+    font-size: 0.7rem;
+    margin-left: 2px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
 
 .form-check-input {
     accent-color: #05131d;
