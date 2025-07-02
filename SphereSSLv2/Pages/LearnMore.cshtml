@@ -44,6 +44,15 @@
                                             <button class="nav-link" id="whynohttp01-tab" data-bs-toggle="tab" data-bs-target="#whynohttp01" type="button" role="tab" aria-controls="whynohttp01" aria-selected="false">Why no http01?</button>
                                         </li>
 
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whatarewildcards-tab" data-bs-toggle="tab" data-bs-target="#whatarewildcards" type="button" role="tab" aria-controls="whatarewildcards" aria-selected="false">What Are Wildcards?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whataresans-tab" data-bs-toggle="tab" data-bs-target="#whataresans" type="button" role="tab" aria-controls="whataresans" aria-selected="false">What Are SANs?</button>
+                                        </li>
+
                                         <li class="nav-item" role="presentation">
                                             <button class="nav-link" id="needlocalcert-tab" data-bs-toggle="tab" data-bs-target="#needlocalcert" type="button" role="tab" aria-controls="needlocalcert" aria-selected="false"> Local Certs?</button>
                                         </li>
@@ -128,7 +137,7 @@
                                         <div class="tab-pane fade" id="whatisdns01" role="tabpanel" aria-labelledby="whatisdns01-tab">
                                             <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
                                                 <div class="text-center mb-3">
-                                                    <h4 class="fw-bold mb-1">What is DNS01?</h4>
+                                                    <h4 class="fw-bold mb-1 text-primary">What is DNS01?</h4>
 
                                                     <p class="lead domain-lead">
                                                         <b class="domain-term">DNS-01</b> is a challenge type used by certificate authorities (like <span class="domain-vendor">Let’s Encrypt</span>) to verify that <b>you own the domain</b> you’re requesting an SSL certificate for.
@@ -206,7 +215,6 @@
 
                                                     <div class="text-start mx-auto" style="max-width: 520px;">
                                                         <div class="mb-2">
-                                                            <span class="domain-term">Why not HTTP-01?</span>
                                                             <ul class="domain-list">
                                                                 <li>
                                                                     <b>No need for port 80 access:</b>
@@ -234,10 +242,32 @@
                                                                 </li>
                                                             </ul>
                                                         </div>
-                                                        <div class="how-tip">
-                                                            DNS-01 is a lifesaver for closed networks, internal apps, and servers with no public HTTP access.<br>
-                                                            <b>You get verified with <span style="color: #3273fa;">zero firewall drama</span>.</b>
+                                                        <div class="mt-3 how-tip">
+                                                            <b>But wait, when is HTTP-01 actually useful?</b>
+                                                            <ul class="domain-list" style="margin-top:0.5em;">
+                                                                <li>
+                                                                    <b>Super-basic shared web hosting:</b>
+                                                                    If your web host doesn’t give you DNS control or API access, but lets you upload files or run web apps, HTTP-01 might be the only way to prove you own the domain.
+                                                                </li>
+                                                                <li>
+                                                                    <b>You *want* port 80 open:</b>
+                                                                    Maybe you *have* a public-facing web server, *and* you like things simple (just upload a file or set up a route—done!).
+                                                                </li>
+                                                                <li>
+                                                                    <b>Using providers that only support HTTP-01:</b>
+                                                                    Some website builders or older control panels are stuck in 2015, so they only allow HTTP-01 for SSL validation.
+                                                                </li>
+                                                                <li>
+                                                                    <b>Legacy software, appliances, or edge cases:</b>
+                                                                    Sometimes a script, hardware device, or super-locked-down environment *only* knows how to do HTTP-01.
+                                                                </li>
+                                                            </ul>
+                                                            <span style="display:block; margin-top:.7em;">
+                                                                If you’re not sure, <b>DNS-01 is almost always the better choice</b>—it’s more flexible, doesn’t require open web ports, and works for wildcards!
+                                                                <b>You get verified with <span style="color: #3273fa;">zero firewall drama</span>.</b>
+                                                            </span>
                                                         </div>
+
                                                     </div>
 
                                                 </div>
@@ -257,7 +287,7 @@
                                                         <li>
                                                             <b>Create a Local Certificate</b>
                                                             <span class="how-detail">
-                                                                Go to <a href="/Create" class="domain-link">/Create</a> and fill out the form with your name or project info.<br>
+                                                                Go to <a href="/Dashboard" class="domain-link">/Home</a> and fill out the form with your name or project info.<br>
                                                                 Download your <span class="domain-txt">.pfx</span> file.
                                                             </span>
                                                         </li>
@@ -296,6 +326,148 @@
                                                 </div>
                                             </div>
                                         </div>
+
+
+                                        <!-- What Are SANs?< -->
+                                        <div class="tab-pane fade" id="whataresans" role="tabpanel" aria-labelledby="whataresans-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What Are SANs?</h4>
+                                                    <p class="lead domain-lead">
+                                                        Okay, real talk: <b>SAN</b> stands for <b>Subject Alternative Name</b>—but you can just call it a “bonus name” on your SSL cert!
+                                                        <br><br>
+                                                        Normally, a certificate protects just <b>one</b> domain (like <span class="domain-example">example.com</span>). But with <span class="domain-term">SANs</span>, you can secure <b>multiple domains</b> or subdomains—*all* with one certificate.
+                                                        <br><br>
+                                                        That means <b>example.com</b>, <b>www.example.com</b>, <b>api.example.com</b>, <b>even totally different domains</b>—all covered by one shiny cert. No more juggling a bunch of certs like a circus clown. 🙃
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">Why would I want SANs?</h5>
+                                                    <ul class="domain-list mb-3 text-start mx-auto" style="max-width: 550px;">
+                                                        <li><b>One and done:</b> Secure multiple domains/subdomains with a single cert.</li>
+                                                        <li><b>Less hassle:</b> Fewer renewals, less chaos, more chill.</li>
+                                                        <li><b>Wildcard who?</b> Don’t want a wildcard? Just list your exact domains instead.</li>
+                                                        <li><b>Mix it up:</b> You can protect both <span class="domain-example">example.com</span> and <span class="domain-example">othercooldomain.com</span> in one go. (If you own them both, of course!)</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-info">How do I add SANs in SphereSSL?</h5>
+                                                    <ol class="how-steps mx-auto text-start" style="max-width: 530px;">
+                                                        <li>
+                                                            <b>Head to the Dashboard</b>
+                                                            <span class="how-detail">Click <span class="domain-link">Create Certificate</span> (or edit an existing cert, if supported).</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Enter Your Main Domain</b>
+                                                            <span class="how-detail">Pop in the domain you want as your “main character.”</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Add SANs (Alt Names)</b>
+                                                            <span class="how-detail">
+                                                                Find the field labeled <b>“Additional Domains”</b> or <b>“Subject Alternative Names”</b>.<br>
+                                                                <b>Type in each extra domain or subdomain you want covered</b> (one per line, or separated by commas—whatever the UI says!).
+                                                                <br>
+                                                                <span class="how-api-tip">(Examples: <span class="domain-example">www.yoursite.com</span>, <span class="domain-example">app.yoursite.com</span>, <span class="domain-example">api.other.com</span>…)</span>
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Complete the Request</b>
+                                                            <span class="how-detail">
+                                                                You’ll get a <b>separate verification step for each domain</b>.<br>
+                                                                If you use API auto-DNS, we’ll handle all that nerdy stuff for you.<br>
+                                                                Otherwise, just follow the instructions for each SAN you added.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>That’s it!</b>
+                                                            <span class="how-detail">
+                                                                When it’s all verified, you’ll have a single certificate that protects *every* SAN you listed.<br>
+                                                                <b>Flex with your multi-domain powers! 🔥</b>
+                                                            </span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Pro tip:</b> Want to check your SANs later? View your cert on the Dashboard—hover or click for full details.<br>
+                                                        <b>Wildcard domains</b> (<span class="domain-example">*.example.com</span>) count as SANs too!
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+
+
+                                        <!-- What are Wildcards? -->
+                                        <div class="tab-pane fade" id="whatarewildcards" role="tabpanel" aria-labelledby="whatarewildcards-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What are Wildcards?</h4>
+                                                    <p class="lead domain-lead">
+                                                        Ever wish you could protect *every* subdomain of your site with just one cert—without typing out every possible name? That’s what <b>Wildcard certificates</b> do!
+                                                        <br><br>
+                                                        A <b>wildcard</b> is a fancy way of saying “<span class="domain-example">anything goes here</span>.”
+                                                        For SSL, a wildcard covers <b>all subdomains</b> at one level of your main domain.
+                                                        Like: <b>*.example.com</b> covers <b>blog.example.com</b>, <b>shop.example.com</b>, <b>pizza.example.com</b> (omg, pizza!), etc.
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">How does it work?</h5>
+                                                    <ul class="domain-list mb-3 text-start mx-auto" style="max-width: 520px;">
+                                                        <li>
+                                                            <b>Wildcard = “*.” at the front</b>
+                                                            When you see <span class="domain-example">*.yourdomain.com</span>, the <b>*</b> means “match anything” (just not double-nested stuff like <b>sub.sub.yourdomain.com</b>).
+                                                        </li>
+                                                        <li>
+                                                            <b>Covers lots of subdomains with one cert</b>
+                                                            Add new subdomains later? They’re covered. *No need to re-issue!*
+                                                        </li>
+                                                        <li>
+                                                            <b>Note:</b> Your <span class="domain-example">root domain</span> (like <b>yourdomain.com</b> without the <b>*.</b>) is <b>not</b> included—add that separately if you want both.
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-info">How to get a wildcard cert in SphereSSL?</h5>
+                                                    <ol class="how-steps mx-auto text-start" style="max-width: 520px;">
+                                                        <li>
+                                                            <b>Go to the Dashboard</b>
+                                                            <span class="how-detail">Start a new cert request (or add to an existing one, if supported).</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Type your wildcard domain</b>
+                                                            <span class="how-detail">
+                                                                In the domain field, type: <span class="domain-example"><b>*.yourdomain.com</b></span><br>
+                                                                (Don’t forget that star and the dot!)
+                                                                <span class="how-api-tip">Tip: You can add regular domains and wildcards together using commas.</span>
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Complete the challenge</b>
+                                                            <span class="how-detail">
+                                                                Wildcards <b>always use DNS-01</b> verification (no http01 allowed).
+                                                                Add the TXT record as shown, or use the API for auto-DNS (so much easier).
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Done!</b>
+                                                            <span class="how-detail">
+                                                                You now have a cert that works for <b>any subdomain</b> at that level—super clutch for apps, catch-alls, and “I’ll probably add more stuff later.”
+                                                            </span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Pro tip:</b> Want <b>both</b> <span class="domain-example">yourdomain.com</span> <b>and</b> <span class="domain-example">*.yourdomain.com</span> covered?<br>
+                                                        Just list them both, separated by a comma!
+                                                        <br>Like: <b>yourdomain.com, *.yourdomain.com</b>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
 
                                  </div>
 

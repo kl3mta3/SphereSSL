@@ -11,11 +11,11 @@
 
                 <div class="container-fluid px-4">
 
-                    <div class="row">
+                <div class="row ">
 
                         <!-- Quick Create -->
                         <div class="col-lg-4 mb-4">
-                            <h4 class="title mb-4">Quick Create</h4>
+                            <h5 class="title mb-4">Quick Create</h5>
                             <div class="card quick-create shadow-sm cert-form p-4">
                                 <form onsubmit="event.preventDefault(); submitOrder();">
                                     <h6><strong>Email Address</strong></h6>
@@ -117,7 +117,7 @@
                         <!-- Certificates Section -->
                         <div class="col-lg-5 col-md-12 col-sm-12 mb-4">
                             <div class="row gx-3">
-                                <h4 class="title text-center mb-3">Certificates</h4>
+                                <h5 class="title text-center mb-3">Certificates</h5>
 
                                 <div class="accordion" id="certAccordion">
 
@@ -129,11 +129,11 @@
                                             </button>
                                         </h6>
 
-                                        <div id="collapseActive" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
+                                     <div id="collapseActive" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
                                             <div class="accordion-body p-0 scroll-pane">
 
 
-                                                <div class="card renewals shadow-sm p-3">
+                                                <div class="card renewals shadow-sm p-1">
 
                                                     <div class="list-group">
                                                         @if (Model.CertRecords != null && Model.CertRecords.Any())
@@ -205,8 +205,7 @@
                                     </div>
 
                                     <!-- Expiring Certs Column -->
-                                    <div class="accordion-item">
-
+                                   
                                         <h6 class="accordion-header">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                             data-bs-target="#collapseExpiring" aria-expanded="false" aria-controls="collapseExpiring">
@@ -231,8 +230,8 @@
                                                                 var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
                                                                 var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
                                                                 var allDomains = record.Challenges?.Select(c => c.Domain).Distinct().ToList() ?? new List<string>();
-                                                                var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
                                                                 var primaryDomain = allDomains.FirstOrDefault() ?? "(none)";
+                                                                var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
                                                                 var primaryProvider = allProviders.FirstOrDefault() ?? "(none)";
                                                                 var providername = Model.DNSProviders.FirstOrDefault(p => p.ProviderId == string.Join(", ", allProviders))?.Provider ?? "Unknown Provider";
 
@@ -288,11 +287,11 @@
 
                                             </div>
                                         </div>
-                                    </div>
+                                 
 
 
                                     <!-- Expired Certs Column -->
-                                    <div class="accordion-item">
+                                <div class="accordion-header">
 
                                         <h6 class="accordion-header">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
@@ -383,7 +382,7 @@
 
                         <!-- Helpful Links -->
                         <div class="col-lg-1 mb-4">
-                            <h4 class="title mb-4" style="  min-width: 250px; ">Helpful Links</h4>
+                            <h5 class="title mb-4" style="  min-width: 200px; ">Helpful Links</h5>
                             <div class="card useful-links shadow-sm p-3" style="  min-width: 200px; ">
                                 <a href="https://www.cloudflare.com/" target="_blank">
                                     <img src="https://www.cloudflare.com/favicon.ico" alt="Cloudflare" class="link-icon" />
@@ -406,6 +405,11 @@
                                     <span>GitHub</span>
                                 </a>
                             </div>
+
+                        <div class="card useful-links shadow-sm p-3 mb-2" style="  min-width: 200px;">
+                            <button class="btn-glow" id="getlocalcert" data-bs-toggle="tab" type="button" role="tab" onclick=" OpenLocalCertModal()" aria-selected="false">Get Local Cert</button>
+                        </div>
+
                         </div>
 
                     </div>

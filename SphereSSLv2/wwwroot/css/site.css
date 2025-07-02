@@ -67,35 +67,17 @@
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
     .css-avatar:hover {
         transform: scale(1.15);
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 0 8px rgba(11, 113, 167, 0.6);
     }
 
 
-/*    .css-avatar::before {
-        content: '';
-        width: 15px;
-        height: 15px;
-        background-color: white;
-        border-radius: 50%;
-        position: absolute;
-        top: 12px;
-    }
-
-    .css-avatar::after {
-        content: '';
-        width: px;
-        height: 18px;
-        background-color: white;
-        border-radius: 50% / 40%;
-        position: absolute;
-        bottom: 10px;
-    }*/
 
 .top-bar-icons {
     position: relative;
-    top: -60px;
+    top: -12px;
     display: flex;
     align-items: center;
     gap: 20px;
@@ -132,7 +114,7 @@
 
 .title {
     margin: 0;
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 600;
     color: white;
 }
@@ -235,7 +217,7 @@
     color: white;
     text-align: center;
     width: 50%;
-    margin-top: 40px;
+    margin-top: 30px;
     margin-right: -5px;
     position: relative;
 }
@@ -269,11 +251,11 @@
     font-weight: 600;
     font-size: 0.55rem;
     margin-right: -200px;
-    pointer-events: none; 
+    pointer-events: none;
 }
 
 .titleFooter {
-    margin: 0;
+    margin: 0 auto;
     display: block;
     width: fit-content;
     text-align: center;
@@ -298,7 +280,13 @@
     align-items: center;
 }
 
-
+.left-footer {
+    flex: 1;
+    display: flex;
+    margin-top: 0px;
+    justify-content: left;
+    align-items: start;
+}
 
 .log-line.update {
     color: limegreen;
@@ -322,7 +310,7 @@
 }
 
 .cert-accordion-container {
-    max-height: 40vh; /* controls total certificate card height */
+    max-height: 100px; /* controls total certificate card height */
     overflow-y: auto;
     padding-right: 8px; /* for visual spacing from scrollbar */
 }
@@ -338,6 +326,9 @@
     border-bottom: 1px solid #eee;
 }
 
+.quick-create {
+    max-height: 660px;
+}
 
 .card {
     border-radius: 15px;
@@ -458,13 +449,12 @@
     }
 
 .accordion-button {
-
     color: white;
-    max-height:35px;
+    max-height: 35px;
     font-weight: 600;
-    
+    margin-top: 2px;
     padding: 10px 15px;
-   
+    border-radius: 10px;
 }
 
     .accordion-button:hover {
@@ -472,6 +462,14 @@
         transform: scale(1.02);
     }
 
+.collapseActive,
+.collapseExpiring,
+.collapseExpired {
+    background-color: #0b71a7;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border-radius: 10px;
+}
 
 .cert-form {
     max-width: 400px;
@@ -823,6 +821,7 @@
     max-height: 400px;
     overflow-y: auto;
 }
+
 .cert-domain {
     font-size: .5rem;
     font-weight: 600;
@@ -875,8 +874,8 @@
 }
 
 .list-group {
-    padding-top: 0px;
-    padding-bottom: 0px;
+    padding-top: -5px;
+    padding-bottom: -5px;
     padding-left: 5px;
     padding-right: 5px;
 }
@@ -894,24 +893,24 @@
 .expires-in,
 .domain-link {
     margin-bottom: 2px !important;
-
 }
 
 .domain-link {
     margin-top: 0 !important;
     margin-bottom: 4px !important;
 }
+
 .domain-comma {
     font-size: 1rem;
     font-weight: 800;
-    color: black ;
+    color: black;
     margin-right: 0.15em;
-    margin-left: -0.12em; 
+    margin-left: -0.12em;
     user-select: none;
     line-height: 1;
-    
     text-shadow: 0 1px 2px rgba(0,0,0,0.11);
 }
+
 .domain-link::before {
     content: "";
 }
@@ -922,6 +921,7 @@
     font-weight: bold;
     margin-right: 0.05em;
 }
+
 .domain-link,
 .expires-in,
 .provider,
@@ -1006,3 +1006,23 @@
     max-width: max-content;
 }
 
+.expiry-countdown {
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.expiry-green {
+    color: #28a745; /* Bootstrap Green */
+}
+
+.expiry-yellow {
+    color: #ffc107; /* Bootstrap Yellow */
+}
+
+.expiry-orange {
+    color: #fd7e14; /* Bootstrap Orange */
+}
+
+.expiry-red {
+    color: #dc3545; /* Bootstrap Red */
+}
