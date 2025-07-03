@@ -99,6 +99,49 @@
 
 </html>
 
+<!-- Local Certificate Modal -->
+<div class="modal fade" id="localCertModal" tabindex="-1" aria-labelledby="localCertModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="localCertForm" autocomplete="off">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="localCertModalLabel">Create Local Certificate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Subject Name (without CN=) -->
+                    <div class="mb-3">
+                        <label for="subjectNameInput" class="form-label">Subject Name <span class="text-muted">(just the domain, no CN=)</span></label>
+                        <input type="text" class="form-control" id="subjectNameInput" placeholder="example.local" required>
+                    </div>
+                    <!-- SANs -->
+                    <div class="mb-3">
+                        <label for="sanNamesInput" class="form-label">Subject Alternative Names (SANs)</label>
+                        <input type="text" class="form-control" id="sanNamesInput" placeholder="domain.local, www.domain.local, *.domain.local" required>
+                        <div class="form-text">Separate each domain with a comma and a space: <code>domain.com, www.domain.com</code></div>
+                    </div>
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label for="passwordInput" class="form-label">Password <span class="text-muted">(optional)</span></label>
+                        <input type="password" class="form-control" id="passwordInput" autocomplete="new-password" placeholder="(leave blank for none)">
+                    </div>
+                    <!-- Valid Days -->
+                    <div class="mb-3">
+                        <label for="validDaysInput" class="form-label">Valid Days</label>
+                        <input type="number" class="form-control" id="validDaysInput" min="1" value="365" required>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Generate Certificate</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Power Confirmation Modal -->
 <div class="modal fade" id="powerConfirmModal" tabindex="-1" aria-labelledby="powerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -925,4 +968,63 @@
                 console.error(err);
             });
     }
+</script>
+
+<!-- Show Local Cert Modal -->
+<script>
+
+    document.getElementById('localCertForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+      
+        const subjectRaw = document.getElementById('subjectNameInput').value.trim();
+        const subjectName = subjectRaw.startsWith("CN=") ? subjectRaw : `CN=${subjectRaw}`;
+        const sanInput = document.getElementById('sanNamesInput').value.trim();
+      
+
+        const sanNames = sanInput.split(/\s*,\s*/).filter(x => x);
+
+        const password = document.getElementById('passwordInput').value;
+        const validDays = parseInt(document.getElementById('validDaysInput').value, 10) || 365;
+
+       
+        const payload = {
+            subjectName: subjectName,
+            sanNames: sanNames,
+            password: password || "",
+            validDays: validDays
+        };
+
+      
+        const response = await fetch('/Dashboard?handler=LocalCert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "certificate.pfx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            
+            const localCertModal = bootstrap.Modal.getInstance(document.getElementById('localCertModal'));
+            localCertModal.hide();
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+
+        } else {
+           
+            const errorText = await response.text();
+           showToast("Failed to create certificate: " + errorText, true);
+        }
+    });
+
 </script>

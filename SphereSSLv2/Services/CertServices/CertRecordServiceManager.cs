@@ -60,7 +60,6 @@ namespace SphereSSLv2.Services.CertServices
 
         }
 
-
         public async Task RenewCertRecordWithAutoDNSById(string orderId)
         {
 
@@ -293,20 +292,6 @@ namespace SphereSSLv2.Services.CertServices
 
         }
 
-
-        public async Task<byte[]> CreateLocalPFXCert(string domain, string savePath, string password = "", int validDays = 365)
-        {
-            var pfx = CertUtilityService.CreateSelfSignedCert(
-               subjectName: $"CN={domain}.local",
-               outputPath: @$"{savePath}",
-               password: password,
-               validDays: validDays
-           );
-
-            return pfx;
-
-        }
-
         public async Task<bool> StartManualRenewCertRecordById(string orderId)
         {
             CertRecord order = await CertRepository.GetCertRecordByOrderId(orderId);
@@ -392,8 +377,6 @@ namespace SphereSSLv2.Services.CertServices
             ConfigureService.CertRecordCache.Add(order.OrderId, order);
             return true;
         }
-
-
 
         public async Task<bool> FinishManualRenewCertRecordById(string orderId)
         {

@@ -32,6 +32,7 @@ using Certes.Acme.Resource;
 using Nager.PublicSuffix;
 using Nager.PublicSuffix.RuleProviders;
 using JsonSerializer = System.Text.Json.JsonSerializer;
+using SphereSSLv2.Services.CertServices;
 namespace SphereSSLv2.Pages
 {
     public class DashboardModel : PageModel
@@ -40,7 +41,7 @@ namespace SphereSSLv2.Pages
 
         public List<CertRecord> CertRecords = new();
         public List<CertRecord> ExpiringSoonRecords = new();
-        public List<DNSProvider> DNSProviders= new();
+        public List<DNSProvider> DNSProviders = new();
         public List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
             .Cast<DNSProvider.ProviderType>()
             .Select(p => p.ToString())
@@ -59,7 +60,7 @@ namespace SphereSSLv2.Pages
         public string CAStagingUrl;
         public UserSession CurrentUser = new();
 
-        public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, ConfigureService spheressl, DatabaseManager database, CertRepository certRepository, DnsProviderRepository dnsProviderRepository, UserRepository userRepository )
+        public DashboardModel(ILogger<DashboardModel> ilogger, Logger logger, ConfigureService spheressl, DatabaseManager database, CertRepository certRepository, DnsProviderRepository dnsProviderRepository, UserRepository userRepository)
         {
             _Ilogger = ilogger;
             _logger = logger;
@@ -77,18 +78,18 @@ namespace SphereSSLv2.Pages
 
 
             var sessionData = HttpContext.Session.GetString("UserSession");
-            
+
             //if not logged in return
             if (sessionData == null)
             {
-              return RedirectToPage("/Index");
+                return RedirectToPage("/Index");
             }
 
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
 
             if (CurrentUser == null)
             {
-                
+
                 return RedirectToPage("/Index");
             }
 
@@ -104,7 +105,7 @@ namespace SphereSSLv2.Pages
                 ExpiringSoonRecords = CertRecords
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProviders();
- 
+
             }
             else if (CurrentUser.IsEnabled && !_isSuperAdmin)
             {
@@ -113,12 +114,12 @@ namespace SphereSSLv2.Pages
                 ExpiringSoonRecords = CertRecords
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
-           
+
             }
 
             return Page();
         }
-    
+
         public async Task<IActionResult> OnPostQuickCreate([FromBody] QuickCreateRequest request)
         {
             if (!_runningCertGeneration)
@@ -138,7 +139,7 @@ namespace SphereSSLv2.Pages
                 CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
                 if (CurrentUser == null)
                 {
-                    return RedirectToPage("/Index"); 
+                    return RedirectToPage("/Index");
                 }
 
                 var order = request.Order;
@@ -154,10 +155,10 @@ namespace SphereSSLv2.Pages
                      ? ConfigureService.CAStagingUrl
                      : ConfigureService.CAPrimeUrl;
 
-                    var http = new HttpClient
-                    {
-                        BaseAddress = new Uri(_baseAddress),
-                    };
+                var http = new HttpClient
+                {
+                    BaseAddress = new Uri(_baseAddress),
+                };
 
 
                 ESJwsTool signer = AcmeService.LoadOrCreateSigner(new AcmeService(_logger));
@@ -168,9 +169,9 @@ namespace SphereSSLv2.Pages
                     _signer = signer,
                     _client = new AcmeProtocolClient(http, null, null, signer),
 
-                    
+
                 };
-               
+
                 ConfigureService.AcmeServiceCache.Add(request.Order.OrderId, ACME);
 
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
@@ -178,13 +179,13 @@ namespace SphereSSLv2.Pages
 
                 var autoAdd = request.AutoAdd;
 
-                var challenges = await ACME.CreateUserAccountForCert( order.Email, request.Domains);
+                var challenges = await ACME.CreateUserAccountForCert(order.Email, request.Domains);
 
 
-                if ( challenges == null)
+                if (challenges == null)
                 {
 
-                
+
                     await _logger.Error($"[{CurrentUser.Username}]: Returned domain is null or empty after CreateUserAccountForCert!");
 
                     return BadRequest("Failed to create ACME order: domain is empty/null.");
@@ -194,7 +195,7 @@ namespace SphereSSLv2.Pages
 
                 foreach (var challenge in challenges)
                 {
-                      
+
                     AcmeChallenge orderChallenge = new AcmeChallenge
                     {
                         ChallengeId = Guid.NewGuid().ToString("N"),
@@ -204,12 +205,12 @@ namespace SphereSSLv2.Pages
                         DnsChallengeToken = challenge.DnsChallengeToken,
                         Status = "Processing",
                         ProviderId = provider?.ProviderId ?? string.Empty,
-                        AuthorizationUrl= challenge.AuthorizationUrl
+                        AuthorizationUrl = challenge.AuthorizationUrl
 
                     };
 
                     order.Challenges.Add(orderChallenge);
-                }   
+                }
 
                 order.ChallengeType = "dns-01";
                 string zoneID = String.Empty;
@@ -241,7 +242,7 @@ namespace SphereSSLv2.Pages
 
                     }
                 }
-             
+
                 ConfigureService.CertRecordCache.Add(order.OrderId, order);
                 QuickCreateResponse response = new QuickCreateResponse
                 {
@@ -262,7 +263,7 @@ namespace SphereSSLv2.Pages
         {
             ConfigureService.CertRecordCache.TryGetValue(_order.Order.OrderId, out CertRecord order);
 
-           
+
             if (order == null)
             {
                 await _logger.Error($"[{CurrentUser.Username}]: No ACME service found for Order ID: {_order.Order.OrderId}");
@@ -270,7 +271,7 @@ namespace SphereSSLv2.Pages
             }
 
             ConfigureService.AcmeServiceCache.TryGetValue(order.OrderId, out AcmeService Acme);
-            if(Acme == null)
+            if (Acme == null)
             {
                 await _logger.Error($"[{CurrentUser.Username}]: No ACME service found for Order ID: {order.OrderId}");
                 return BadRequest("ACME service not found for the specified order.");
@@ -291,21 +292,21 @@ namespace SphereSSLv2.Pages
             }
 
             using SHA256 algor = SHA256.Create();
-                var thumbprintBytes = JwsHelper.ComputeThumbprint(Acme._signer, algor);
-                var thumbprint = AcmeService.Base64UrlEncode(thumbprintBytes);
-                order.UserId = CurrentUser.UserId;
-                order.Signer = Acme._signer.Export();
-                order.Thumbprint = thumbprint;
-                order.AccountID = Acme._account.Kid;
-                order.OrderUrl = Acme._order.OrderUrl;
-                order.CreationDate = DateTime.UtcNow;
-                order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+            var thumbprintBytes = JwsHelper.ComputeThumbprint(Acme._signer, algor);
+            var thumbprint = AcmeService.Base64UrlEncode(thumbprintBytes);
+            order.UserId = CurrentUser.UserId;
+            order.Signer = Acme._signer.Export();
+            order.Thumbprint = thumbprint;
+            order.AccountID = Acme._account.Kid;
+            order.OrderUrl = Acme._order.OrderUrl;
+            order.CreationDate = DateTime.UtcNow;
+            order.ExpiryDate = DateTime.UtcNow.AddDays(90);
 
-                if (_order.AutoAdd)
+            if (_order.AutoAdd)
+            {
+                try
                 {
-                    try
-                    {
-                        var html = $@"
+                    var html = $@"
                         <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                             <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
                             <input type='hidden' id='orderId' value='{order.OrderId}' />
@@ -318,25 +319,25 @@ namespace SphereSSLv2.Pages
                             <div class='challenge-list border rounded p-3 mb-3' style='max-height: 320px; overflow-y: auto; background: #f9f9fa;'>
                         ";
 
-                        foreach (var challenge in order.Challenges)
+                    foreach (var challenge in order.Challenges)
+                    {
+
+                        (string providerLink, string fullDomainName, string dnsToken) = nsDict.FirstOrDefault(x => x.Item2 == $"_acme-challenge.{challenge.Domain}");
+                        string ns1 = "—", ns2 = "—";
+                        try
                         {
-                           
-                            (string providerLink, string fullDomainName, string dnsToken) = nsDict.FirstOrDefault(x => x.Item2 == $"_acme-challenge.{challenge.Domain}");
-                            string ns1 = "—", ns2 = "—";
-                            try
-                            {
-                                var nsList = await ConfigureService.GetNameServers(challenge.Domain);
-                                ns1 = nsList.ElementAtOrDefault(0) ?? "—";
-                                ns2 = nsList.ElementAtOrDefault(1) ?? "—";
-                            }
-                            catch { }
+                            var nsList = await ConfigureService.GetNameServers(challenge.Domain);
+                            ns1 = nsList.ElementAtOrDefault(0) ?? "—";
+                            ns2 = nsList.ElementAtOrDefault(1) ?? "—";
+                        }
+                        catch { }
 
 
-                            var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
-                            await ruleProvider.BuildAsync();
-                            var domainParser = new DomainParser(ruleProvider);
-                            var domainInfo = domainParser.Parse(ns1);
-                            string strippedProvider = domainInfo.RegistrableDomain;
+                        var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
+                        await ruleProvider.BuildAsync();
+                        var domainParser = new DomainParser(ruleProvider);
+                        var domainInfo = domainParser.Parse(ns1);
+                        string strippedProvider = domainInfo.RegistrableDomain;
 
                         string fullLink = $"https://{challenge.Domain}";
                         html += $@"
@@ -367,9 +368,9 @@ namespace SphereSSLv2.Pages
                                 </div>
                             </div>
                             ";
-                        }
+                    }
 
-                        html += @"
+                    html += @"
                         </div>
                         <div class='mb-4' justify-content-center>
                             <p class='mb-0'>Once you've added all records, click <strong>Ready</strong>.</p>
@@ -385,18 +386,18 @@ namespace SphereSSLv2.Pages
 
                     return Content(html, "text/html");
                 }
-                    catch (Exception ex)
-                    {
-                        return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
-                    }
-
-
-                }
-                else
+                catch (Exception ex)
                 {
+                    return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
+                }
 
-                    try
-                    {
+
+            }
+            else
+            {
+
+                try
+                {
                     var html = $@"
                     <form id='showChallangeForm' class='p-4 rounded shadow-sm bg-white border' style='max-width: 650px; min-width: 400px; margin: auto;'>
                         <h3 class='mb-4 text-center text-primary fw-bold'>Add DNS Challenge</h3>
@@ -412,7 +413,7 @@ namespace SphereSSLv2.Pages
 
                     foreach (var challenge in order.Challenges)
                     {
-         
+
 
                         string ns1 = "—", ns2 = "—", fullDomainName = $"_acme-challenge.{challenge.Domain}", dnsToken = challenge.DnsChallengeToken;
                         string fullLink = $"https://{challenge.Domain}";
@@ -474,11 +475,11 @@ namespace SphereSSLv2.Pages
                     return Content(html, "text/html");
 
                 }
-                    catch (Exception ex)
-                    {
-                        return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
-                    }
+                catch (Exception ex)
+                {
+                    return Content("<p class='text-danger'>An error occurred while creating the challenge.</p>", "text/html");
                 }
+            }
 
         }
 
@@ -568,9 +569,9 @@ namespace SphereSSLv2.Pages
             .ToList();
 
             return new JsonResult(ConfigureService.DNSProviders);
-  
+
         }
-       
+
         public async Task<IActionResult> OnGetGetRecordModal(string orderId)
         {
             var record = await CertRepository.GetCertRecordByOrderId(orderId);
@@ -691,11 +692,11 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnGetShowWaitningModal()
         {
-           
-            
+
+
             var random = new Random();
-           var phrase = SphereSSLTaglines.TaglineArray[random.Next(SphereSSLTaglines.TaglineArray.Length)];
-            
+            var phrase = SphereSSLTaglines.TaglineArray[random.Next(SphereSSLTaglines.TaglineArray.Length)];
+
 
             var html = $@"
             <div id='waitingModalOverlay' style='
@@ -756,7 +757,7 @@ namespace SphereSSLv2.Pages
             </style>
             ";
 
-                return Content(html, "text/html");
+            return Content(html, "text/html");
         }
 
         public async Task<IActionResult> OnPostShowVerifyModal([FromBody] CertRecord _order)
@@ -810,7 +811,7 @@ namespace SphereSSLv2.Pages
 
                     List<(AcmeChallenge challange, bool verified)> challengesResult;
                     try
-                    { 
+                    {
                         challengesResult = await ACME.CheckTXTRecordMultipleDNS(order.Challenges, CurrentUser.Username);
 
                     }
@@ -834,7 +835,7 @@ namespace SphereSSLv2.Pages
                         if (!result.verified)
                         {
                             allVerified = false;
-                         
+
                             failedChallenges.Add(result.challange);
                         }
                     }
@@ -857,7 +858,7 @@ namespace SphereSSLv2.Pages
 
                             await _logger.Update($"[{CurrentUser.Username}]: Saving order for renewal!");
                             order.UserId = CurrentUser.UserId;
-                           
+
                             await CertRepository.InsertCertRecord(order);
 
                             UserStat stats = await _userRepository.GetUserStatByIdAsync(CurrentUser.UserId);
@@ -952,7 +953,7 @@ namespace SphereSSLv2.Pages
         public IActionResult OnGetDownloadCertCrt(string savePath)
         {
             string file = Path.Combine(AppContext.BaseDirectory, "Temp", $"tempCert.crt");
-          
+
             if (!System.IO.File.Exists(file))
                 return NotFound();
 
@@ -972,6 +973,17 @@ namespace SphereSSLv2.Pages
             return File(bytes, "application/x-pem-key", "private.key");
         }
 
+        public IActionResult OnGetDownloadPFXKey(string subjectName)
+        {
+            string file = Path.Combine(AppContext.BaseDirectory, "temp", $"{subjectName}.pfx");
+            if (!System.IO.File.Exists(file))
+                return NotFound();
+
+            var bytes = System.IO.File.ReadAllBytes(file);
+            System.IO.File.Delete(file);
+            return File(bytes, "application/x-pfx-key", "certificate.pfx");
+        }
+
         public async Task<IActionResult> OnGetGetCurrentUserUsername()
         {
 
@@ -985,6 +997,27 @@ namespace SphereSSLv2.Pages
 
 
             return new JsonResult(new { username = CurrentUser.Username });
+
+        }
+
+
+    
+        public async Task<IActionResult> OnPostLocalCertAsync([FromBody] LocalCertRequest request)
+        {
+
+            // Validate request (you may want to check for empty SANs, etc.)
+            if (request == null || request.sanNames == null || request.sanNames.Count == 0)
+                return BadRequest("You must specify at least one domain/SAN.");
+
+            // This assumes request.subjectName is something like "CN=example.com"
+            var certBytes = CertUtilityService.CreateSelfSignedCert(
+                request.subjectName,
+                request.sanNames,
+                password: request.password ?? "",
+                validDays: request.validDays > 0 ? request.validDays : 365
+            );
+
+            return File(certBytes, "application/x-pkcs12", "certificate.pfx");
 
         }
     }

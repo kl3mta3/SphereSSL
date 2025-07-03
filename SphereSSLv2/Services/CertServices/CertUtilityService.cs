@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace SphereSSLv2.Services.CertServices
 {
@@ -13,11 +14,11 @@ namespace SphereSSLv2.Services.CertServices
         /// <param name="outputPath">Full file path for output, e.g. "C:\certs\mycert.pfx"</param>
         /// <param name="password">Password for the PFX file (can be null or empty for no password)</param>
         /// <param name="validDays">How many days until the cert expires</param>
-        public static byte[] CreateSelfSignedCert(string subjectName, string outputPath, string password = "", int validDays = 365)
+        public static byte[] CreateSelfSignedCert( string subjectName, IEnumerable<string> sanNames, string password = "", int validDays = 365)
         {
             using var rsa = RSA.Create(2048);
             var certReq = new CertificateRequest(subjectName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-
+            string outputPath= Path.Combine(AppContext.BaseDirectory, "temp", $"{subjectName}.pfx");
             // Add extensions (basic constraints, key usage, etc)
             certReq.CertificateExtensions.Add(
                 new X509BasicConstraintsExtension(false, false, 0, false));
@@ -26,12 +27,12 @@ namespace SphereSSLv2.Services.CertServices
             certReq.CertificateExtensions.Add(
                 new X509SubjectKeyIdentifierExtension(certReq.PublicKey, false));
 
-            // Subject Alternative Name (SAN) (for browsers to trust the cert in modern times)
+            // Subject Alternative Name (SAN)
             certReq.CertificateExtensions.Add(
                 new X509Extension(
                     new AsnEncodedData(
                         new Oid("2.5.29.17"),
-                        BuildSubjectAltName(subjectName)
+                        BuildSubjectAltName(sanNames)
                     ),
                     false
                 )
@@ -52,20 +53,26 @@ namespace SphereSSLv2.Services.CertServices
             return pfxBytes;
         }
 
-
-        private static byte[] BuildSubjectAltName(string subjectName)
+        private static byte[] BuildSubjectAltName(IEnumerable<string> sanNames)
         {
-            // Extract DNS name from "CN=domain.com"
-            string dns = subjectName.Replace("CN=", "").Trim();
-            // SAN format: 0x30 (SEQUENCE), length, 0x82 (dNSName), length, bytes of name
-            byte[] dnsBytes = System.Text.Encoding.ASCII.GetBytes(dns);
-            byte[] san = new byte[4 + dnsBytes.Length];
-            san[0] = 0x30; // SEQUENCE
-            san[1] = (byte)(2 + dnsBytes.Length);
-            san[2] = 0x82; // dNSName
-            san[3] = (byte)dnsBytes.Length;
-            Array.Copy(dnsBytes, 0, san, 4, dnsBytes.Length);
-            return san;
+            // Builds a SAN extension with all DNS names
+            // ASN.1 encoding: SEQUENCE of [2] (dNSName)
+            List<byte> raw = new List<byte>();
+            foreach (var name in sanNames)
+            {
+                var dns = name.Trim();
+                var dnsBytes = Encoding.ASCII.GetBytes(dns);
+                raw.Add(0x82); // dNSName tag
+                raw.Add((byte)dnsBytes.Length);
+                raw.AddRange(dnsBytes);
+            }
+
+            var san = new List<byte>();
+            san.Add(0x30); // SEQUENCE
+            san.Add((byte)raw.Count);
+            san.AddRange(raw);
+
+            return san.ToArray();
         }
 
     }
