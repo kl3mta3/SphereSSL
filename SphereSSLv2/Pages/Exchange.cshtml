@@ -3,20 +3,239 @@
 @{
     ViewData["Title"] = "Exchange";
 }
-<div class="container-fluid px-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
-            <h3 class="title text-center mb-3">Key Exchange</h3>
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-grow-1">
+        <div class="flex-grow-1 ">
+            <div class="container text-center ">
 
-            <div class="card shadow-sm p-4">
+                <div class="container-fluid px-4">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
+                            <h3 class="title text-center mb-3">Key Exchange</h3>
+
+                            <div class="card shadow-sm p-4">
+
+                                <ul class="nav nav-tabs mb-4" id="exchangeTab" role="tablist">
+
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="convertpem-tab" data-bs-toggle="tab" data-bs-target="#convertpem" type="button" role="tab" aria-controls="convertpem" aria-selected="true">Convert PEM</button>
+                                    </li>
+
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="convertpfx-tab" data-bs-toggle="tab" data-bs-target="#convertpfx" type="button" role="tab" aria-controls="convertpfx" aria-selected="false">Convert PFX</button>
+                                    </li>
+
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="convertcrtkey-tab" data-bs-toggle="tab" data-bs-target="#convertcrtkey" type="button" role="tab" aria-controls="convertcrtkey" aria-selected="false">Convert CRT & Key</button>
+                                    </li>
+
+                                </ul>
+
+                                <div class="tab-content" id="exchangeTabContent">
+
+                                    <!-- Pem  -->
+                                    <div class="tab-pane fade show active" id="convertpem" role="tabpanel" aria-labelledby="convertpem-tab">
+                                        <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                            <div class="text-center mb-3">
+                                                <h4 class="fw-bold mb-1 text-primary">Convert PEM</h4>
+                                                <label for="pemInput" class="form-label mt-2">Paste your PEM file contents</label>
+                                                <textarea class="form-control mb-3" id="pemInput" rows="7" placeholder="-----BEGIN CERTIFICATE----- ..."></textarea>
+
+                                                <!-- Optional password for PFX output -->
+                                                <div class="mb-3">
+                                                    <label for="pemPasswordInput" class="form-label">PFX Password <span class="text-muted">(optional)</span></label>
+                                                    <input type="password" class="form-control" id="pemPasswordInput" placeholder="Leave blank for none">
+                                                </div>
+
+                                                <div class="d-flex justify-content-center mb-3 gap-3">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="pemConvertType" id="pemToPfx" value="pfx" checked>
+                                                        <label class="form-check-label" for="pemToPfx">PFX</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="pemConvertType" id="pemToCrtKey" value="crtkey">
+                                                        <label class="form-check-label" for="pemToCrtKey">CRT &amp; KEY</label>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-primary" id="convertPemBtn">Convert</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- PFX  -->
+                                    <div class="tab-pane fade" id="convertpfx" role="tabpanel" aria-labelledby="convertpfx-tab">
+                                        <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                            <div class="text-center mb-3">
+                                                <h4 class="fw-bold mb-1 text-primary">Convert PFX</h4>
+                                                <label for="pfxInput" class="form-label mt-2">Paste your base64 PFX file (or drag/drop file to get contents)</label>
+                                                <textarea class="form-control mb-3" id="pfxInput" rows="7" placeholder="MIIK... (base64-encoded PFX content)"></textarea>
+                                                <label for="pfxPasswordInput" class="form-label mt-2">PFX Password <span class="text-muted">(optional)</span></label>
+                                                <input type="password" class="form-control mb-3" id="pfxPasswordInput" placeholder="Leave blank for none">
+
+                                                <div class="d-flex justify-content-center mb-3 gap-3">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="pfxConvertType" id="pfxToPem" value="pem" checked>
+                                                        <label class="form-check-label" for="pfxToPem">PEM</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="pfxConvertType" id="pfxToCrtKey" value="crtkey">
+                                                        <label class="form-check-label" for="pfxToCrtKey">CRT &amp; KEY</label>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-primary" id="convertPfxBtn">Convert</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- CRT & KEY  -->
+                                    <div class="tab-pane fade" id="convertcrtkey" role="tabpanel" aria-labelledby="convertcrtkey-tab">
+                                        <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                            <div class="text-center mb-3">
+                                                <h4 class="fw-bold mb-1 text-primary">Convert CRT &amp; KEY</h4>
+                                                <label for="crtInput" class="form-label mt-2">Paste your CRT contents</label>
+                                                <textarea class="form-control mb-2" id="crtInput" rows="4" placeholder="-----BEGIN CERTIFICATE----- ..."></textarea>
+                                                <label for="keyInput" class="form-label">Paste your KEY contents</label>
+                                                <textarea class="form-control mb-3" id="keyInput" rows="4" placeholder="-----BEGIN PRIVATE KEY----- ..."></textarea>
+
+                                                <!-- Add this block! -->
+                                                <label for="crtKeyPasswordInput" class="form-label mt-2">PFX Password <span class="text-muted">(optional)</span></label>
+                                                <input type="password" class="form-control mb-3" id="crtKeyPasswordInput" placeholder="Leave blank for none">
+
+                                                <div class="d-flex justify-content-center mb-3 gap-3">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="crtKeyConvertType" id="crtKeyToPfx" value="pfx" checked>
+                                                        <label class="form-check-label" for="crtKeyToPfx">PFX</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="crtKeyConvertType" id="crtKeyToPem" value="pem">
+                                                        <label class="form-check-label" for="crtKeyToPem">PEM</label>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-primary" id="convertCrtKeyBtn">Convert</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
 
 
-
-
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
         </div>
-
     </div>
-
 </div>
+
+<script>
+      document.getElementById('convertPemBtn').addEventListener('click', async function () {
+        const pemInput = document.getElementById('pemInput').value.trim();
+        const password = document.getElementById('pemPasswordInput') ? document.getElementById('pemPasswordInput').value : "";
+        const outputType = document.querySelector('input[name="pemConvertType"]:checked').value; // 'pfx' or 'crtkey'
+
+        const payload = {
+            CertPem: pemInput,
+            Password: password,
+            OutputType: outputType
+        };
+
+        const response = await fetch('/Exchange?handler=PemConversion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const fileName = outputType === 'pfx' ? "certificate.pfx" : "certificate.zip";
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            showToast("Conversion successful!", false);
+        } else {
+            const errorText = await response.text();
+            showToast("Failed: " + errorText, true);
+        }
+    });  
+    </script>
+
+<script>
+       document.getElementById('convertPfxBtn').addEventListener('click', async function () {
+        const pfxInput = document.getElementById('pfxInput').value.trim();
+        const password = document.getElementById('pfxPasswordInput').value;
+        const outputType = document.querySelector('input[name="pfxConvertType"]:checked').value; // 'pem' or 'crtkey'
+
+        const payload = {
+            KeyFile: pfxInput,    // You might want to use CertPem or KeyFile depending on your backend!
+            Password: password,
+            OutputType: outputType
+        };
+
+        const response = await fetch('/Exchange?handler=PfxConversion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const fileName = outputType === 'pem' ? "certificate.pem" : "certificate.zip";
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            showToast("Conversion successful!", false);
+        } else {
+            const errorText = await response.text();
+            showToast("Failed: " + errorText, true);
+        }
+    }); 
+    </script>
+
+<script>
+       document.getElementById('convertCrtKeyBtn').addEventListener('click', async function () {
+        const crtInput = document.getElementById('crtInput').value.trim();
+        const keyInput = document.getElementById('keyInput').value.trim();
+        const password = document.getElementById('crtKeyPasswordInput').value;
+        const outputType = document.querySelector('input[name="crtKeyConvertType"]:checked').value; // 'pfx' or 'pem'
+
+        const payload = {
+            CertPem: crtInput,
+            KeyPem: keyInput,
+            Password: password,
+            OutputType: outputType
+        };
+
+        const response = await fetch('/Exchange?handler=CrtKeyConversion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const fileName = outputType === 'pfx' ? "certificate.pfx" : "certificate.pem";
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            showToast("Conversion successful!", false);
+        } else {
+            const errorText = await response.text();
+            showToast("Failed: " + errorText, true);
+        }
+    }); </script>
