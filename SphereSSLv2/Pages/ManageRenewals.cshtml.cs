@@ -278,7 +278,7 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostCheckManualChallengesAsync([FromBody] OrderRenewRequest request)
         {
-            var runId = Guid.NewGuid();
+           
             
             
             if (request == null)
@@ -361,7 +361,6 @@ namespace SphereSSLv2.Pages
            
             return Content(html, "text/html");
         }
-        
 
         public async Task<IActionResult> OnPostToggleAutoRenew([FromBody] OrderRenewRequest request)
         {
@@ -412,6 +411,50 @@ namespace SphereSSLv2.Pages
                 message = $"Order Auto-Renewed Set to {order.autoRenew.ToString()}"
             });
 
+        }
+
+        public async Task<IActionResult> OnPostRevokeCertificateAsync([FromBody] OrderRenewRequest request)
+        {
+
+            var sessionData = HttpContext.Session.GetString("UserSession");
+
+            //if not logged in return
+            if (sessionData == null)
+            {
+                return RedirectToPage("/Index");
+            }
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+
+            if (CurrentUser == null)
+            {
+
+                return RedirectToPage("/Index");
+            }
+            var orderId = request.OrderId;
+            if (string.IsNullOrEmpty(orderId))
+            {
+                await _logger.Error($"[{CurrentUser.Username}]: Certificate ID is null or empty.");
+                return BadRequest("Certificate ID is required.");
+            }
+
+            var order = await CertRepository.GetCertRecordByOrderId(orderId);
+            if (order == null)
+            {
+                await _logger.Error($"[{CurrentUser.Username}]: Order is null or empty.");
+                return BadRequest("An order is required.");
+
+            }
+            ConfigureService.CertRecordCache.TryAdd(order.OrderId, order);
+            CertRecordServiceManager certManager = new();
+            bool success = await certManager.RevokeCertRecordByIdAsync(_logger, orderId);
+            return new JsonResult(new
+            {
+                status = success ? "success" : "fail",
+                autoRenewed = true,
+                order = (CertRecord?)null,
+                message = success ? "Order Revoked Successfully" : "Order Revocation Failed"
+            });
         }
 
 

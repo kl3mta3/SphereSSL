@@ -23,8 +23,8 @@ namespace SphereSSLv2.Services.CertServices
     {
         internal DatabaseManager dbRecord;
         internal DnsProviderRepository _dnsProviderRepository;
-        internal  UserRepository _userRepository;
-       
+        internal UserRepository _userRepository;
+
         private Logger _logger;
         //public async Task LoadCertRecordServiceBat(string orderId)
         //{
@@ -65,9 +65,9 @@ namespace SphereSSLv2.Services.CertServices
 
         public async Task<bool> RenewCertRecordWithAutoDNSById(Logger logger, string orderId)
         {
-           
+
             CertRecord order = await CertRepository.GetCertRecordByOrderId(orderId);
-       
+
             if (order == null)
             {
                 await logger.Error($" No certificate record found for order ID: {orderId}");
@@ -80,36 +80,36 @@ namespace SphereSSLv2.Services.CertServices
                 if (acme == null)
                 {
                     await logger.Error($"Acme is null");
-                   
+
                 }
-              
+
                 ESJwsTool signer = AcmeService.LoadOrCreateSigner(acme);
-            
-                if (signer==null)
+
+                if (signer == null)
                 {
                     await logger.Error($"[{order.UserId}]:  signer is null: {orderId}");
                     return false;
 
                 }
-          
+
                 _userRepository = new UserRepository(_dnsProviderRepository);
                 User user = await _userRepository.GetUserByIdAsync(order.UserId);
-              
+
                 if (user == null)
                 {
-                  
+
                     await logger.Error($"[{order.UserId}]: User not found for order ID: {orderId}");
                     return false;
                 }
 
                 string username = user.Username;
-               
+
                 var url = order.OrderUrl;
-               
+
                 var uri = new Uri(url);
-                
+
                 var baseUrl = $"{uri.Scheme}://{uri.Host}/";
-               
+
                 var http = new HttpClient
                 {
                     BaseAddress = new Uri(baseUrl),
@@ -124,7 +124,7 @@ namespace SphereSSLv2.Services.CertServices
 
                 };
                 ConfigureService.AcmeServiceCache.TryAdd(order.OrderId, ACME);
-             
+
                 List<string> domains = order.Challenges.Select(c => c.Domain).ToList();
                 var challenges = await ACME.CreateUserAccountForCert(order.Email, domains);
 
@@ -136,7 +136,7 @@ namespace SphereSSLv2.Services.CertServices
                     return false;
                 }
                 var updatedChallenges = new List<AcmeChallenge>();
-                
+
                 foreach (var challenge in challenges)
                 {
                     AcmeChallenge currentChallange = order.Challenges.FirstOrDefault(c => c.Domain == challenge.Domain);
@@ -165,19 +165,19 @@ namespace SphereSSLv2.Services.CertServices
 
                 }
                 order.Challenges = updatedChallenges;
-                
+
                 foreach (var challenge in order.Challenges)
                 {
-                    
+
                     if (string.IsNullOrWhiteSpace(challenge.Domain))
                     {
                         await logger.Error($"[{username}]: Domain is null or empty for auto-adding DNS record.");
                         return false;
                     }
                     _dnsProviderRepository = new DnsProviderRepository();
-                  
+
                     List<DNSProvider> DNSProviders = await _dnsProviderRepository.GetAllDNSProviders();
-                    
+
                     DNSProvider _provider = DNSProviders.FirstOrDefault(p => p.ProviderId.Equals(challenge.ProviderId, StringComparison.OrdinalIgnoreCase));
 
                     if (_provider == null)
@@ -196,7 +196,7 @@ namespace SphereSSLv2.Services.CertServices
                         return false;
                     }
                 }
-                
+
 
                 const int maxAttempts = 5;
                 int attempt = 0;
@@ -207,7 +207,7 @@ namespace SphereSSLv2.Services.CertServices
                     List<(AcmeChallenge challange, bool verified)> challengesResult;
                     try
                     {
-                        
+
                         challengesResult = await ACME.CheckTXTRecordMultipleDNS(order.Challenges, username);
 
                     }
@@ -243,14 +243,14 @@ namespace SphereSSLv2.Services.CertServices
                         {
                             _challenge.Status = "Valid";
                         }
-                        
+
                         await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
 
 
                         if (order.SaveForRenewal)
                         {
 
-                           
+
 
                             await logger.Update($"[{username}]: Saving order for renewal!");
                             order.ExpiryDate = DateTime.UtcNow.AddDays(90);
@@ -295,7 +295,7 @@ namespace SphereSSLv2.Services.CertServices
                         {
                             await logger.Update($"[{username}]: Certificates stored successfully!");
                         }
-                        
+
                         return true;
                     }
                     else
@@ -331,113 +331,113 @@ namespace SphereSSLv2.Services.CertServices
         public async Task<List<AcmeChallenge>> StartManualRenewCertRecordById(Logger logger, string orderId)
         {
             CertRecord order = await CertRepository.GetCertRecordByOrderId(orderId);
-            
+
             if (order == null)
             {
                 await logger.Error($" No certificate record found for order ID: {orderId}");
                 return null;
             }
 
-           
-                AcmeService acme = new AcmeService(logger);
-                if (acme == null)
+
+            AcmeService acme = new AcmeService(logger);
+            if (acme == null)
+            {
+                await logger.Error($"Acme is null");
+                return null;
+            }
+
+            ESJwsTool signer = AcmeService.LoadOrCreateSigner(acme);
+
+            if (signer == null)
+            {
+                await logger.Error($"[{order.UserId}]:  signer is null: {orderId}");
+                return null;
+
+            }
+
+            _userRepository = new UserRepository(_dnsProviderRepository);
+            User user = await _userRepository.GetUserByIdAsync(order.UserId);
+
+            if (user == null)
+            {
+
+                await logger.Error($"[{order.UserId}]: User not found for order ID: {orderId}");
+                return null;
+            }
+
+            string username = user.Username;
+
+            var url = order.OrderUrl;
+
+            var uri = new Uri(url);
+
+            var baseUrl = $"{uri.Scheme}://{uri.Host}/";
+
+            var http = new HttpClient
+            {
+                BaseAddress = new Uri(baseUrl),
+            };
+
+            var ACME = new AcmeService(logger)
+            {
+                _logger = logger,
+                _signer = signer,
+                _client = new AcmeProtocolClient(http, null, null, signer),
+
+
+            };
+            ConfigureService.AcmeServiceCache.TryAdd(order.OrderId, ACME);
+
+            List<string> domains = order.Challenges.Select(c => c.Domain).ToList();
+            var challenges = await ACME.CreateUserAccountForCert(order.Email, domains);
+
+            if (challenges == null)
+            {
+
+                await logger.Error($"[{username}]: Returned domain is null or empty after CreateUserAccountForCert!");
+
+                return null;
+            }
+            var updatedChallenges = new List<AcmeChallenge>();
+
+            foreach (var challenge in challenges)
+            {
+                AcmeChallenge currentChallange = order.Challenges.FirstOrDefault(c => c.Domain == challenge.Domain);
+                if (currentChallange == null)
                 {
-                    await logger.Error($"Acme is null");
+
+                    await logger.Error($"[{username}]: currentChallange domain:{challenge.Domain} is null or empty!");
+
                     return null;
                 }
 
-                ESJwsTool signer = AcmeService.LoadOrCreateSigner(acme);
-
-                if (signer == null)
+                AcmeChallenge orderChallenge = new AcmeChallenge
                 {
-                    await logger.Error($"[{order.UserId}]:  signer is null: {orderId}");
-                    return null;
+                    ChallengeId = currentChallange.ChallengeId,
+                    OrderId = order.OrderId,
+                    UserId = order.UserId,
+                    Domain = challenge.Domain,
+                    DnsChallengeToken = challenge.DnsChallengeToken,
+                    Status = "Processing",
+                    ProviderId = currentChallange.ProviderId,
+                    AuthorizationUrl = challenge.AuthorizationUrl,
+                    ZoneId = currentChallange.ZoneId
 
-                }
-
-                _userRepository = new UserRepository(_dnsProviderRepository);
-                User user = await _userRepository.GetUserByIdAsync(order.UserId);
-
-                if (user == null)
-                {
-
-                    await logger.Error($"[{order.UserId}]: User not found for order ID: {orderId}");
-                    return null;
-                }
-
-                string username = user.Username;
-
-                var url = order.OrderUrl;
-
-                var uri = new Uri(url);
-
-                var baseUrl = $"{uri.Scheme}://{uri.Host}/";
-
-                var http = new HttpClient
-                {
-                    BaseAddress = new Uri(baseUrl),
                 };
+                updatedChallenges.Add(orderChallenge);
 
-                var ACME = new AcmeService(logger)
-                {
-                    _logger = logger,
-                    _signer = signer,
-                    _client = new AcmeProtocolClient(http, null, null, signer),
-
-
-                };
-                ConfigureService.AcmeServiceCache.TryAdd(order.OrderId, ACME);
-
-                List<string> domains = order.Challenges.Select(c => c.Domain).ToList();
-                var challenges = await ACME.CreateUserAccountForCert(order.Email, domains);
-
-                if (challenges == null)
-                {
-
-                    await logger.Error($"[{username}]: Returned domain is null or empty after CreateUserAccountForCert!");
-
-                    return null;
-                }
-                var updatedChallenges = new List<AcmeChallenge>();
-
-                foreach (var challenge in challenges)
-                {
-                    AcmeChallenge currentChallange = order.Challenges.FirstOrDefault(c => c.Domain == challenge.Domain);
-                    if (currentChallange == null)
-                    {
-
-                        await logger.Error($"[{username}]: currentChallange domain:{challenge.Domain} is null or empty!");
-
-                        return null;
-                    }
-
-                    AcmeChallenge orderChallenge = new AcmeChallenge
-                    {
-                        ChallengeId = currentChallange.ChallengeId,
-                        OrderId = order.OrderId,
-                        UserId = order.UserId,
-                        Domain = challenge.Domain,
-                        DnsChallengeToken = challenge.DnsChallengeToken,
-                        Status = "Processing",
-                        ProviderId = currentChallange.ProviderId,
-                        AuthorizationUrl = challenge.AuthorizationUrl,
-                        ZoneId = currentChallange.ZoneId
-
-                    };
-                    updatedChallenges.Add(orderChallenge);
-
-                }
-                order.Challenges = updatedChallenges;
-                ConfigureService.CertRecordCache.Add(order.OrderId, order);
-                return order.Challenges;
+            }
+            order.Challenges = updatedChallenges;
+            ConfigureService.CertRecordCache.TryAdd(order.OrderId, order);
+            return order.Challenges;
 
         }
 
         public async Task<bool> FinishManualRenewCertRecordById(Logger logger, string orderId)
         {
-            
+
             ConfigureService.CertRecordCache.TryGetValue(orderId, out CertRecord order);
-            
+
             if (order == null || order.Challenges.Count == 0)
             {
                 await logger.Error($"[{orderId}]: No ACME service found for Order ID: {order.OrderId}");
@@ -450,17 +450,17 @@ namespace SphereSSLv2.Services.CertServices
             }
             const int maxAttempts = 5;
             int attempt = 0;
-            
+
             ConfigureService.AcmeServiceCache.TryGetValue(orderId, out AcmeService ACME);
             if (ACME == null)
             {
                 await logger.Error($"[{orderId}]: No ACME service found in cache");
                 return false;
             }
-           
-            _userRepository= new UserRepository(_dnsProviderRepository);
+
+            _userRepository = new UserRepository(_dnsProviderRepository);
             User user = await _userRepository.GetUserByIdAsync(order.UserId);
-           
+
             if (user == null)
             {
                 await logger.Error($"[{order.UserId}]: User not found for order ID: {orderId}");
@@ -475,7 +475,7 @@ namespace SphereSSLv2.Services.CertServices
                 List<(AcmeChallenge challange, bool verified)> challengesResult;
                 try
                 {
-                    
+
                     challengesResult = await ACME.CheckTXTRecordMultipleDNS(order.Challenges, username);
 
                 }
@@ -511,7 +511,7 @@ namespace SphereSSLv2.Services.CertServices
                     {
                         _challenge.Status = "Valid";
                     }
-                    
+
                     await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
                     if (order.SaveForRenewal)
                     {
@@ -608,10 +608,50 @@ namespace SphereSSLv2.Services.CertServices
 
             return true;
         }
-            
+
+        public async Task<bool> RevokeCertRecordByIdAsync(Logger logger, string orderId)
+        {
+            ConfigureService.CertRecordCache.TryGetValue(orderId, out CertRecord order);
+
+            if (order == null || order.Challenges.Count == 0)
+            {
+                await logger.Error($"[{orderId}]: No ACME service found for Order ID: {order.OrderId}");
+
+            }
+            if (string.IsNullOrWhiteSpace(orderId) || string.IsNullOrWhiteSpace(order.UserId))
+            {
+                await logger.Error($"[{orderId}]: No Order ID found: {order.OrderId}");
+                return false;
+            }
+
+            ConfigureService.AcmeServiceCache.TryGetValue(orderId, out AcmeService ACME);
+            if (ACME == null)
+            {
+                await logger.Error($"[{orderId}]: No ACME service found in cache");
+                return false;
+            }
+
+            _userRepository = new UserRepository(_dnsProviderRepository);
+            User user = await _userRepository.GetUserByIdAsync(order.UserId);
+
+            if (user == null)
+            {
+                await logger.Error($"[{order.UserId}]: User not found for order ID: {orderId}");
+                return false;
+            }
+
+            string username = user.Username;
+
+            bool success = await ACME.RevokeCert(order);
+
+            return success;
+
+
+        }
+
     }
 }
 
 
-    
+
 

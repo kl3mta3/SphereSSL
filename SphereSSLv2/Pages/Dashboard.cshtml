@@ -713,27 +713,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
-<!-- Close DNS Challenge Modal -->
-<script>
-       function closeDnsModal() {
-        const modalEl = document.getElementById("dnsChallengeModal");
-        const modal = bootstrap.Modal.getInstance(modalEl);
 
-        const overlay = document.getElementById("waitingModalOverlay");
-        if (overlay) overlay.remove();
-
-            const startButton = document.getElementById("startButton");
-            if (startButton) {
-                startButton.disabled = false;
-                startButton.hidden = false;
-            }
-
-
-        if (modal) {
-            modal.hide();
-        }
-    }
-</script>
 
 <!--Get Current User Username-->
 <script>

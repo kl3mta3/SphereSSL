@@ -32,6 +32,8 @@ using SphereSSLv2.Models.CertModels;
 using Org.BouncyCastle.Asn1.Cmp;
 using Newtonsoft.Json.Linq;
 using System.DirectoryServices.ActiveDirectory;
+using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 
 namespace SphereSSLv2.Services.AcmeServices
@@ -562,10 +564,32 @@ namespace SphereSSLv2.Services.AcmeServices
         }
 
 
-        internal async Task RevokeCert(CertRecord record)
+        internal async Task<bool> RevokeCert(CertRecord record)
         {
             ESJwsTool signer = LoadOrCreateSigner(this, "signer.pem");
-            var client = new AcmeProtocolClient(new HttpClient(), null, null, signer);
+
+            var url = record.OrderUrl;
+
+            var uri = new Uri(url);
+
+            var baseUrl = $"{uri.Scheme}://{uri.Host}/";
+
+            var http = new HttpClient
+            {
+                BaseAddress = new Uri(baseUrl),
+            };
+
+            var ACME = new AcmeService(_logger)
+            {
+                _logger = _logger,
+                _signer = signer,
+                _client = new AcmeProtocolClient(http, null, null, signer),
+
+
+            };
+
+
+            var client = ACME._client;
             client.Directory = await client.GetDirectoryAsync();
             await client.GetNonceAsync();
 
@@ -582,37 +606,38 @@ namespace SphereSSLv2.Services.AcmeServices
             if (order == null)
             {
                 await _logger.Error($"Order with ID {record.OrderId} not found.");
-                return;
+                return false;
             }
-            if (order.Payload.Status != "valid")
+            if (order.Payload.Status != "valid" && order.Payload.Status != "expired")
             {
                 await _logger.Error($"Order with ID {record.OrderId} is not valid. Cannot revoke.");
-                return;
+                return false;
             }
             try
             {
-           
-                string certBase64 = order.Payload.Certificate;
+                string certBase64 = order.Payload.Certificate ?? "";
 
-                // If the string is PEM, strip headers/footers and whitespace
+                // If it's PEM, extract just the first cert block
                 if (certBase64.Contains("BEGIN CERTIFICATE"))
                 {
-                    certBase64 = certBase64
-                        .Replace("-----BEGIN CERTIFICATE-----", "")
-                        .Replace("-----END CERTIFICATE-----", "")
-                        .Replace("\r", "")
-                        .Replace("\n", "")
-                        .Trim();
+                    var match = Regex.Match(certBase64, "-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----", RegexOptions.Singleline);
+                    if (!match.Success)
+                        throw new Exception("Certificate PEM format is invalid!");
+
+                    certBase64 = match.Groups[1].Value.Replace("\r", "").Replace("\n", "").Trim();
                 }
 
+                // Now certBase64 should be only base64, not the whole PEM
                 var certBytes = Convert.FromBase64String(certBase64);
                 await client.RevokeCertificateAsync(certBytes, RevokeReason.Unspecified);
 
                 await _logger.Info($"Certificate for order {record.OrderId} has been successfully revoked.");
+                return true;
             }
             catch (Exception ex)
             {
                 await _logger.Error($"Failed to revoke certificate for order {record.OrderId}: {ex.Message}");
+                return false;
             }
         }
     }

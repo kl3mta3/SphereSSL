@@ -1073,51 +1073,158 @@
         const manageModal = new bootstrap.Modal(manageModalEl);
         manageModal.show();
 
+        // Clean up any old modals/spinners before binding button
+        function removeOldWaitModal() {
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+            let oldOverlay = document.getElementById("waitingModalOverlay");
+            if (oldOverlay) oldOverlay.remove();
+        }
+
         // Bind Renew Button
-       const btnRenew = document.getElementById('btnRenewCert');
+        const btnRenew = document.getElementById('btnRenewCert');
         if (btnRenew) {
             btnRenew.onclick = async function () {
                 showToast("Renewing certificate for: " + orderId);
 
-                const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId })
-                });
+                // 1. Hide manage modal
+                manageModal.hide();
 
-                if (!response.ok) {
-                    showToast("Renewal failed. Try again.", true);
+                // 2. Remove old spinners if any
+                removeOldWaitModal();
+
+                // 3. Try to get waiting modal from server, else use fallback
+                let waitModalHtml;
+                try {
+                    const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                    waitModalHtml = await waitModalResponse.text();
+                } catch {
+                    waitModalHtml = `
+                        <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content p-4 text-center">
+                              <div class="spinner-border text-primary" role="status"></div>
+                              <p class="mt-2 mb-0 fw-bold">Renewing certificate...</p>
+                            </div>
+                          </div>
+                        </div>`;
+                }
+                document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+                // 4. Show the waiting modal
+                const waitModalEl = document.getElementById("waitModal");
+                let waitModalInstance = null;
+                if (waitModalEl) {
+                    waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                    waitModalInstance.show();
+                }
+
+                // 5. Do the renewal
+                let result = null;
+                try {
+                    const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    });
+
+                    if (!response.ok) {
+                        showToast("Renewal failed. Try again.", true);
+                        removeOldWaitModal();
+                        return;
+                    }
+
+                    result = await response.json();
+                } catch (e) {
+                    showToast("Error during renewal request.", true);
+                    removeOldWaitModal();
                     return;
                 }
 
-                const result = await response.json();
+                // 6. Remove spinner when done
+                removeOldWaitModal();
 
-                // Auto-Renew
-                if (result.autoRenewed) {
+                // 7. Handle the result
+                if (result?.autoRenewed) {
                     showToast("Order Auto-Renewed Successfully", false);
-                    manageModal.hide();
                     return;
                 }
-
-              
-                if (result.status === "manual" && result.html) {
+                if (result?.status === "manual" && result.html) {
                     document.getElementById('manualRenewModalContent').innerHTML = result.html;
                     new bootstrap.Modal(document.getElementById('manualRenewModal')).show();
                     showToast("Manual renewal initiated. Please complete the challenges.", false);
-                    manageModal.hide();
                     return;
                 }
 
-            
-            showToast(result.message || "Unknown renewal status.", true);
-        };
-    }
+                showToast(result?.message || "Unknown renewal status.", true);
+            };
+        }
+    
     
 
         // Bind Revoke Button
         const btnRevoke = document.getElementById('btnRevokeCert');
         if (btnRevoke) {
             btnRevoke.onclick = async function () {
+
+                             // 1. Hide manage modal
+                manageModal.hide();
+
+                // 2. Remove old spinners if any
+                removeOldWaitModal();
+
+                // 3. Try to get waiting modal from server, else use fallback
+                let waitModalHtml;
+                try {
+                    const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                    waitModalHtml = await waitModalResponse.text();
+                } catch {
+                    waitModalHtml = `
+                        <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content p-4 text-center">
+                              <div class="spinner-border text-primary" role="status"></div>
+                              <p class="mt-2 mb-0 fw-bold">Renewing certificate...</p>
+                            </div>
+                          </div>
+                        </div>`;
+                }
+                document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+                // 4. Show the waiting modal
+                const waitModalEl = document.getElementById("waitModal");
+                let waitModalInstance = null;
+                if (waitModalEl) {
+                    waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                    waitModalInstance.show();
+                }
+
+                // 5. Do the renewal
+                let result = null;
+                try {
+                    const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    });
+
+                    if (!response.ok) {
+                        showToast("Renewal failed. Try again.", true);
+                        removeOldWaitModal();
+                        return;
+                    }
+
+                    result = await response.json();
+                } catch (e) {
+                    showToast("Error during renewal request.", true);
+                    removeOldWaitModal();
+                    return;
+                }
+
+                // 6. Remove spinner when done
+                removeOldWaitModal();
+
+
                 const response = await fetch('/ManageRenewals?handler=RevokeCertificate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1188,4 +1295,62 @@
         document.body.style = '';
     });
 
+</script>
+
+<script>
+    function learnMore() {
+        window.open("/LearnMore", "_blank");
+    }
+</script>
+
+<!-- Close DNS Challenge Modal -->
+<script>
+       function closeDnsModal() {
+        const modalEl = document.getElementById("dnsChallengeModal");
+        const modal = bootstrap.Modal.getInstance(modalEl);
+
+        const overlay = document.getElementById("waitingModalOverlay");
+        if (overlay) overlay.remove();
+
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
+
+
+        if (modal) {
+            modal.hide();
+        }
+
+    setTimeout(() => {
+        location.reload();
+    }, 300);
+
+    }
+
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById("dnsChallengeModal");
+        if (!modalEl) return;
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            // Clean up overlay
+            const overlay = document.getElementById("waitingModalOverlay");
+            if (overlay) overlay.remove();
+
+            // Show or enable the start button if needed
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
+
+            // Reload page
+            setTimeout(() => {
+                location.reload();
+            }, 300);
+        });
+    });
 </script>

@@ -369,8 +369,25 @@ namespace SphereSSLv2.Pages
                             </div>
                             ";
                     }
+                    if (_order.AutoAdd)
+                    {
+                        html += @"
+                        </div>
+                        <div class='mb-4' justify-content-center>
+                            <p class='mb-0'>Records auto added successfully, click <strong>Ready</strong>.</p>
+                            <small class='text-muted'>Need help? Click <strong>Learn More</strong>.</small>
+                        </div>
+                        <div class='d-flex justify-content-end gap-2'>
+                            <button type='button' class='btn btn-outline-info' onclick='learnMore()'>Learn More</button>
+                            <button type='button' class='btn btn-success' onclick='verifyChallange()'>Ready</button>
+                        </div>
+                        </form>
+                        ";
 
-                    html += @"
+                    }
+                    else
+                    {
+                        html += @"
                         </div>
                         <div class='mb-4' justify-content-center>
                             <p class='mb-0'>Once you've added all records, click <strong>Ready</strong>.</p>
@@ -382,7 +399,7 @@ namespace SphereSSLv2.Pages
                         </div>
                         </form>
                         ";
-
+                    }
 
                     return Content(html, "text/html");
                 }
