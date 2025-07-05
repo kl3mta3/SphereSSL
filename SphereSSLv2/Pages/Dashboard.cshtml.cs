@@ -622,9 +622,15 @@ namespace SphereSSLv2.Pages
 
             foreach (var challenge in record.Challenges)
             {
-                string ns1 = "—", ns2 = "—", fullDomainName = $"_acme-challenge.{challenge.Domain}", dnsToken = challenge.DnsChallengeToken;
+                string domain = challenge.Domain;
+                if (domain.Contains("*."))
+                {
+                    domain = domain.Substring(2);
+                }
+                string ns1 = "—", ns2 = "—", fullDomainName = $"_acme-challenge.{domain}", dnsToken = challenge.DnsChallengeToken;
                 string fullLink = $"https://{challenge.Domain}";
-
+            
+                DNSProvider provider = await _dnsProviderRepository.GetDNSProviderById(challenge.ProviderId);
                 try
                 {
                     var nsList = await ConfigureService.GetNameServers(challenge.Domain);
@@ -637,7 +643,9 @@ namespace SphereSSLv2.Pages
                 <div class='mb-3 pb-2 border-bottom'>
                     <div>
                         <strong>Domain:</strong> <a href='{fullLink}' target='_blank' class='text-primary text-decoration-underline'>{challenge.Domain}</a>
-                        <span class='badge bg-light text-dark ms-2'>{ConfigureService.CapitalizeFirstLetter(challenge.ProviderId)}</span>
+                     </div>
+                     <div>
+                        <strong>Provider:</strong> <span class='badge bg-light text-dark'>{ConfigureService.CapitalizeFirstLetter(provider.Provider)}</span>
                     </div>
                     <div><strong>NameServer1:</strong> {ns1}</div>
                     <div><strong>NameServer2:</strong> {ns2}</div>

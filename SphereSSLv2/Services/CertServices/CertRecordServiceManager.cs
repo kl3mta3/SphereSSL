@@ -254,6 +254,7 @@ namespace SphereSSLv2.Services.CertServices
 
                             await logger.Update($"[{username}]: Saving order for renewal!");
                             order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+                            order.SuccessfulRenewals++;
                             await CertRepository.UpdateCertRecord(order);
 
                             UserStat stats = await _userRepository.GetUserStatByIdAsync(order.UserId);
@@ -518,14 +519,15 @@ namespace SphereSSLv2.Services.CertServices
 
 
                         await logger.Update($"[{username}]: Saving order for renewal!");
-
+                        order.SuccessfulRenewals++;
+                        order.ExpiryDate = DateTime.UtcNow.AddDays(90);
                         await CertRepository.UpdateCertRecord(order);
 
-                        UserStat stats = await _userRepository.GetUserStatByIdAsync(order.UserId);
+                        UserStat stats1 = await _userRepository.GetUserStatByIdAsync(order.UserId);
 
-                        if (stats == null)
+                        if (stats1 == null)
                         {
-                            stats = new UserStat
+                            stats1 = new UserStat
                             {
                                 UserId = order.UserId,
                                 TotalCerts = 1,
@@ -536,8 +538,8 @@ namespace SphereSSLv2.Services.CertServices
                         }
                         else
                         {
-                            stats.CertsRenewed++;
-                            stats.LastCertCreated = DateTime.UtcNow;
+                            stats1.CertsRenewed++;
+                            stats1.LastCertCreated = DateTime.UtcNow;
                         }
 
                     }
@@ -546,6 +548,7 @@ namespace SphereSSLv2.Services.CertServices
                         foreach (var __challenge in failedChallenges)
                         {
                             __challenge.Status = "Invalid";
+
                         }
 
                     }
@@ -581,6 +584,28 @@ namespace SphereSSLv2.Services.CertServices
             }
 
             await logger.Error($"[{username}]: All {maxAttempts} attempts failed.");
+            order.FailedRenewals++;
+            await CertRepository.UpdateCertRecord(order);
+
+            UserStat stats = await _userRepository.GetUserStatByIdAsync(order.UserId);
+
+            if (stats == null)
+            {
+                stats = new UserStat
+                {
+                    UserId = order.UserId,
+                    TotalCerts = 1,
+                    CertsRenewed = 0,
+                    CertCreationsFailed = 1,
+                    LastCertCreated = DateTime.UtcNow
+                };
+            }
+            else
+            {
+                stats.CertCreationsFailed++;
+            }
+
+
             return true;
         }
             
