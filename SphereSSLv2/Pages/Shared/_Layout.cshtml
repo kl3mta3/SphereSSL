@@ -99,6 +99,16 @@
 
 </html>
 
+<!-- Manual Renew Modal Shell -->
+<div class="modal fade" id="manualRenewModal" tabindex="-1" aria-labelledby="manualRenewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-light text-dark shadow-sm">
+            <!-- This gets replaced by your AJAX -->
+            <div id="manualRenewModalContent"></div>
+        </div>
+    </div>
+</div>
+
 <!-- Local Certificate Modal -->
 <div class="modal fade" id="localCertModal" tabindex="-1" aria-labelledby="localCertModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -139,6 +149,25 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Manage Certificate Modal -->
+<div class="modal fade" id="manageCertMiniModal" tabindex="-1" aria-labelledby="manageCertMiniModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 340px;">
+        <div class="modal-content rounded-3 shadow-lg">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="manageCertMiniModalLabel">Manage Certificate</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex flex-column align-items-center gap-3">
+                <button class="btn btn-success w-100" id="btnRenewCert">Renew</button>
+                <button class="btn btn-danger w-100" id="btnRevokeCert">Revoke</button>
+                <div class="d-flex flex-column align-items-center w-100">
+                    <button class="btn btn-outline-primary w-100 mt-1" id="btnToggleAutoRenew">Toggle Auto-Renew</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -697,7 +726,7 @@
         ) {
         showToast("Password must be 8-24 characters, and include uppercase, lowercase, and a number.", true);
         return;
-
+        }
 
         const response = await fetch('/Settings?handler=AddUser', {
             method: 'POST',
@@ -879,35 +908,39 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById('confirmDeleteDNSProviderBtn').addEventListener('click', async function() {
-            if (!pendingProviderIdToDelete) return;
+        const btn = document.getElementById('confirmDeleteDNSProviderBtn');
 
-            const response = await fetch('/Settings?handler=DeleteDNSProvider', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ providerId: pendingProviderIdToDelete })
-            });
+        if (btn) {
+            btn.addEventListener('click', async function () {
+                if (!pendingProviderIdToDelete) return;
 
-            if (response.ok) {
-                showToast("Provider deleted.");
-                const modalInstance = bootstrap.Modal.getInstance(document.getElementById('editProviderModal'));
-                if (modalInstance) modalInstance.hide();
+                const response = await fetch('/Settings?handler=DeleteDNSProvider', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ providerId: pendingProviderIdToDelete })
+                });
 
-                document.querySelector(`[data-provider-id="${pendingProviderIdToDelete}"]`).remove();
+                if (response.ok) {
+                    showToast("Provider deleted.");
+                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('editProviderModal'));
+                    if (modalInstance) modalInstance.hide();
 
-                if (document.querySelectorAll('[data-provider-id]').length === 0) {
-                    document.querySelector('#dnsTable tbody').innerHTML =
-                        `<tr class="no-sort"><td colspan="3" class="text-muted text-center">No DNS Providers found.</td></tr>`;
+                    document.querySelector(`[data-provider-id="${pendingProviderIdToDelete}"]`)?.remove();
+
+                    if (document.querySelectorAll('[data-provider-id]').length === 0) {
+                        document.querySelector('#dnsTable tbody').innerHTML =
+                            `<tr class="no-sort"><td colspan="3" class="text-muted text-center">No DNS Providers found.</td></tr>`;
+                    }
+                } else {
+                    const err = await response.text();
+                    showToast("Failed to delete provider: " + err, true);
                 }
-            } else {
-                const err = await response.text();
-                showToast("Failed to delete provider: " + err, true);
-            }
 
-            // Hide the confirm modal either way
-            bootstrap.Modal.getInstance(document.getElementById('confirmDeleteDNSProviderModal')).hide();
-            pendingProviderIdToDelete = null;
-        });
+                // Hide the confirm modal either way
+                bootstrap.Modal.getInstance(document.getElementById('confirmDeleteDNSProviderModal'))?.hide();
+                pendingProviderIdToDelete = null;
+            });
+        }
     });
 
 </script>
@@ -1025,6 +1058,134 @@
             const errorText = await response.text();
            showToast("Failed to create certificate: " + errorText, true);
         }
+    });
+
+</script>
+
+<!-- Show Manage Cert Modal -->
+<script>
+    async function showManageCertModal(orderId) {
+        const manageModalEl = document.getElementById('manageCertMiniModal');
+        if (!manageModalEl) {
+            showToast("Modal not found!", true);
+            return;
+        }
+        const manageModal = new bootstrap.Modal(manageModalEl);
+        manageModal.show();
+
+        // Bind Renew Button
+       const btnRenew = document.getElementById('btnRenewCert');
+        if (btnRenew) {
+            btnRenew.onclick = async function () {
+                showToast("Renewing certificate for: " + orderId);
+
+                const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+
+                if (!response.ok) {
+                    showToast("Renewal failed. Try again.", true);
+                    return;
+                }
+
+                const result = await response.json();
+
+                // Auto-Renew
+                if (result.autoRenewed) {
+                    showToast("Order Auto-Renewed Successfully", false);
+                    manageModal.hide();
+                    return;
+                }
+
+              
+                if (result.status === "manual" && result.html) {
+                    document.getElementById('manualRenewModalContent').innerHTML = result.html;
+                    new bootstrap.Modal(document.getElementById('manualRenewModal')).show();
+                    showToast("Manual renewal initiated. Please complete the challenges.", false);
+                    manageModal.hide();
+                    return;
+                }
+
+            
+            showToast(result.message || "Unknown renewal status.", true);
+        };
+    }
+    
+
+        // Bind Revoke Button
+        const btnRevoke = document.getElementById('btnRevokeCert');
+        if (btnRevoke) {
+            btnRevoke.onclick = async function () {
+                const response = await fetch('/ManageRenewals?handler=RevokeCertificate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+                if (response.ok) {
+                    showToast("Revoked certificate for: " + orderId, false);
+                    manageModal.hide();
+                } else {
+                    showToast("Failed to revoke certificate.", true);
+                }
+            };
+        }
+
+        // Bind Toggle Auto-Renew Button
+        const btnToggleAuto = document.getElementById('btnToggleAutoRenew');
+        if (btnToggleAuto) {
+            btnToggleAuto.onclick = async function () {
+                const response = await fetch('/ManageRenewals?handler=ToggleAutoRenew', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+                if (response.ok) {
+                    showToast("Toggled auto-renew for: " + orderId, false);
+                    manageModal.hide();
+                } else {
+                    showToast("Failed to toggle auto-renew.", true);
+                }
+            };
+        }
+    }
+
+
+
+         function CheckManualChallenges(request) {
+        let btn = document.getElementById('manualReadyBtn');
+        if (btn) btn.disabled = true;
+        if (typeof request === "string") {
+            request = { OrderId: request };
+        }
+        fetch('/ManageRenewals?handler=CheckManualChallenges', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('manualRenewModalContent').innerHTML = html;
+
+            // Always reset everything on open!
+            certDownloadReady = false;
+            certDownloadsReady = false;
+            let btn1 = document.getElementById("downloadButton");
+            if (btn1) btn1.style.display = "none";
+            let btn2 = document.getElementById("multiDownloadButtons");
+            if (btn2) btn2.style.display = "none";
+
+            new bootstrap.Modal(document.getElementById('manualRenewModal')).show();
+        });
+    }
+
+        document.addEventListener('hidden.bs.modal', function () {
+       
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+     
+        document.body.classList.remove('modal-open');
+        document.body.style = '';
     });
 
 </script>

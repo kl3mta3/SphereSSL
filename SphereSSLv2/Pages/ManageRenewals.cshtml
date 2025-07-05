@@ -136,6 +136,7 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
 <!-- Sort CERT Table -->
 <script>
@@ -207,6 +208,105 @@
       // Optionally: run this after page load so counts are always synced
       document.addEventListener('DOMContentLoaded', updateCertCounts);
 
+</script>
+
+<!--Get Current User Username-->
+<script>
+
+    let currentUsername = null;
+
+    async function fetchCurrentUsername() {
+        try {
+            const resp = await fetch('/Dashboard?handler=GetCurrentUserUsername');
+            const data = await resp.json();
+            if (data.username) {
+                currentUsername = data.username;
+            } else {
+                console.warn("Username not found in session.");
+            }
+        } catch (err) {
+            console.error("Failed to fetch current username:", err);
+        }
+    }
+</script>
+
+<!-- starting Signal listener -->
+<script>
+    console.log("Starting Signal listener:");
+
+    async function startSignalR() {
+        await fetchCurrentUsername(); // make sure username is set first!
+
+        const connection1 = new signalR.HubConnectionBuilder()
+            .withUrl("/logHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection1.on("UpdateLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.log("Received UpdateLog:", msg)
+            appendToLog(msg, "update");
+
+            if (msg.includes("Certificate stored successfully!")) {
+                certDownloadReady = true;
+                console.log("Certificate download ready:", certDownloadReady);
+                tryShowDownloadButton();
+            }
+            if (msg.includes("Certificates stored successfully!")) {
+                certDownloadsReady = true;
+                console.log("Certificates download ready:", certDownloadsReady);
+                tryShowDownloadButtons();
+            }
+        });
+
+        connection1.on("InfoLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.log("Received InfoLog:", msg);
+            appendToLog(msg, "info");
+        });
+
+        connection1.on("DebugLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.debug("Received DebugLog:", msg);
+            appendToLog(msg, "debug");
+        });
+
+        connection1.start()
+            .then(() => {
+                console.log("SignalR connection successfully established!");
+            })
+            .catch(err => {
+                console.error("SignalR connection failed: ", err);
+            });
+
+        window.signalHub = connection1;
+    }
+
+    // Call it!
+    startSignalR();
+
+</script>
+
+<!-- append Signal Log -->
+<script>
+    function appendToLog(text, level) {
+          console.log("Signal Line Heard:");
+        const logLine = document.createElement("div");
+        logLine.textContent = text;
+        logLine.className = `log-line ${level}`;
+
+        const container = document.getElementById("signalLogOutput");
+
+        if (!container) {
+            setTimeout(() => appendToLog(text, level), 100);
+            return;
+        }
+
+        container.appendChild(logLine);
+        container.scrollTop = container.scrollHeight;
+
+        console.log("Appending log to:", container);
+    }
 </script>
 
 

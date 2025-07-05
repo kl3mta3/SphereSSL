@@ -263,9 +263,9 @@ namespace SphereSSLv2.Services.AcmeServices
                 var authz = await _client.GetAuthorizationDetailsAsync(authUrl);
                 var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
 
-                _ = _logger.Error($"[{username}]: Domain: {domain}");
-                _ = _logger.Error($"[{username}]: Challenge URL: {dnsChallenge.Url}");
-                _ = _logger.Error($"[{username}]: Challenge status: {dnsChallenge.Status}");
+                _ = _logger.Info($"[{username}]: Domain: {domain}");
+                _ = _logger.Info($"[{username}]: Challenge URL: {dnsChallenge.Url}");
+                _ = _logger.Info($"[{username}]: Challenge status: {dnsChallenge.Status}");
 
                 if (dnsChallenge.Status == "pending")
                 {
