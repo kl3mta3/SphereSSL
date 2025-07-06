@@ -54,7 +54,7 @@ namespace SphereSSLv2.Services.Config
         }
 
         //for testing
-        internal static bool GenerateFakeTestCerts = false;
+        internal static bool GenerateFakeTestCerts = true;
 
         internal static void OnProcessExit(object? sender, EventArgs e)
         {

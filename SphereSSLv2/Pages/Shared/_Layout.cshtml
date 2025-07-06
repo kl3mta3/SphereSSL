@@ -1331,26 +1331,26 @@
 
 
 
-        document.addEventListener('DOMContentLoaded', function () {
-        const modalEl = document.getElementById("dnsChallengeModal");
-        if (!modalEl) return;
+        // document.addEventListener('DOMContentLoaded', function () {
+        // const modalEl = document.getElementById("dnsChallengeModal");
+        // if (!modalEl) return;
 
-        modalEl.addEventListener('hidden.bs.modal', function () {
-            // Clean up overlay
-            const overlay = document.getElementById("waitingModalOverlay");
-            if (overlay) overlay.remove();
+        // modalEl.addEventListener('hidden.bs.modal', function () {
+        //     // Clean up overlay
+        //     const overlay = document.getElementById("waitingModalOverlay");
+        //     if (overlay) overlay.remove();
 
-            // Show or enable the start button if needed
-            const startButton = document.getElementById("startButton");
-            if (startButton) {
-                startButton.disabled = false;
-                startButton.hidden = false;
-            }
+        //     // Show or enable the start button if needed
+        //     const startButton = document.getElementById("startButton");
+        //     if (startButton) {
+        //         startButton.disabled = false;
+        //         startButton.hidden = false;
+        //     }
 
-            // Reload page
-            setTimeout(() => {
-                location.reload();
-            }, 300);
-        });
+        //     // Reload page
+        //     setTimeout(() => {
+        //         location.reload();
+        //     }, 300);
+        // });
     });
 </script>

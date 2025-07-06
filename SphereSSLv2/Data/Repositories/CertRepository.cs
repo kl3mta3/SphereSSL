@@ -137,15 +137,15 @@ namespace SphereSSLv2.Data.Repositories
             }
 
             command.CommandText = @"
-        DELETE FROM CertRecords
-        WHERE OrderId = @OrderId;
-    ";
+            DELETE FROM CertRecords
+            WHERE OrderId = @OrderId;
+            ";
 
             command.Parameters.AddWithValue("@OrderId", orderId);
 
             await command.ExecuteNonQueryAsync();
 
-            await HealthRepository.AdjustTotalCertsInDB(-1);
+            //await HealthRepository.AdjustTotalCertsInDB(-1);
 
             var recordToRemove = ConfigureService.CertRecords.FirstOrDefault(r => r.OrderId == orderId);
             if (recordToRemove != null)
@@ -451,8 +451,133 @@ namespace SphereSSLv2.Data.Repositories
             return certs;
         }
 
+        public static async Task MoveToRevokedRecords(CertRecord record)
+        {
+            using (var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}"))
+            {
+                await conn.OpenAsync();
+                using (var tx = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // Insert into RevokedRecords
+                        var cmd = conn.CreateCommand();
+                        cmd.Transaction = tx;
+                        cmd.CommandText = @"INSERT INTO RevokedRecords (
+                        UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, RevokeDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
+                        FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, ChallengeType, Thumbprint
+                        ) VALUES (
+                            @UserId, @OrderId, @Email, @SavePath, @CreationTime, @ExpiryDate, @RevokeDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
+                            @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl, @ChallengeType, @Thumbprint
+                        );";
+                        // ... add params (as in your code above)
+                        cmd.Parameters.AddWithValue("@UserId", record.UserId ?? "");
+                        cmd.Parameters.AddWithValue("@OrderId", record.OrderId ?? "");
+                        cmd.Parameters.AddWithValue("@Email", record.Email ?? "");
+                        cmd.Parameters.AddWithValue("@SavePath", record.SavePath ?? "");
+                        cmd.Parameters.AddWithValue("@CreationTime", record.CreationDate.ToString("o"));
+                        cmd.Parameters.AddWithValue("@ExpiryDate", record.ExpiryDate.ToString("o"));
+                        cmd.Parameters.AddWithValue("@RevokeDate", DateTime.UtcNow.ToString("o"));
+                        cmd.Parameters.AddWithValue("@UseSeparateFiles", record.UseSeparateFiles ? 1 : 0);
+                        cmd.Parameters.AddWithValue("@SaveForRenewal", record.SaveForRenewal ? 1 : 0);
+                        cmd.Parameters.AddWithValue("@AutoRenew", record.autoRenew ? 1 : 0);
+                        cmd.Parameters.AddWithValue("@FailedRenewals", record.FailedRenewals);
+                        cmd.Parameters.AddWithValue("@SuccessfulRenewals", record.SuccessfulRenewals);
+                        cmd.Parameters.AddWithValue("@Signer", record.Signer ?? "");
+                        cmd.Parameters.AddWithValue("@AccountID", record.AccountID ?? "");
+                        cmd.Parameters.AddWithValue("@OrderUrl", record.OrderUrl ?? "");
+                        cmd.Parameters.AddWithValue("@ChallengeType", record.ChallengeType ?? "");
+                        cmd.Parameters.AddWithValue("@Thumbprint", record.Thumbprint ?? "");
+                        await cmd.ExecuteNonQueryAsync();
 
+                        // Add all challenges to RevokedChallenges
+                        foreach (var chall in record.Challenges)
+                        {
+                            await AddRevokedChallengeAsync(chall, conn, tx);
+                        }
 
+                        // Delete ACME challenges
+                        await DeleteAcmeChallengesByOrderIdAsync(record.OrderId, conn, tx);
+                        // Delete CertRecord
+                        await DeleteCertRecordByOrderId(record.OrderId, conn, tx);
+
+                        await tx.CommitAsync();
+                        // Optionally log here
+                    }
+                    catch
+                    {
+                        await tx.RollbackAsync();
+                        throw; // or handle/log as you like
+                    }
+                }
+            }
+        }
+
+        public static async Task<List<RevokedCertRecord>> GetAllRevokedRecords()
+        {
+            var records = new List<RevokedCertRecord>();
+
+            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+            await connection.OpenAsync();
+
+            var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT 
+                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, RevokeDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
+                    FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, ChallengeType, Thumbprint
+                FROM RevokedRecords;
+            ";
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var cert = new RevokedCertRecord
+                {
+                    UserId = reader["UserId"].ToString(),
+                    OrderId = reader["OrderId"].ToString(),
+                    Email = reader["Email"].ToString(),
+                    SavePath = reader["SavePath"]?.ToString() ?? "",
+                    CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
+                    ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
+                    RevokeDate = DateTime.Parse(reader["RevokeDate"].ToString() ?? DateTime.MinValue.ToString()),
+                    UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
+                    SaveForRenewal = Convert.ToBoolean(reader["SaveForRenewal"]),
+                    autoRenew = Convert.ToBoolean(reader["AutoRenew"]),
+                    FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
+                    SuccessfulRenewals = Convert.ToInt32(reader["SuccessfulRenewals"]),
+                    Signer = reader["Signer"]?.ToString() ?? "",
+                    AccountID = reader["AccountID"]?.ToString() ?? "",
+                    OrderUrl = reader["OrderUrl"]?.ToString() ?? "",
+                    ChallengeType = reader["ChallengeType"]?.ToString() ?? "",
+                    Thumbprint = reader["Thumbprint"]?.ToString() ?? "",
+                    Challenges = new List<AcmeChallenge>() // Up to you if you want to load challenges for revoked ones
+                };
+
+                List<AcmeChallenge> challenges = await GetAllRevokedChallengesAsync(reader["OrderId"].ToString());
+
+                cert.Challenges = challenges;
+
+                records.Add(cert);
+            }
+
+            return records;
+        }
+
+        public static async Task DeleteRevokedCertByOrderId(string orderId)
+        {
+            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+            await connection.OpenAsync();
+
+            var command = connection.CreateCommand();
+            command.CommandText = @"
+            DELETE FROM RevokedRecords
+            WHERE OrderId = @OrderId;
+            ";
+
+            command.Parameters.AddWithValue("@OrderId", orderId);
+
+            await command.ExecuteNonQueryAsync();
+        }
 
         // AcmeChallenge Management
         public static async Task<List<AcmeChallenge>> GetAllChallengesForOrderIdAsync(string orderId)
@@ -565,5 +690,113 @@ namespace SphereSSLv2.Data.Repositories
             await cmd.ExecuteNonQueryAsync();
         }
 
+        public static async Task AddRevokedChallengeAsync(AcmeChallenge challenge, SqliteConnection? connection = null, SqliteTransaction? transaction = null)
+        {
+            bool localConn = false;
+            if (connection == null)
+            {
+                connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
+                localConn = true;
+            }
+
+            var command = connection.CreateCommand();
+            if (transaction != null)
+                command.Transaction = transaction;
+
+            command.CommandText = @"
+            INSERT INTO RevokedChallenges (
+                ChallengeId, OrderId, UserId, Domain, AuthorizationUrl, ChallengeToken, ProviderId, ZoneId, Status
+            ) VALUES (
+                @ChallengeId, @OrderId, @UserId, @Domain, @AuthorizationUrl, @ChallengeToken, @ProviderId, @ZoneId, 'Revoked'
+            );";
+
+            command.Parameters.AddWithValue("@ChallengeId", challenge.ChallengeId);
+            command.Parameters.AddWithValue("@OrderId", challenge.OrderId);
+            command.Parameters.AddWithValue("@UserId", challenge.UserId ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@Domain", challenge.Domain);
+            command.Parameters.AddWithValue("@AuthorizationUrl", challenge.AuthorizationUrl);
+            command.Parameters.AddWithValue("@ChallengeToken", challenge.DnsChallengeToken);
+            command.Parameters.AddWithValue("@ProviderId", challenge.ProviderId);
+            command.Parameters.AddWithValue("@ZoneId", challenge.ZoneId ?? (object)DBNull.Value);
+            await command.ExecuteNonQueryAsync();
+
+            if (localConn)
+                await connection.CloseAsync();
+        }
+
+        public static async Task<List<AcmeChallenge>> GetAllRevokedChallengesAsync(string? orderId = null, string? userId = null)
+        {
+            var challenges = new List<AcmeChallenge>();
+
+            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+            await connection.OpenAsync();
+
+            var command = connection.CreateCommand();
+
+            var baseQuery = @"
+        SELECT 
+            ChallengeId, OrderId, UserId, Domain, AuthorizationUrl, ChallengeToken, ProviderId, ZoneId, Status
+        FROM RevokedChallenges
+        WHERE 1=1 ";
+
+            if (!string.IsNullOrWhiteSpace(orderId))
+                baseQuery += " AND OrderId = @OrderId ";
+            if (!string.IsNullOrWhiteSpace(userId))
+                baseQuery += " AND UserId = @UserId ";
+
+            command.CommandText = baseQuery;
+
+            if (!string.IsNullOrWhiteSpace(orderId))
+                command.Parameters.AddWithValue("@OrderId", orderId);
+            if (!string.IsNullOrWhiteSpace(userId))
+                command.Parameters.AddWithValue("@UserId", userId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                challenges.Add(new AcmeChallenge
+                {
+                    ChallengeId = reader["ChallengeId"].ToString(),
+                    OrderId = reader["OrderId"].ToString(),
+                    UserId = reader["UserId"].ToString(),
+                    Domain = reader["Domain"].ToString(),
+                    AuthorizationUrl = reader["AuthorizationUrl"].ToString(),
+                    DnsChallengeToken = reader["ChallengeToken"].ToString(),
+                    ProviderId = reader["ProviderId"].ToString(),
+                    ZoneId = reader["ZoneId"].ToString(),
+                    Status = reader["Status"].ToString(),
+                });
+            }
+
+            return challenges;
+        }
+
+        public static async Task DeleteAcmeChallengesByOrderIdAsync( string orderId, SqliteConnection? connection = null,SqliteTransaction? transaction = null)
+        {
+            bool localConn = false;
+            if (connection == null)
+            {
+                connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
+                localConn = true;
+            }
+
+            var command = connection.CreateCommand();
+            if (transaction != null)
+                command.Transaction = transaction;
+
+            command.CommandText = @"
+            DELETE FROM Challenges
+            WHERE OrderId = @OrderId;
+            ";
+
+            command.Parameters.AddWithValue("@OrderId", orderId);
+
+            await command.ExecuteNonQueryAsync();
+
+            if (localConn)
+                await connection.CloseAsync();
+        }
     }
 }

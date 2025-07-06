@@ -616,7 +616,7 @@ namespace SphereSSLv2.Services.CertServices
             if (order == null || order.Challenges.Count == 0)
             {
                 await logger.Error($"[{orderId}]: No ACME service found for Order ID: {order.OrderId}");
-
+                return false;
             }
             if (string.IsNullOrWhiteSpace(orderId) || string.IsNullOrWhiteSpace(order.UserId))
             {
@@ -637,14 +637,30 @@ namespace SphereSSLv2.Services.CertServices
             if (user == null)
             {
                 await logger.Error($"[{order.UserId}]: User not found for order ID: {orderId}");
+
                 return false;
+            }
+            else
+            {
+                Console.WriteLine($"Username: {user.Username}");
             }
 
             string username = user.Username;
-
+          
             bool success = await ACME.RevokeCert(order);
+            
+            if (success)
+            {
+                await CertRepository.MoveToRevokedRecords(order);
+                await logger.Info($"[{username}]: Cert revoked successfully.");
+                await HealthRepository.AdjustTotalCertsInDB(-1);
+            }
+            else
+            {
+                await logger.Info($"[{username}]: Cert revocation failed.");
+            }
 
-            return success;
+                return success;
 
 
         }

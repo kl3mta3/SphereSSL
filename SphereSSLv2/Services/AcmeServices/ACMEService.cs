@@ -587,7 +587,7 @@ namespace SphereSSLv2.Services.AcmeServices
 
 
             };
-
+           
 
             var client = ACME._client;
             client.Directory = await client.GetDirectoryAsync();
@@ -601,7 +601,7 @@ namespace SphereSSLv2.Services.AcmeServices
             );
 
             client.Account = account;
-
+            
             var order = await client.GetOrderDetailsAsync(record.OrderUrl);
             if (order == null)
             {
@@ -615,20 +615,32 @@ namespace SphereSSLv2.Services.AcmeServices
             }
             try
             {
-                string certBase64 = order.Payload.Certificate ?? "";
+                
+                string certBase64 = order.Payload.Certificate;
+             
 
-                // If it's PEM, extract just the first cert block
+
+                if (certBase64.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Fetch the PEM from the URL!
+                     http = new HttpClient();
+                    certBase64 = await http.GetStringAsync(certBase64);
+                    
+                }
+
                 if (certBase64.Contains("BEGIN CERTIFICATE"))
                 {
                     var match = Regex.Match(certBase64, "-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----", RegexOptions.Singleline);
                     if (!match.Success)
-                        throw new Exception("Certificate PEM format is invalid!");
-
+                    {
+                        await _logger.Error($"Certificate PEM format is invalid! Order: {record.OrderId}");
+                        return false;
+                    }
                     certBase64 = match.Groups[1].Value.Replace("\r", "").Replace("\n", "").Trim();
                 }
 
-                // Now certBase64 should be only base64, not the whole PEM
                 var certBytes = Convert.FromBase64String(certBase64);
+
                 await client.RevokeCertificateAsync(certBytes, RevokeReason.Unspecified);
 
                 await _logger.Info($"Certificate for order {record.OrderId} has been successfully revoked.");
