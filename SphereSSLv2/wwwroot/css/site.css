@@ -42,7 +42,24 @@
         box-shadow: 0 0 0 0 rgba(234,179,8, 0);
     }
 }
+.badge-animate {
+    box-shadow: 0 0 8px 2px #14ff8b77;
+    animation: pulse 0.5s;
+}
 
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 #14ff8b77;
+    }
+
+    70% {
+        box-shadow: 0 0 10px 6px #14ff8b44;
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 #14ff8b00;
+    }
+}
 .badge-pulse {
     animation: pulse-badge 1.2s infinite;
     transition: box-shadow 0.2s;

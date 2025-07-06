@@ -103,7 +103,7 @@
 <div class="modal fade" id="manualRenewModal" tabindex="-1" aria-labelledby="manualRenewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content bg-light text-dark shadow-sm">
-            <!-- This gets replaced by your AJAX -->
+          
             <div id="manualRenewModalContent"></div>
         </div>
     </div>
@@ -1071,9 +1071,28 @@
             return;
         }
         const manageModal = new bootstrap.Modal(manageModalEl);
+
+
+
+            const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+        if (row) {
+            const autoRenewCell = row.querySelectorAll('td')[3];
+            const badge = autoRenewCell.querySelector('span');
+            const btnToggleAuto = document.getElementById('btnToggleAutoRenew');
+            if (badge && btnToggleAuto) {
+                const isOn = badge.textContent.trim().toLowerCase() === "on";
+                btnToggleAuto.textContent = isOn ? "Toggle Auto-Renew Off" : "Toggle Auto-Renew On";
+                // Optional: Update btn style for visual cue
+                btnToggleAuto.classList.toggle("btn-outline-danger", isOn);
+                btnToggleAuto.classList.toggle("btn-outline-success", !isOn);
+            }
+        }
+
+
+
         manageModal.show();
 
-        // Clean up any old modals/spinners before binding button
+        
         function removeOldWaitModal() {
             let oldWaitModal = document.getElementById("waitModal");
             if (oldWaitModal) oldWaitModal.remove();
@@ -1087,13 +1106,10 @@
             btnRenew.onclick = async function () {
                 showToast("Renewing certificate for: " + orderId);
 
-                // 1. Hide manage modal
                 manageModal.hide();
 
-                // 2. Remove old spinners if any
                 removeOldWaitModal();
 
-                // 3. Try to get waiting modal from server, else use fallback
                 let waitModalHtml;
                 try {
                     const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
@@ -1111,7 +1127,7 @@
                 }
                 document.body.insertAdjacentHTML("beforeend", waitModalHtml);
 
-                // 4. Show the waiting modal
+          
                 const waitModalEl = document.getElementById("waitModal");
                 let waitModalInstance = null;
                 if (waitModalEl) {
@@ -1119,7 +1135,7 @@
                     waitModalInstance.show();
                 }
 
-                // 5. Do the renewal
+
                 let result = null;
                 try {
                     const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
@@ -1141,12 +1157,26 @@
                     return;
                 }
 
-                // 6. Remove spinner when done
+            
                 removeOldWaitModal();
 
-                // 7. Handle the result
+           
                 if (result?.autoRenewed) {
                     showToast("Order Auto-Renewed Successfully", false);
+                    const data = await response.json();
+                    
+                    
+                    const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if(row)
+                    {
+                         const statusCell = row.querySelectorAll('td')[1];
+                        statusCell.innerHTML = `<span class="badge bg-primary">Active</span>`;
+
+                         const daysCell = row.querySelectorAll('td')[2];
+                         daysCell.innerHTML = `<span class="badge bg-success">90</span>`;
+
+                    }
+                    
                     return;
                 }
                 if (result?.status === "manual" && result.html) {
@@ -1167,13 +1197,13 @@
         if (btnRevoke) {
             btnRevoke.onclick = async function () {
 
-                             // 1. Hide manage modal
+ 
                 manageModal.hide();
 
-                // 2. Remove old spinners if any
+         
                 removeOldWaitModal();
 
-                // 3. Try to get waiting modal from server, else use fallback
+           
                 let waitModalHtml;
                 try {
                     const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
@@ -1191,7 +1221,7 @@
                 }
                 document.body.insertAdjacentHTML("beforeend", waitModalHtml);
 
-                // 4. Show the waiting modal
+            
                 const waitModalEl = document.getElementById("waitModal");
                 let waitModalInstance = null;
                 if (waitModalEl) {
@@ -1199,7 +1229,7 @@
                     waitModalInstance.show();
                 }
 
-                // 5. Do the renewal
+        
                 let result = null;
                 try {
                     const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
@@ -1211,17 +1241,18 @@
                     if (!response.ok) {
                         showToast("Renewal failed. Try again.", true);
                         removeOldWaitModal();
-                        return;
+                      return;
                     }
 
-                    result = await response.json();
+                    const data = await response.json();
+
                 } catch (e) {
                     showToast("Error during renewal request.", true);
                     removeOldWaitModal();
                     return;
                 }
 
-                // 6. Remove spinner when done
+               
                 removeOldWaitModal();
 
 
@@ -1233,6 +1264,17 @@
                 if (response.ok) {
                     showToast("Revoked certificate for: " + orderId, false);
                     manageModal.hide();
+
+                   const data = await response.json();
+                   const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if (row) {
+                    row.style.transition = "opacity 0.3s";
+                    row.style.opacity = 0;
+                    setTimeout(() => row.remove(), 300);
+                }
+
+
+
                 } else {
                     showToast("Failed to revoke certificate.", true);
                 }
@@ -1251,6 +1293,21 @@
                 if (response.ok) {
                     showToast("Toggled auto-renew for: " + orderId, false);
                     manageModal.hide();
+                    const data = await response.json();
+
+                    const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if (row) {
+                        const autoRenewCell = row.querySelectorAll('td')[3]; // 4th column!
+                        const badge = autoRenewCell.querySelector('span');
+                        if (badge) {
+                            const isOn = badge.textContent.trim().toLowerCase() === "on";
+                            badge.textContent = isOn ? "Off" : "On";
+                            badge.className = isOn ? "badge bg-danger" : "badge bg-success";
+                            
+                            badge.style.transition = "background 0.2s, color 0.2s";
+                        }
+                    }
+
                 } else {
                     showToast("Failed to toggle auto-renew.", true);
                 }
@@ -1275,7 +1332,7 @@
         .then(html => {
             document.getElementById('manualRenewModalContent').innerHTML = html;
 
-            // Always reset everything on open!
+            
             certDownloadReady = false;
             certDownloadsReady = false;
             let btn1 = document.getElementById("downloadButton");
@@ -1285,6 +1342,10 @@
 
             new bootstrap.Modal(document.getElementById('manualRenewModal')).show();
         });
+
+
+
+
     }
 
         document.addEventListener('hidden.bs.modal', function () {
@@ -1295,8 +1356,13 @@
         document.body.style = '';
     });
 
-</script>
 
+
+
+
+
+</script>
+<!-- Learn More Open -->
 <script>
     function learnMore() {
         window.open("/LearnMore", "_blank");

@@ -47,8 +47,8 @@ namespace SphereSSLv2.Services.AcmeServices
         internal  OrderDetails _order;
         internal  string _domain;
         internal  string _challangeDomain;
-        internal bool _UseStaging = true; // Set to true for testing with Let's Encrypt staging environment
-        //internal  AcmeService _acmeService;
+        internal bool _UseStaging = true; 
+
         internal  Logger _logger;
 
         public AcmeService(Logger logger)
