@@ -57,8 +57,6 @@ namespace SphereSSLv2.Pages
             return Page();
         }
 
-
-
         public async Task<IActionResult> OnPostPemConversionAsync([FromBody] KeyExchangeRequest key)
         {
             if (key == null || string.IsNullOrWhiteSpace(key.CertPem) || string.IsNullOrWhiteSpace(key.KeyFile))
@@ -232,12 +230,12 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostCrtKeyConversionAsync([FromBody] KeyExchangeRequest key)
         {
-            Console.WriteLine("CRT/KEY Conversion Request Received");
+            
 
             // Validate input
             if (key == null)
             {
-                Console.WriteLine("key null");
+              
                 return BadRequest("Request is missing.");
             }
 
@@ -245,16 +243,14 @@ namespace SphereSSLv2.Pages
             string certPem = key.CertPem?.Trim() ?? "";
             string keyPem = key.KeyPem?.Trim() ?? "";
             string password = key.Password ?? "";
-            Console.WriteLine($"CertPem: {certPem.Length} chars, KeyPem: {keyPem.Length} chars, Password: {password.Length} chars");
             try
             {
                 if (!string.IsNullOrEmpty(certPem) && !string.IsNullOrEmpty(keyPem))
                 {
-                    // Combine CRT and KEY PEM and convert as requested
+                   
                     if (key.OutputType == "pfx")
                     {
-                        Console.WriteLine("Converting CRT/KEY PEM to PFX...");
-                        // Convert CRT/KEY PEM to PFX (using BouncyCastle)
+                        
                         X509Certificate cert;
                         AsymmetricKeyParameter privKey;
 
@@ -270,7 +266,7 @@ namespace SphereSSLv2.Pages
                                 ? pair.Private
                                 : (Org.BouncyCastle.Crypto.AsymmetricKeyParameter)keyObj;
                         }
-                        Console.WriteLine("Certificate and private key loaded successfully.");
+           
                         var store = new Org.BouncyCastle.Pkcs.Pkcs12Store();
                         var certEntry = new Org.BouncyCastle.Pkcs.X509CertificateEntry(cert);
                         store.SetKeyEntry("mykey", new Org.BouncyCastle.Pkcs.AsymmetricKeyEntry(privKey), new[] { certEntry });
@@ -281,7 +277,7 @@ namespace SphereSSLv2.Pages
                     }
                     else if (key.OutputType == "pem")
                     {
-                        Console.WriteLine("Returning combined PEM output...");
+                        
                         // Return combined PEM (cert + key)
                         var sb = new StringBuilder();
                         sb.AppendLine(certPem.Trim());
@@ -313,6 +309,7 @@ namespace SphereSSLv2.Pages
             builder.AppendLine("-----END CERTIFICATE-----");
             return builder.ToString();
         }
+
         private static string ExportPrivateKeyToPem(RSA rsa)
         {
             var builder = new StringBuilder();
@@ -333,6 +330,7 @@ namespace SphereSSLv2.Pages
             }
             return builder.ToString();
         }
+
         private static byte[] GetDerFromPem(string pem, string type)
         {
             var header = $"-----BEGIN {type}-----";
