@@ -8,7 +8,7 @@ namespace SphereSSLv2.Models.Dtos
         [JsonPropertyName("certPem")]
         public string CertPem { get; set; } = string.Empty;
 
-        [JsonPropertyName("certFile")]
+        [JsonPropertyName("keyPem")]
         public string KeyPem { get; set; } = string.Empty;
 
         [JsonPropertyName("keyFile")]

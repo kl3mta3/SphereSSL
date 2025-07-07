@@ -1,5 +1,6 @@
 ﻿﻿<!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -38,28 +39,33 @@
         </div>
 
         <div class="sidebar-box">
+
+            @{
+                var routePage = (ViewContext.RouteData.Values["page"] ?? "").ToString().ToLower();
+            }
+
             <nav class="sidebar-nav">
-                <a asp-page="/Dashboard" class="sidebar-link">
+                <a asp-page="/Dashboard" class="sidebar-link @(routePage == "/dashboard" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-speedometer2"></i></span>
                     <span class="sidebar-text">Home</span>
                 </a>
 
-                <a asp-page="/ManageRenewals" class="sidebar-link">
+                <a asp-page="/ManageRenewals" class="sidebar-link @(routePage == "/managerenewals" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-arrow-repeat"></i></span>
                     <span class="sidebar-text">Manage</span>
                 </a>
 
-                <a asp-page="/Exchange" class="sidebar-link">
+                <a asp-page="/Exchange" class="sidebar-link @(routePage == "/exchange" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-shuffle"></i></span>
                     <span class="sidebar-text">Exchange</span>
                 </a>
 
-                <a asp-page="/Settings" class="sidebar-link">
+                <a asp-page="/Settings" class="sidebar-link @(routePage == "/settings" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-gear-fill"></i></span>
                     <span class="sidebar-text">Settings</span>
                 </a>
 
-                <a asp-page="/LearnMore" class="sidebar-link">
+                <a asp-page="/LearnMore" class="sidebar-link @(routePage == "/learnmore" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-book-half"></i></span>
                     <span class="sidebar-text">Help</span>
                 </a>
@@ -1362,6 +1368,7 @@
 
 
 </script>
+
 <!-- Learn More Open -->
 <script>
     function learnMore() {

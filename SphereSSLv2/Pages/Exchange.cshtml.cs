@@ -112,12 +112,13 @@ namespace SphereSSLv2.Pages
             }
             catch (Exception ex)
             {
-                return BadRequest("Failed to convert PEM: " + ex.Message);
+                return BadRequest("Sorry, your PFX was created with a non - exportable key and can’t be converted back to PEM.This is a Windows security restriction.If you have the original PEM/KEY files, use those instead!");
             }
         }
 
         public async Task<IActionResult> OnPostPfxConversionAsync([FromBody] KeyExchangeRequest key)
         {
+            Console.WriteLine("PFX Conversion Request Received");
             // Validate input
             if (key == null || string.IsNullOrWhiteSpace(key.KeyFile))
                 return BadRequest("PFX data is required.");
@@ -136,25 +137,72 @@ namespace SphereSSLv2.Pages
 
                 // Load the certificate + private key from PFX
                 var cert = new X509Certificate2(
-                    pfxBytes, password,
-                    X509KeyStorageFlags.Exportable
+                pfxBytes, password,
+                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet
                 );
+                Console.WriteLine($"Loaded certificate: {cert.Subject}");
+                if (cert == null || cert.HasPrivateKey == false)
+                    return BadRequest("Invalid PFX data or no private key found.");
+
+
+                var hasPrivate = cert.HasPrivateKey;
+                var rsa = cert.GetRSAPrivateKey();
+                var dsa = cert.GetDSAPrivateKey();
+                var ecdsa = cert.GetECDsaPrivateKey();
+                Console.WriteLine($"PrivateKey type: {rsa?.GetType()?.Name ?? dsa?.GetType()?.Name ?? ecdsa?.GetType()?.Name ?? "None"}");
+
+                if (rsa is RSACng cng)
+                {
+                    Console.WriteLine("This is a CNG key. Exportable: " + cng.Key.ExportPolicy);
+                    // You can check cng.Key.ExportPolicy for Exportable/NonExportable flags
+                }
+                try
+                {
+                    var test = rsa.ExportPkcs8PrivateKey();
+                    Console.WriteLine("Export worked! Length: " + test.Length);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("NOPE: " + ex);
+                }
 
                 // Export CERT
-                var certPem = ExportToPem(cert);
+                string certPem = "";
+                string keyPem = "";
+                try
+                {
+                    certPem = ExportToPem(cert);
+                    Console.WriteLine("CERT PEM exported!");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed exporting CERT PEM: " + ex);
+                    return BadRequest("Failed exporting CERT PEM: " + ex.Message);
+                }
 
-                // Export PRIVATE KEY
-                var rsa = cert.GetRSAPrivateKey();
-                var keyPem = rsa != null ? ExportPrivateKeyToPem(rsa) : "";
+                try
+                {
+                    
+                    Console.WriteLine("Got RSA key!");
+                    keyPem = ExportPrivateKeyToPem(rsa);
+                    Console.WriteLine("KEY PEM exported!");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed exporting KEY PEM: " + ex);
+                    return BadRequest("Failed exporting KEY PEM: " + ex.Message);
+                }
 
                 if (key.OutputType == "pem")
                 {
+                    Console.WriteLine("Returning combined PEM output...");
                     // Combined PEM output
                     var combinedPem = certPem + "\n" + keyPem;
                     return File(Encoding.UTF8.GetBytes(combinedPem), "application/x-pem-file", "certificate.pem");
                 }
                 else if (key.OutputType == "crtkey")
                 {
+                    Console.WriteLine("Returning CRT and KEY as ZIP...");
                     // CRT (cert only) and KEY (private key) as ZIP
                     using (var ms = new MemoryStream())
                     {
@@ -184,95 +232,56 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostCrtKeyConversionAsync([FromBody] KeyExchangeRequest key)
         {
+            Console.WriteLine("CRT/KEY Conversion Request Received");
+
             // Validate input
             if (key == null)
+            {
+                Console.WriteLine("key null");
                 return BadRequest("Request is missing.");
+            }
 
-            // Prioritize single-file mode (KeyFile), otherwise use CertPem/KeyPem
+            // Only handle CertPem and KeyPem for this handler!
             string certPem = key.CertPem?.Trim() ?? "";
             string keyPem = key.KeyPem?.Trim() ?? "";
-            string singleFile = key.KeyFile?.Trim() ?? "";
             string password = key.Password ?? "";
-
+            Console.WriteLine($"CertPem: {certPem.Length} chars, KeyPem: {keyPem.Length} chars, Password: {password.Length} chars");
             try
             {
-                if (!string.IsNullOrEmpty(singleFile))
-                {
-                    // The user pasted a full PEM (maybe PFX or PEM bundle)
-                    if (key.OutputType == "pfx")
-                    {
-                        // Convert PEM to PFX
-                        var reader = new StringReader(singleFile);
-                        var pemReader = new PemReader(reader);
-                        object obj = pemReader.ReadObject();
-
-                        AsymmetricKeyParameter privKey = null;
-                        X509Certificate cert = null;
-
-                        // Scan for both
-                        reader = new StringReader(singleFile);
-                        pemReader = new PemReader(reader);
-                        while ((obj = pemReader.ReadObject()) != null)
-                        {
-                            if (obj is AsymmetricCipherKeyPair keyPair)
-                                privKey = keyPair.Private;
-                            else if (obj is AsymmetricKeyParameter keyParam)
-                                privKey = keyParam;
-                            else if (obj is X509Certificate c)
-                                cert = c;
-                        }
-
-                        if (privKey == null || cert == null)
-                            return BadRequest("Could not parse both certificate and key from provided PEM.");
-
-                        var store = new Pkcs12Store();
-                        var certEntry = new X509CertificateEntry(cert);
-                        store.SetKeyEntry("mykey", new AsymmetricKeyEntry(privKey), new[] { certEntry });
-
-                        using var ms = new MemoryStream();
-                        store.Save(ms, password.ToCharArray(), new SecureRandom());
-                        return File(ms.ToArray(), "application/x-pkcs12", "certificate.pfx");
-                    }
-                    else if (key.OutputType == "pem")
-                    {
-                        // Return the pasted PEM as-is
-                        return File(Encoding.UTF8.GetBytes(singleFile), "application/x-pem-file", "certificate.pem");
-                    }
-                    else
-                    {
-                        return BadRequest("Unsupported output type.");
-                    }
-                }
-                else if (!string.IsNullOrEmpty(certPem) && !string.IsNullOrEmpty(keyPem))
+                if (!string.IsNullOrEmpty(certPem) && !string.IsNullOrEmpty(keyPem))
                 {
                     // Combine CRT and KEY PEM and convert as requested
                     if (key.OutputType == "pfx")
                     {
-                        // Convert CRT/KEY PEM to PFX
+                        Console.WriteLine("Converting CRT/KEY PEM to PFX...");
+                        // Convert CRT/KEY PEM to PFX (using BouncyCastle)
                         X509Certificate cert;
                         AsymmetricKeyParameter privKey;
 
                         using (var certReader = new StringReader(certPem))
                         using (var keyReader = new StringReader(keyPem))
                         {
-                            var pemCertReader = new PemReader(certReader);
-                            cert = (X509Certificate)pemCertReader.ReadObject();
+                            var pemCertReader = new Org.BouncyCastle.OpenSsl.PemReader(certReader);
+                            cert = (Org.BouncyCastle.X509.X509Certificate)pemCertReader.ReadObject();
 
-                            var pemKeyReader = new PemReader(keyReader);
+                            var pemKeyReader = new Org.BouncyCastle.OpenSsl.PemReader(keyReader);
                             object keyObj = pemKeyReader.ReadObject();
-                            privKey = keyObj is AsymmetricCipherKeyPair pair ? pair.Private : (AsymmetricKeyParameter)keyObj;
+                            privKey = keyObj is Org.BouncyCastle.Crypto.AsymmetricCipherKeyPair pair
+                                ? pair.Private
+                                : (Org.BouncyCastle.Crypto.AsymmetricKeyParameter)keyObj;
                         }
-
-                        var store = new Pkcs12Store();
-                        var certEntry = new X509CertificateEntry(cert);
-                        store.SetKeyEntry("mykey", new AsymmetricKeyEntry(privKey), new[] { certEntry });
+                        Console.WriteLine("Certificate and private key loaded successfully.");
+                        var store = new Org.BouncyCastle.Pkcs.Pkcs12Store();
+                        var certEntry = new Org.BouncyCastle.Pkcs.X509CertificateEntry(cert);
+                        store.SetKeyEntry("mykey", new Org.BouncyCastle.Pkcs.AsymmetricKeyEntry(privKey), new[] { certEntry });
 
                         using var ms = new MemoryStream();
-                        store.Save(ms, password.ToCharArray(), new SecureRandom());
+                        store.Save(ms, password.ToCharArray(), new Org.BouncyCastle.Security.SecureRandom());
                         return File(ms.ToArray(), "application/x-pkcs12", "certificate.pfx");
                     }
                     else if (key.OutputType == "pem")
                     {
+                        Console.WriteLine("Returning combined PEM output...");
                         // Return combined PEM (cert + key)
                         var sb = new StringBuilder();
                         sb.AppendLine(certPem.Trim());
@@ -307,10 +316,21 @@ namespace SphereSSLv2.Pages
         private static string ExportPrivateKeyToPem(RSA rsa)
         {
             var builder = new StringBuilder();
-            var keyParams = rsa.ExportPkcs8PrivateKey();
-            builder.AppendLine("-----BEGIN PRIVATE KEY-----");
-            builder.AppendLine(Convert.ToBase64String(keyParams, Base64FormattingOptions.InsertLineBreaks));
-            builder.AppendLine("-----END PRIVATE KEY-----");
+            try
+            {
+                var keyParams = rsa.ExportPkcs8PrivateKey();
+                builder.AppendLine("-----BEGIN PRIVATE KEY-----");
+                builder.AppendLine(Convert.ToBase64String(keyParams, Base64FormattingOptions.InsertLineBreaks));
+                builder.AppendLine("-----END PRIVATE KEY-----");
+            }
+            catch (System.Security.Cryptography.CryptographicException ex)
+            {
+                // Most common cause is a non-exportable CNG key (RSACng)
+                builder.Clear();
+                builder.AppendLine("ERROR: Private key is non-exportable. This is a Windows OS/CNG restriction.");
+                builder.AppendLine("Tip: Use OpenSSL to extract the key or generate the PFX.");
+                builder.AppendLine($"Exception: {ex.Message}");
+            }
             return builder.ToString();
         }
         private static byte[] GetDerFromPem(string pem, string type)

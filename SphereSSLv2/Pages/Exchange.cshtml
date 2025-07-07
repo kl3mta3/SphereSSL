@@ -22,10 +22,6 @@
                                     </li>
 
                                     <li class="nav-item" role="presentation">
-                                        <button class="nav-link" id="convertpfx-tab" data-bs-toggle="tab" data-bs-target="#convertpfx" type="button" role="tab" aria-controls="convertpfx" aria-selected="false">Convert PFX</button>
-                                    </li>
-
-                                    <li class="nav-item" role="presentation">
                                         <button class="nav-link" id="convertcrtkey-tab" data-bs-toggle="tab" data-bs-target="#convertcrtkey" type="button" role="tab" aria-controls="convertcrtkey" aria-selected="false">Convert CRT & Key</button>
                                     </li>
 
@@ -38,9 +34,13 @@
                                         <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
                                             <div class="text-center mb-3">
                                                 <h4 class="fw-bold mb-1 text-primary">Convert PEM</h4>
-                                                <label for="pemInput" class="form-label mt-2">Paste your PEM file contents</label>
-                                                <textarea class="form-control mb-3" id="pemInput" rows="7" placeholder="-----BEGIN CERTIFICATE----- ..."></textarea>
 
+                                                <textarea class="form-control mb-3" id="pemInput" rows="7" placeholder="-----BEGIN CERTIFICATE-----"></textarea>
+                                                <div class="d-flex align-items-center justify-content-start mb-2">
+                                                    <label for="pemFileInput" id="pemFileInputLabel" class="btn btn-outline-primary btn-sm mb-0">Select File</label>
+                                                    <input type="file" id="pemFileInput" accept=".pem,.crt,.key,.txt" style="display:none;">
+                                                    <span class="text-muted ms-2" style="font-size: 0.98rem;">or drag/drop/paste your CRT here</span>
+                                                </div>
                                                 <!-- Optional password for PFX output -->
                                                 <div class="mb-3">
                                                     <label for="pemPasswordInput" class="form-label">PFX Password <span class="text-muted">(optional)</span></label>
@@ -62,42 +62,31 @@
                                         </div>
                                     </div>
 
-                                    <!-- PFX  -->
-                                    <div class="tab-pane fade" id="convertpfx" role="tabpanel" aria-labelledby="convertpfx-tab">
-                                        <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
-                                            <div class="text-center mb-3">
-                                                <h4 class="fw-bold mb-1 text-primary">Convert PFX</h4>
-                                                <label for="pfxInput" class="form-label mt-2">Paste your base64 PFX file (or drag/drop file to get contents)</label>
-                                                <textarea class="form-control mb-3" id="pfxInput" rows="7" placeholder="MIIK... (base64-encoded PFX content)"></textarea>
-                                                <label for="pfxPasswordInput" class="form-label mt-2">PFX Password <span class="text-muted">(optional)</span></label>
-                                                <input type="password" class="form-control mb-3" id="pfxPasswordInput" placeholder="Leave blank for none">
 
-                                                <div class="d-flex justify-content-center mb-3 gap-3">
-                                                    <div class="form-check form-check-inline">
-                                                        <input class="form-check-input" type="radio" name="pfxConvertType" id="pfxToPem" value="pem" checked>
-                                                        <label class="form-check-label" for="pfxToPem">PEM</label>
-                                                    </div>
-                                                    <div class="form-check form-check-inline">
-                                                        <input class="form-check-input" type="radio" name="pfxConvertType" id="pfxToCrtKey" value="crtkey">
-                                                        <label class="form-check-label" for="pfxToCrtKey">CRT &amp; KEY</label>
-                                                    </div>
-                                                </div>
-                                                <button type="button" class="btn btn-primary" id="convertPfxBtn">Convert</button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- CRT & KEY  -->
+                                    <!-- CRT & KEY -->
                                     <div class="tab-pane fade" id="convertcrtkey" role="tabpanel" aria-labelledby="convertcrtkey-tab">
                                         <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
                                             <div class="text-center mb-3">
                                                 <h4 class="fw-bold mb-1 text-primary">Convert CRT &amp; KEY</h4>
-                                                <label for="crtInput" class="form-label mt-2">Paste your CRT contents</label>
-                                                <textarea class="form-control mb-2" id="crtInput" rows="4" placeholder="-----BEGIN CERTIFICATE----- ..."></textarea>
-                                                <label for="keyInput" class="form-label">Paste your KEY contents</label>
-                                                <textarea class="form-control mb-3" id="keyInput" rows="4" placeholder="-----BEGIN PRIVATE KEY----- ..."></textarea>
 
-                                                <!-- Add this block! -->
+                                                <!-- CRT field -->
+                                                <label for="crtInput" class="form-label mt-2 mb-0">Paste your CRT contents</label>
+                                                <textarea class="form-control mb-2" id="crtInput" rows="4" placeholder="-----BEGIN CERTIFICATE----- ..."></textarea>
+                                                <div class="d-flex align-items-center justify-content-end mb-2">
+                                                    <label for="crtFileInput" class="btn btn-outline-primary btn-sm mb-0 me-2">Select File</label>
+                                                    <input type="file" id="crtFileInput" accept=".pem,.crt,.txt" style="display:none;">
+                                                    <span class="text-muted ms-2" style="font-size: 0.98rem;">or drag/drop/paste your CRT here</span>
+                                                </div>
+
+                                                <!-- KEY field -->
+                                                <label for="keyInput" class="form-label mb-0">Paste your KEY contents</label>
+                                                <textarea class="form-control mb-3" id="keyInput" rows="4" placeholder="-----BEGIN PRIVATE KEY----- ..."></textarea>
+                                                <div class="d-flex align-items-center justify-content-end mb-2">
+                                                    <label for="keyFileInput" class="btn btn-outline-primary btn-sm mb-0 me-2">Select File</label>
+                                                    <input type="file" id="keyFileInput" accept=".key,.pem,.txt" style="display:none;">
+                                                    <span class="text-muted ms-2" style="font-size: 0.98rem;">or drag/drop/paste your KEY here</span>
+                                                </div>
+
                                                 <label for="crtKeyPasswordInput" class="form-label mt-2">PFX Password <span class="text-muted">(optional)</span></label>
                                                 <input type="password" class="form-control mb-3" id="crtKeyPasswordInput" placeholder="Leave blank for none">
 
@@ -129,113 +118,178 @@
 </div>
 
 <script>
-      document.getElementById('convertPemBtn').addEventListener('click', async function () {
-        const pemInput = document.getElementById('pemInput').value.trim();
-        const password = document.getElementById('pemPasswordInput') ? document.getElementById('pemPasswordInput').value : "";
-        const outputType = document.querySelector('input[name="pemConvertType"]:checked').value; // 'pfx' or 'crtkey'
+    document.addEventListener('DOMContentLoaded', function () {
+        const pemInput = document.getElementById('pemInput');
+        const pemFileInput = document.getElementById('pemFileInput');
+        const convertBtn = document.getElementById('convertPemBtn');
 
-        const payload = {
-            CertPem: pemInput,
-            Password: password,
-            OutputType: outputType
-        };
-
-        const response = await fetch('/Exchange?handler=PemConversion', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        // Drag and Drop for PEM textarea
+        pemInput.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            pemInput.classList.add('drag-over');
         });
 
-        if (response.ok) {
-            const blob = await response.blob();
-            const fileName = outputType === 'pfx' ? "certificate.pfx" : "certificate.zip";
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            showToast("Conversion successful!", false);
-        } else {
-            const errorText = await response.text();
-            showToast("Failed: " + errorText, true);
-        }
-    });  
-    </script>
+        pemInput.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            pemInput.classList.remove('drag-over');
+        });
+
+        pemInput.addEventListener('drop', function (e) {
+            e.preventDefault();
+            pemInput.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    pemInput.value = event.target.result;
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // File picker support
+        pemFileInput.addEventListener('change', function (e) {
+            const file = pemFileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    pemInput.value = event.target.result;
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Convert button logic
+        convertBtn.addEventListener('click', async function () {
+            const pemValue = pemInput.value.trim();
+            const password = document.getElementById('pemPasswordInput') ? document.getElementById('pemPasswordInput').value : "";
+            const outputType = document.querySelector('input[name="pemConvertType"]:checked').value;
+
+            const certMatches = pemValue.match(/-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----/gs) || [];
+            const privateKeyMatch = pemValue.match(/-----BEGIN (?:RSA )?PRIVATE KEY-----[^-]+-----END (?:RSA )?PRIVATE KEY-----/s);
+
+            const certPem = certMatches.join('\n');
+            const keyPem = privateKeyMatch ? privateKeyMatch[0] : "";
+
+            const payload = {
+                certPem: certPem,
+                keyFile: keyPem,
+                outputType: outputType,
+                password: password
+            };
+
+            const response = await fetch('/Exchange?handler=PemConversion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const fileName = outputType === 'pfx' ? "certificate.pfx" : "certificate.zip";
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showToast("Conversion successful!", false);
+            } else {
+                const errorText = await response.text();
+                showToast("Failed: " + errorText, true);
+            }
+        });
+    });
+</script>
+
+
 
 <script>
-       document.getElementById('convertPfxBtn').addEventListener('click', async function () {
-        const pfxInput = document.getElementById('pfxInput').value.trim();
-        const password = document.getElementById('pfxPasswordInput').value;
-        const outputType = document.querySelector('input[name="pfxConvertType"]:checked').value; // 'pem' or 'crtkey'
+        document.addEventListener('DOMContentLoaded', function() {
+          // CRT
+          const crtInput = document.getElementById('crtInput');
+          const crtFileInput = document.getElementById('crtFileInput');
+          crtInput.addEventListener('dragover', e => { e.preventDefault(); crtInput.classList.add('drag-over'); });
+          crtInput.addEventListener('dragleave', e => { e.preventDefault(); crtInput.classList.remove('drag-over'); });
+          crtInput.addEventListener('drop', e => {
+              e.preventDefault(); crtInput.classList.remove('drag-over');
+              const file = e.dataTransfer.files[0];
+              if (file) {
+                  const reader = new FileReader();
+                  reader.onload = ev => { crtInput.value = ev.target.result; };
+                  reader.readAsText(file);
+              }
+          });
+          crtFileInput.addEventListener('change', e => {
+              const file = e.target.files[0];
+              if (file) {
+                  const reader = new FileReader();
+                  reader.onload = ev => { crtInput.value = ev.target.result; };
+                  reader.readAsText(file);
+              }
+          });
 
-        const payload = {
-            KeyFile: pfxInput,    // You might want to use CertPem or KeyFile depending on your backend!
-            Password: password,
-            OutputType: outputType
-        };
+          // KEY
+          const keyInput = document.getElementById('keyInput');
+          const keyFileInput = document.getElementById('keyFileInput');
+          keyInput.addEventListener('dragover', e => { e.preventDefault(); keyInput.classList.add('drag-over'); });
+          keyInput.addEventListener('dragleave', e => { e.preventDefault(); keyInput.classList.remove('drag-over'); });
+          keyInput.addEventListener('drop', e => {
+              e.preventDefault(); keyInput.classList.remove('drag-over');
+              const file = e.dataTransfer.files[0];
+              if (file) {
+                  const reader = new FileReader();
+                  reader.onload = ev => { keyInput.value = ev.target.result; };
+                  reader.readAsText(file);
+              }
+          });
+          keyFileInput.addEventListener('change', e => {
+              const file = e.target.files[0];
+              if (file) {
+                  const reader = new FileReader();
+                  reader.onload = ev => { keyInput.value = ev.target.result; };
+                  reader.readAsText(file);
+              }
+          });
 
-        const response = await fetch('/Exchange?handler=PfxConversion', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        // Conversion Button
+        document.getElementById('convertCrtKeyBtn').addEventListener('click', async function () {
+            const crt = crtInput.value.trim();
+            const key = keyInput.value.trim();
+            const password = document.getElementById('crtKeyPasswordInput').value;
+            const outputType = document.querySelector('input[name="crtKeyConvertType"]:checked').value;
+
+            const payload = {
+                certPem: crt,
+                keyPem: key,
+                password: password,
+                outputType: outputType
+            };
+
+            const response = await fetch('/Exchange?handler=CrtKeyConversion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const fileName = outputType === 'pfx' ? "certificate.pfx" : "certificate.pem";
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showToast("Conversion successful!", false);
+            } else {
+                const errorText = await response.text();
+                showToast("Failed: " + errorText, true);
+            }
         });
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const fileName = outputType === 'pem' ? "certificate.pem" : "certificate.zip";
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            showToast("Conversion successful!", false);
-        } else {
-            const errorText = await response.text();
-            showToast("Failed: " + errorText, true);
-        }
-    }); 
-    </script>
-
-<script>
-       document.getElementById('convertCrtKeyBtn').addEventListener('click', async function () {
-        const crtInput = document.getElementById('crtInput').value.trim();
-        const keyInput = document.getElementById('keyInput').value.trim();
-        const password = document.getElementById('crtKeyPasswordInput').value;
-        const outputType = document.querySelector('input[name="crtKeyConvertType"]:checked').value; // 'pfx' or 'pem'
-
-        const payload = {
-            CertPem: crtInput,
-            KeyPem: keyInput,
-            Password: password,
-            OutputType: outputType
-        };
-
-        const response = await fetch('/Exchange?handler=CrtKeyConversion', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const fileName = outputType === 'pfx' ? "certificate.pfx" : "certificate.pem";
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            showToast("Conversion successful!", false);
-        } else {
-            const errorText = await response.text();
-            showToast("Failed: " + errorText, true);
-        }
-    }); </script>
+    });
+</script>

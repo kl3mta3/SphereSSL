@@ -21,7 +21,7 @@ namespace SphereSSLv2.Data.Database
             _logger = logger;
         }
 
-        //start DB
+        //start DB and build tables 
         public static async Task Initialize()
         {
             try
