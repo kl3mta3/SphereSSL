@@ -1,8 +1,11 @@
 # SphereSSL
 
-**One cert manager to rule them all, one CA to find them, one browser to bring them all, and in encryption bind them.**
-
-![SphereSSL Logo](https://raw.githubusercontent.com/SphereNetwork/SphereSSL/main/assets/logo.png) <!-- Update with your actual logo path if needed -->
+<p align="center">
+  <img src="https://github.com/kl3mta3/SphereSSL/blob/master/Images/SphereSSL_ICON.png" alt="SphereSSL Logo" width="300"/>
+<h2 align="center">
+<b>One cert manager to rule them all, one CA to find them, one browser to bring them all, and in encryption bind them.</b>
+</h2>
+</p>
 
 > **SphereSSL** is a modern, user-friendly certificate manager for Windows, built with ASP.NET.  
 > Make SSL certificate creation and renewal effortless for everyone—whether you’re a hobbyist or a professional.  
@@ -10,7 +13,7 @@
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Fast, Intuitive Dashboard**  
   Simple “Quick Create” flow, certificate management, and helpful links.
@@ -28,16 +31,16 @@
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
-<!-- Add your own! Example: -->
-![Dashboard Screenshot](https://raw.githubusercontent.com/SphereNetwork/SphereSSL/main/assets/dashboard.png)
-![Add DNS Provider](https://raw.githubusercontent.com/SphereNetwork/SphereSSL/main/assets/add-dns-provider.png)
-![Auto Renew](https://raw.githubusercontent.com/SphereNetwork/SphereSSL/main/assets/auto-renew.png)
+
+![Dashboard Screenshot](https://github.com/kl3mta3/SphereSSL/blob/master/Images/ssl1.png)
+![Add DNS Challenge](https://github.com/kl3mta3/SphereSSL/blob/master/Images/ssl2.png)
+![Certificate Details](https://github.com/kl3mta3/SphereSSL/blob/master/Images/ssl4.png)
 
 ---
 
-## 🛠️ Installation & Quick Start
+## Installation & Quick Start
 
 1. **[Download the latest release](https://github.com/SphereNetwork/SphereSSL/releases)** and extract it.
 2. **Run SphereSSL.exe** (no complicated setup).
@@ -51,7 +54,7 @@
 
 ---
 
-## 🌐 Supported DNS Providers
+## Supported DNS Providers
 
 - AWS Route53
 - Cloudflare
@@ -73,7 +76,7 @@ See [API Credential Requirements](https://github.com/SphereNetwork/SphereSSL/wik
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 - **[Full User Guide & FAQ](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL)**
 - [What is SSL?](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL#what-is-ssl)
@@ -84,7 +87,7 @@ See [API Credential Requirements](https://github.com/SphereNetwork/SphereSSL/wik
 
 ---
 
-## 👾 Contributing
+## Contributing
 
 Pull requests are welcome!  
 If you spot a bug or want to add a provider, open an [issue](https://github.com/SphereNetwork/SphereSSL/issues) or submit a PR.  
@@ -92,26 +95,25 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more info.
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] Add more DNS providers
 - [ ] Linux & cross-platform support
 - [ ] Webhooks & external integrations
-- [ ] User roles/permissions
 - [ ] Fully automated enterprise deployment
 
 *See the [roadmap](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL#roadmap) for more.*
 
 ---
 
-## 🛡️ License
+## License
 
 This project is licensed under the Business Source License 1.1 (BSL-1.1).  
 See [LICENSE](LICENSE) for details.
 
 ---
 
-## 💬 Support & Feedback
+## Support & Feedback
 
 - **Questions?** [Open an Issue](https://github.com/SphereNetwork/SphereSSL/issues)
 - **Feature requests?** We wanna hear ‘em!
@@ -119,6 +121,6 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-> **The more you know...** 🌠
+> **The more you know...** 
 
 ---
