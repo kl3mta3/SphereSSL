@@ -145,6 +145,9 @@ namespace SphereSSLv2.Pages
                     //auto renew
                     await certManager.RenewCertRecordWithAutoDNSById(_logger, orderId);
                     await _logger.Update($"[{CurrentUser.Username}]: Renewing certificate {order.OrderId} automatically.");
+
+                    ConfigureService.CertRecordCache.Remove(order.OrderId);
+                    ConfigureService.AcmeServiceCache.Remove(order.OrderId);
                     return new JsonResult(new
                     {
                         status = "success",
@@ -257,8 +260,6 @@ namespace SphereSSLv2.Pages
                     </form>
                     ";
 
-                   
-
                     return new JsonResult(new
                     {
                         status = "manual",
@@ -271,6 +272,9 @@ namespace SphereSSLv2.Pages
             catch (Exception ex)
             {
                 await _logger.Error($"[{CurrentUser.Username}]: Exception occurred while renewing certificate {order.OrderId}: {ex.Message}");
+
+                ConfigureService.CertRecordCache.Remove(order.OrderId);
+                ConfigureService.AcmeServiceCache.Remove(order.OrderId);
                 return StatusCode(500, "An error occurred while renewing the certificate.");
             }
           
@@ -358,7 +362,9 @@ namespace SphereSSLv2.Pages
                 }
             });
 
-           
+            ConfigureService.CertRecordCache.Remove(order.OrderId);
+            ConfigureService.AcmeServiceCache.Remove(order.OrderId);
+
             return Content(html, "text/html");
         }
 

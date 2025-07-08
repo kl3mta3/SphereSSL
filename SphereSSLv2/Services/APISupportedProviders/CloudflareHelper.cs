@@ -134,6 +134,25 @@ namespace SphereSSLv2.Services.APISupportedProviders
             }
         }
 
+        /// <summary>
+        /// Adds a DNS TXT record for ACME challenge verification to Cloudflare DNS.
+        /// Requires an API token with DNS edit permissions as a single string (no key/secret combo).
+        /// 
+        /// <para><b>API Requirements:</b></para>
+        /// <list type="bullet">
+        ///   <item>Cloudflare API token: <c>apiToken</c> (Bearer token; generated in Cloudflare dashboard with "Zone:DNS:Edit" permission).</item>
+        ///   <item>Domain: <c>domain</c> (FQDN to receive the _acme-challenge record).</item>
+        ///   <item>Challenge content: <c>content</c> (the TXT value for validation).</item>
+        /// </list>
+        /// 
+        /// Uses the <c>public_suffix_list.dat</c> for proper root domain detection and finds the appropriate zone.
+        /// </summary>
+        /// <param name="_logger">Logger for info/debug output.</param>
+        /// <param name="domain">Domain to update (e.g., "sub.example.com").</param>
+        /// <param name="apiToken">Cloudflare API Token with edit privileges (single string).</param>
+        /// <param name="content">TXT record value for ACME challenge.</param>
+        /// <param name="username">User context for logging.</param>
+        /// <returns>Zone ID if successful; otherwise, null or zoneId if not found.</returns>
         internal static async Task<string> AddDNSRecord(Logger _logger, string domain, string apiToken, string content, string username)
         {
 

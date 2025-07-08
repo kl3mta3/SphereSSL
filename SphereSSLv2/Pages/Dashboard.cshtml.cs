@@ -524,8 +524,8 @@ namespace SphereSSLv2.Pages
                 </div>
                 
                 <div class='mb-3'>
-                    <label for='apiKey' class='form-label'>API Key</label>
-                    <input type='text' id='apiKey' name='apiKey' class='form-control' placeholder='Paste your API key here' required>
+                    <label for='apiKey' class='form-label'>API Credentials</label>
+                    <input type='text' id='apiKey' name='apiKey' class='form-control' placeholder='Paste your API Creds here' required>
                 </div>
 
                 <div class='mb-3'>
@@ -929,7 +929,8 @@ namespace SphereSSLv2.Pages
                             await _logger.Update($"[{CurrentUser.Username}]: Certificates stored successfully!");
                         }
 
-
+                        ConfigureService.CertRecordCache.Remove(order.OrderId);
+                        ConfigureService.AcmeServiceCache.Remove(order.OrderId);
 
                         return;
                     }
@@ -956,6 +957,8 @@ namespace SphereSSLv2.Pages
                     }
                 }
 
+                ConfigureService.CertRecordCache.Remove(order.OrderId);
+                ConfigureService.AcmeServiceCache.Remove(order.OrderId);
                 await _logger.Error($"[{CurrentUser.Username}]: All {maxAttempts} attempts failed.");
                 await _logger.Debug($"[{CurrentUser.Username}]: All {maxAttempts} attempts failed.");
             });

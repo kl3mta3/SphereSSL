@@ -15,11 +15,17 @@ namespace SphereSSLv2.Models.DNSModels
             Cloudflare,
             DigitalOcean,
             AWSRoute53,
-            GoogleCloudDNS,
             Hetzner,
             Namecheap,
             GoDaddy,
-            DNSMadeEasy
+            DNSMadeEasy,
+            Porkbun,
+            Gandi,
+            Cloudnsnet,
+            DreamHost,
+            Vultr,
+            Linode,
+            DuckDNS
         }
 
 
@@ -68,36 +74,59 @@ namespace SphereSSLv2.Models.DNSModels
             switch (providerType)
             {
                 case ProviderType.Cloudflare:
-
                     zoneID = await CloudflareHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                     break;
 
+                case ProviderType.AWSRoute53:
+                    zoneID = await AWSRoute53Helper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                    break;
+
                 //case ProviderType.DigitalOcean:
-                //    success = await DigitalOceanHelper.AddOrUpdateDNSRecord(dnsProvider, domain, DnsChallange);
-                //    break;
-
-                //case ProviderType.AWSRoute53:
-                //    success = await AWSRoute53Helper.AddOrUpdateDNSRecord(dnsProvider, domain, DnsChallange);
-                //    break;
-
-                //case ProviderType.GoogleCloudDNS:
-                //    success = await GoogleCloudDNSHelper.AddOrUpdateDNSRecord(dnsProvider, domain, DnsChallange);
+                //    zoneID = await DigitalOceanHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                 //    break;
 
                 //case ProviderType.Hetzner:
-                //    success = await Hetzner.AddOrUpdateDNSRecord(dnsProvider, domain, DnsChallange);
+                //    zoneID = await HetznerDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                 //    break;
 
                 //case ProviderType.Namecheap:
-                //    success = await NamecheapHelper.AddOrUpdateDNSRecord(dnsProvider, domain, DnsChallange);
+                //    zoneID = await NamecheapDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                 //    break;
 
                 //case ProviderType.GoDaddy:
-                //    success = await GoDaddyHelper.AddOrUpdateDNSRecord(dnsProvider, domain, DnsChallange);
+                //    zoneID = await GoDaddyDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                 //    break;
 
                 //case ProviderType.DNSMadeEasy:
-                //    success = await DNSMadeEasy.AddOrUpdateDNSRecord(dnsProvider, domain, DnsChallange);
+                //    zoneID = await DNSMadeEasyDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                //    break;
+
+                //case ProviderType.Porkbun:
+                //    zoneID = await PorkbunDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                //    break;
+
+                //case ProviderType.Gandi:
+                //    zoneID = await GandiDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                //    break;
+
+                //case ProviderType.Cloudnsnet:
+                //    zoneID = await CloudnsnetDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                //    break;
+
+                //case ProviderType.DreamHost:
+                //    zoneID = await DreamHostDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                //    break;
+
+                //case ProviderType.Vultr:
+                //    zoneID = await VultrDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                //    break;
+
+                //case ProviderType.Linode:
+                //    zoneID = await LinodeDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+                //    break;
+
+                //case ProviderType.DuckDNS:
+                //    zoneID = await DuckDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
                 //    break;
 
                 default:

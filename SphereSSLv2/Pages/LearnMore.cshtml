@@ -54,6 +54,10 @@
                                         </li>
 
                                         <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="apirequirements-tab" data-bs-toggle="tab" data-bs-target="#apirequirements" type="button" role="tab" aria-controls="whataresans" aria-selected="false">API Credential Requirements</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
                                             <button class="nav-link" id="needlocalcert-tab" data-bs-toggle="tab" data-bs-target="#needlocalcert" type="button" role="tab" aria-controls="needlocalcert" aria-selected="false"> Local Certs?</button>
                                         </li>
 
@@ -397,8 +401,6 @@
                                         </div>
 
 
-
-
                                         <!-- What are Wildcards? -->
                                         <div class="tab-pane fade" id="whatarewildcards" role="tabpanel" aria-labelledby="whatarewildcards-tab">
                                             <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
@@ -463,6 +465,125 @@
                                                         <b>Pro tip:</b> Want <b>both</b> <span class="domain-example">yourdomain.com</span> <b>and</b> <span class="domain-example">*.yourdomain.com</span> covered?<br>
                                                         Just list them both, separated by a comma!
                                                         <br>Like: <b>yourdomain.com, *.yourdomain.com</b>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- API Credential Requirements -->
+                                        <div class="tab-pane fade" id="apirequirements" role="tabpanel" aria-labelledby="apirequirements-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">API Credential Requirements</h4>
+                                                    <p class="lead domain-lead">
+                                                        Here’s what you need to connect SphereSSL to your DNS provider for <b>automatic DNS record creation</b>.<br>
+                                                        <b>Tip:</b> If your provider needs two values (like a key <i>and</i> a secret), enter them as <code>KEY:SECRET</code>—with a colon, no spaces.
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">Supported Providers & API Credentials</h5>
+                                                    <table class="table table-striped mx-auto" style="max-width: 680px;">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Provider</th>
+                                                                <th>API Credential(s)</th>
+                                                                <th>Format</th>
+                                                                <th>Notes</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td><b>AWS Route53</b></td>
+                                                                <td>Access Key + Secret Key</td>
+                                                                <td><code>ACCESSKEY:SECRETKEY</code></td>
+                                                                <td>Separate with <code>:</code> (colon)</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Cloudflare</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Cloudns.net</b></td>
+                                                                <td>Auth ID + Password</td>
+                                                                <td><code>AUTHID:PASSWORD</code></td>
+                                                                <td>Like a username/password combo</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>DigitalOcean</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>DNSMadeEasy</b></td>
+                                                                <td>API Key + API Secret</td>
+                                                                <td><code>APIKEY:SECRET</code></td>
+                                                                <td>Separate with <code>:</code></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>DreamHost</b></td>
+                                                                <td>API Key</td>
+                                                                <td><code>API_KEY</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>DuckDNS</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Gandi</b></td>
+                                                                <td>API Key</td>
+                                                                <td><code>API_KEY</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>GoDaddy</b></td>
+                                                                <td>API Key + API Secret</td>
+                                                                <td><code>APIKEY:SECRET</code></td>
+                                                                <td>Separate with <code>:</code></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Hetzner</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Linode</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Namecheap</b></td>
+                                                                <td>Username + API Key</td>
+                                                                <td><code>USERNAME:APIKEY</code></td>
+                                                                <td>Separate with <code>:</code></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Porkbun</b></td>
+                                                                <td>API Key + API Secret</td>
+                                                                <td><code>APIKEY:SECRET</code></td>
+                                                                <td>Separate with <code>:</code></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Vultr</b></td>
+                                                                <td>API Key</td>
+                                                                <td><code>API_KEY</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Pro tip:</b> You can find these credentials in your provider’s dashboard or API settings page.<br>
+                                                        If your provider requires two values, **enter them together, separated by a colon**.<br>
+                                                        <b>Example:</b> <code>abcd1234:secret9876</code>
                                                     </span>
                                                 </div>
                                             </div>

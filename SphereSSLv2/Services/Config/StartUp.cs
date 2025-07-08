@@ -136,7 +136,7 @@ namespace SphereSSLv2.Services.Config
            
             await InitilizeDatabase();
             await StartTrayApp();
-          
+           
         }
 
         private static async Task StartTrayApp()

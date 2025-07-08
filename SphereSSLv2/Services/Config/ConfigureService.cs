@@ -32,8 +32,8 @@ namespace SphereSSLv2.Services.Config
         internal static string TrayAppPath = Path.Combine(AppContext.BaseDirectory, "SphereSSL.exe");
         internal static string ServerIP { get; set; } = "127.0.0.1";
         internal static int ServerPort { get; set; } = 7171;
-        public static double RefreshExpiringSoonRateInMinutes { get; } = 5;
-        public static double ExpiringNoticePeriodInDays { get; } = 30;
+        public static double RefreshExpiringSoonRateInHours { get; } = 24;
+        public static double ExpiringRefreshPeriodInDays { get; } = 30;
         internal static string CAPrimeUrl ;
         internal static string CAStagingUrl ;
         internal static string dbPath = "certificates.db";
