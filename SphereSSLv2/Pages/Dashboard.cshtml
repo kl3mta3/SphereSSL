@@ -20,15 +20,30 @@
                                 <form onsubmit="event.preventDefault(); submitOrder();">
                                     <h6><strong>Email Address</strong></h6>
                                     <input type="email" id="email" name="email" class="form-control mb-3" placeholder="you@example.com" required />
-
-                                    <h6><strong>Domain Address</strong></h6>
-
+                                <div>
+                                <h6 class="d-inline align-middle">
+                                    <strong>Domain Address</strong>
+                                    <a href="/LearnMore#whatisadomain" target="_blank" class="ms-1" title="What is a domain?">
+                                        <i class="bi bi-info-circle info-icon"></i>
+                                    </a>
+                                </h6>
+                                </div>
                                     <span class="format-subtext">
-                                        Separate SAN's with a
+                                    Separate SAN's with a
                                         <strong style="font-size:1.5em; color:#4F46E5; vertical-align:middle;">,</strong>
-                                        &nbsp;and start Wildcards with&nbsp;
-                                        <strong style="font-size:1.5em; color:#DC2626; vertical-align:middle;">*.</strong>
-                                    </span>
+                                    &nbsp;and start Wildcards with&nbsp;
+                                    <strong style="font-size:1.5em; color:#DC2626; vertical-align:middle;">*.</strong>
+                                </span><span>. </span>
+                                <span class="icon-group d-inline-flex align-items-center mb-2">
+                                    <a href="/LearnMore#whataresans" target="_blank" title="Learn about SAN's">
+                                        <i class="bi bi-info-circle info-icon"></i>
+                                    </a>
+                                    <a href="/LearnMore#whatarewildcards" target="_blank" title="Learn about Wildcards">
+                                        <i class="bi bi-info-circle info-icon ms-1"></i>
+                                    </a>
+                                </span>
+                              
+                                       
 
                                     <input type="text" id="domain" name="domain" class="form-control mb-3" placeholder="example.com" required />
                                     <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
@@ -49,6 +64,7 @@
                                     </div>
 
                                     <h6><strong>Save Path</strong></h6>
+                                <span class="format-subtext"> Ideally this would be where your server will look for the cert.</span>
                                     <div class="input-group mb-3">
                                         <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath" />
                                         <button class="btn btn-outline-secondary" type="button" id="browseBtn">Browse</button>
@@ -58,8 +74,12 @@
                                         <input class="form-check-input" type="checkbox" id="autoAddRecord" onchange="toggleProviderDropdown()" />
                                         <label class="form-check-label" for="autoAddRecord">
                                             Auto add DNS Record
+                                            <a href="/LearnMore#autoaddrecord" target="_blank" class="ms-1" title="Learn about Auto Add Record">
+                                                <i class="bi bi-info-circle info-icon"></i>
+                                            </a>
                                         </label>
                                     </div>
+
                                     <div class="mb-3" id="providerDropdownContainer" style="display: none;">
                                         <label for="dnsProvider" class="form-label">DNS Provider</label>
 
@@ -93,6 +113,9 @@
                                         <input class="form-check-input" type="checkbox" id="autoRenew" />
                                         <label class="form-check-label" for="autoRenew">
                                             Auto Renew (DNS via API)
+                                        <a href="/LearnMore#autorenew" target="_blank" title="Learn about Auto Renew">
+                                            <i class="bi bi-info-circle info-icon ms-1"></i>
+                                        </a>
                                         </label>
                                     </div>
 
@@ -105,6 +128,9 @@
                                             <input class="form-check-input" type="checkbox" id="useStaging" />
                                             <label class="form-check-label" for="useStaging" title="Use Let's Encrypt Staging (for testing)">
                                                 Staging
+                                            <a href="/LearnMore#whatisstaging" target="_blank" title="Learn about Staging">
+                                                <i class="bi bi-info-circle info-icon ms-1"></i>
+                                            </a>
                                             </label>
                                         </div>
                                     </div>
@@ -405,9 +431,19 @@
                                 </a>
                             </div>
 
-                        <div class="card useful-links shadow-sm p-3 mb-2" style="  min-width: 200px;">
-                            <button class="btn-glow" id="getlocalcert" data-bs-toggle="modal" type="button" data-bs-target="#localCertModal">Get Local Cert</button>
+                        <div class="card useful-links shadow-sm p-3 mb-2" style="  min-width: 200px; ">
+                         <h5>Get Local Cert</h5>
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    <button class="btn-glow btn-sm" id="getlocalcert" data-bs-toggle="modal" type="button" data-bs-target="#localCertModal" style="font-size:0.97rem; padding:4px 10px;">
+                                        Get Local Cert
+                                    </button>
+                                    <a href="/LearnMore#needlocalcert" target="_blank" class="ms-1" title="Learn about Local Certs">
+                                        <i class="bi bi-info-circle info-icon"></i>
+                                    </a>
+                                </div>
+                        
                         </div>
+
 
                         </div>
 
@@ -428,7 +464,13 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
-
+<style>
+    #getlocalcert {
+        font-size: 0.85rem;
+        padding: 2px 8px;
+        white-space: nowrap;
+    }
+ </style>
 
 <!-- Toggle Preview Dropdown -->
 <script>

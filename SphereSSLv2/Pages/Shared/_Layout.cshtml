@@ -67,7 +67,7 @@
 
                 <a asp-page="/LearnMore" class="sidebar-link @(routePage == "/learnmore" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-book-half"></i></span>
-                    <span class="sidebar-text">Help</span>
+                    <span class="sidebar-text">Learn</span>
                 </a>
             </nav>
 
@@ -1425,5 +1425,31 @@
         //         location.reload();
         //     }, 300);
         // });
+    });
+</script>
+
+<!-- Deep Linking for Tabs -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (window.location.hash) {
+            const tabHash = window.location.hash;
+            const tabButton = document.querySelector(`[data-bs-target="${tabHash}"]`);
+            if (tabButton) {
+                var tabTrigger = new bootstrap.Tab(tabButton);
+                tabTrigger.show();
+                // Optional: scroll into view
+                setTimeout(() => {
+                    document.querySelector(tabHash)?.scrollIntoView({behavior:"smooth"});
+                }, 200);
+            }
+        }
+
+        // Update URL hash on tab switch for deep linking
+        const tabLinks = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabLinks.forEach(btn => {
+            btn.addEventListener('shown.bs.tab', function (e) {
+                history.replaceState(null, null, e.target.getAttribute('data-bs-target'));
+            });
+        });
     });
 </script>

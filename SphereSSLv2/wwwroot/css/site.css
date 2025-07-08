@@ -14,7 +14,32 @@ body, html {
     font-family: sans-serif;
     backdrop-filter: blur(10px);
 }
+@keyframes star-fly {
+    0% {
+        opacity: 0;
+        transform: translateX(0px) translateY(10px) scale(0.9) rotate(-10deg);
+    }
 
+    20% {
+        opacity: 1;
+        transform: translateX(80px) translateY(0px) scale(1) rotate(-3deg);
+    }
+
+    60% {
+        opacity: 1;
+        transform: translateX(120px) translateY(-10px) scale(1.2) rotate(2deg);
+    }
+
+    80% {
+        opacity: 1;
+        transform: translateX(180px) translateY(-10px)  scale(1.35) rotate(4deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(240px) translateY(-20px) scale(1.5) rotate(8deg);
+    }
+}
 
 @keyframes gradientShift {
     0% {
@@ -1052,4 +1077,14 @@ body, html {
     transition: color 0.3s;
 }
 
+.info-icon {
+    font-size: .9rem; 
+    color: #1890ff; 
+    vertical-align: middle;
+    transition: color 0.2s;
+}
+
+    .info-icon:hover {
+        color: #0056b3;
+    }
 

@@ -524,7 +524,12 @@ namespace SphereSSLv2.Pages
                 </div>
                 
                 <div class='mb-3'>
-                    <label for='apiKey' class='form-label'>API Credentials</label>
+                   <label for=""apiKey"" class=""form-label"">
+                        API Credentials
+                        <a href=""/LearnMore#apirequirements"" target=""_blank"" class=""ms-1 small"" title=""See which API creds you need"">
+                            <i class=""bi bi-info-circle""></i>
+                        </a>
+                    </label>
                     <input type='text' id='apiKey' name='apiKey' class='form-control' placeholder='Paste your API Creds here' required>
                 </div>
 

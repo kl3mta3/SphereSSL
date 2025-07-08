@@ -36,6 +36,7 @@ namespace SphereSSLv2.Pages
         private readonly DnsProviderRepository _dnsProviderRepository;
         private readonly CertRepository _certRepository;
         private  ConfigureService _configureService;
+        public readonly double RenewalPeriodDays = ConfigureService.ExpiringRefreshPeriodInDays; // Maximum days before expiry to renew certificates
 
         public ManageRenewalsModel(UserRepository userRepository, Logger logger, DnsProviderRepository dnsProviderRepository, CertRepository certRepository, ILogger<ManageRenewalsModel> ilogger, ConfigureService configureService)
         {
@@ -141,8 +142,19 @@ namespace SphereSSLv2.Pages
                 CertRecordServiceManager certManager = new CertRecordServiceManager();
                 if (order.autoRenew)
                 {
-                   
+
                     //auto renew
+                    foreach (var challenge in order.Challenges)
+                    {
+                        if (string.IsNullOrWhiteSpace(challenge.ProviderId))
+                        {
+                            await _logger.Error($"[{CurrentUser.Username}]: A Provider is required to AutoRenew.");
+                            return BadRequest($"Provider required for domain: {challenge.Domain}");
+                        }
+                    }
+
+
+
                     await certManager.RenewCertRecordWithAutoDNSById(_logger, orderId);
                     await _logger.Update($"[{CurrentUser.Username}]: Renewing certificate {order.OrderId} automatically.");
 
@@ -399,6 +411,15 @@ namespace SphereSSLv2.Pages
                 await _logger.Error($"[{CurrentUser.Username}]: Order is null or empty.");
                 return BadRequest("An order is required.");
 
+            }
+
+            foreach (var challenge in order.Challenges)
+            {
+                if (string.IsNullOrWhiteSpace(challenge.ProviderId))
+                {
+                    await _logger.Error($"[{CurrentUser.Username}]: A Provider is required to AutoRenew.");
+                    return BadRequest($"Provider required for domain: {challenge.Domain}");
+                }
             }
 
             if (order.autoRenew)
