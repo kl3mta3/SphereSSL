@@ -87,6 +87,7 @@ namespace SphereSSLv2.Models.DNSModels
 
                 case ProviderType.Hetzner:
                     zoneID = await HetznerDNSHelper.AddDNSRecord(_logger, domain, dnsProvider.APIKey, DnsChallange, username);
+
                     break;
 
                 case ProviderType.Namecheap:
