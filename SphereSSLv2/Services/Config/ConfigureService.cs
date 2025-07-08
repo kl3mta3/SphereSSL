@@ -17,6 +17,8 @@ using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Services.Security.Auth;
 using static Org.BouncyCastle.Math.EC.ECCurve;
 using SphereSSLv2.Services.AcmeServices;
+using Nager.PublicSuffix.RuleProviders;
+using Nager.PublicSuffix;
 
 namespace SphereSSLv2.Services.Config
 {
@@ -30,8 +32,8 @@ namespace SphereSSLv2.Services.Config
         internal static string TrayAppPath = Path.Combine(AppContext.BaseDirectory, "SphereSSL.exe");
         internal static string ServerIP { get; set; } = "127.0.0.1";
         internal static int ServerPort { get; set; } = 7171;
-        public static double RefreshExpiringSoonRateInMinutes { get; } = 5;
-        public static double ExpiringNoticePeriodInDays { get; } = 30;
+        public static double RefreshExpiringSoonRateInHours { get; } = 24;
+        public static double ExpiringRefreshPeriodInDays { get; } = 30;
         internal static string CAPrimeUrl ;
         internal static string CAStagingUrl ;
         internal static string dbPath = "certificates.db";
@@ -45,13 +47,14 @@ namespace SphereSSLv2.Services.Config
         internal static bool IsSetup = false;
         private readonly Logger _logger;
         public static Dictionary<string, AcmeService> AcmeServiceCache = new Dictionary<string, AcmeService>();
+        public static Dictionary<string, CertRecord> CertRecordCache = new Dictionary<string, CertRecord>();
         public ConfigureService(Logger logger)
         {
             _logger = logger;
         }
 
         //for testing
-        internal static bool GenerateFakeTestCerts = true;
+        internal static bool GenerateFakeTestCerts = false;
 
         internal static void OnProcessExit(object? sender, EventArgs e)
         {
@@ -233,8 +236,18 @@ namespace SphereSSLv2.Services.Config
 
         public static async Task<List<string>> GetNameServers(string domain)
         {
+            if (domain.StartsWith("*."))
+            {
+                domain = domain.Substring(2);
+            }
+
+            var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
+            await ruleProvider.BuildAsync();
+            var domainParser = new DomainParser(ruleProvider);
+            var domainInfo = domainParser.Parse(domain);
+            string strippedDomain = domainInfo.RegistrableDomain;
             var lookup = new LookupClient();
-            var result = await lookup.QueryAsync(domain, QueryType.NS);
+            var result = await lookup.QueryAsync(strippedDomain, QueryType.NS);
 
             return result.Answers
                 .OfType<NsRecord>()

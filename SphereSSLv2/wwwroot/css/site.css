@@ -1,4 +1,7 @@
-﻿body, html {
+﻿* {
+    box-sizing: border-box;
+}
+body, html {
     background: linear-gradient(135deg, #0d1b2a, #1b263b, #415a77, #778da9);
     background-size: 400% 400%;
     animation: gradientShift 30s ease infinite;
@@ -6,13 +9,37 @@
     padding: 0;
     width: 100%;
     overflow-x: hidden;
-    overflow-y: hidden;
     height: 100%;
     background-color: #1d3b5c;
     font-family: sans-serif;
     backdrop-filter: blur(10px);
 }
+@keyframes star-fly {
+    0% {
+        opacity: 0;
+        transform: translateX(0px) translateY(10px) scale(0.9) rotate(-10deg);
+    }
 
+    20% {
+        opacity: 1;
+        transform: translateX(80px) translateY(0px) scale(1) rotate(-3deg);
+    }
+
+    60% {
+        opacity: 1;
+        transform: translateX(120px) translateY(-10px) scale(1.2) rotate(2deg);
+    }
+
+    80% {
+        opacity: 1;
+        transform: translateX(180px) translateY(-10px)  scale(1.35) rotate(4deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(240px) translateY(-20px) scale(1.5) rotate(8deg);
+    }
+}
 
 @keyframes gradientShift {
     0% {
@@ -42,10 +69,28 @@
         box-shadow: 0 0 0 0 rgba(234,179,8, 0);
     }
 }
-
 .badge-pulse {
     animation: pulse-badge 1.2s infinite;
     transition: box-shadow 0.2s;
+}
+
+.badge-animate {
+    box-shadow: 0 0 8px 2px #14ff8b77;
+    animation: pulse 0.5s;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 #14ff8b77;
+    }
+
+    70% {
+        box-shadow: 0 0 10px 6px #14ff8b44;
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 #14ff8b00;
+    }
 }
 
 
@@ -56,14 +101,14 @@
 
 
 .css-avatar {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     background-color: #0b71a7;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+   
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -73,30 +118,11 @@
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 0 8px rgba(11, 113, 167, 0.6);
     }
 
-    .css-avatar::before {
-        content: '';
-        width: 20px;
-        height: 20px;
-        background-color: white;
-        border-radius: 50%;
-        position: absolute;
-        top: 12px;
-    }
 
-    .css-avatar::after {
-        content: '';
-        width: 30px;
-        height: 18px;
-        background-color: white;
-        border-radius: 50% / 40%;
-        position: absolute;
-        bottom: 10px;
-    }
 
 .top-bar-icons {
-    position: absolute;
-    top: 35px;
-    right: 30px;
+    position: relative;
+    top: -20px;
     display: flex;
     align-items: center;
     gap: 20px;
@@ -121,11 +147,12 @@
     align-items: center;
     width: 100%;
     padding: 30px 40px 0 40px;
-    position: absolute;
-    top: -4px;
+    position: fixed;
+    top: 0px;
     left: 0;
     z-index: 5;
     box-sizing: border-box;
+
 }
 
 
@@ -133,7 +160,7 @@
 
 .title {
     margin: 0;
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 600;
     color: white;
 }
@@ -146,9 +173,15 @@
     transform: translate(-12px, -6px);
 }
 
+.drag-over {
+    border: 2px dashed #0d6efd !important;
+    background: #f0f7ff;
+    transition: background 0.2s;
+}
+
 .sidebar-box {
-    width: 150px;
-    height: 70%;
+    width: 160px;
+    height: 50%;
     background-color: #0f1a2b;
     border-top-left-radius: 30px;
     border-bottom-left-radius: 30px;
@@ -156,6 +189,7 @@
     border-bottom-right-radius: 30px;
     margin-left: 30px;
     margin-right: 30px;
+    margin-top: -220px;
     z-index: 2;
     display: flex;
     flex-direction: column;
@@ -163,7 +197,12 @@
     justify-content: start;
     padding-top: 30px;
 }
-
+.sidebar-link.active {
+    background: linear-gradient(90deg, #1b5c90, #0b71a7 90%);
+    color: #fff;
+    font-weight: 800;
+    box-shadow: 0 0 8px #11b0fa55;
+}
 .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -221,7 +260,7 @@
 
 
 .titleText {
-    font-size: 2rem;
+    font-size: 1.8em;
     font-weight: 600;
     color: white;
     text-align: center;
@@ -236,8 +275,9 @@
     color: white;
     text-align: center;
     width: 50%;
-    margin-top: 40px;
+    margin-top: 30px;
     margin-right: -5px;
+    position: relative;
 }
 
 .minititleTag {
@@ -261,15 +301,16 @@
 }
 
 .footer-text {
-    position: absolute;
-    bottom: 10px;
+    position:  fixed;
+    bottom: 0px;
     width: 100%;
     text-align: center;
+   
     color: white;
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.55rem;
     margin-right: -200px;
-    pointer-events: none; /* just in case */
+    pointer-events: none;
 }
 
 .titleFooter {
@@ -277,9 +318,12 @@
     display: block;
     width: fit-content;
     text-align: center;
-    font-size: .75rem;
+    font-size: .55rem;
     font-weight: 600;
     color: white;
+}
+.btn-sm.mb-0 {
+    margin-bottom: 0 !important;
 }
 
 .inline-logo-footer {
@@ -328,9 +372,9 @@
 }
 
 .cert-accordion-container {
-    max-height: 70vh; /* controls total certificate card height */
+    max-height: 100px; 
     overflow-y: auto;
-    padding-right: 8px; /* for visual spacing from scrollbar */
+    padding-right: 8px; 
 }
 
 .scroll-pane {
@@ -344,13 +388,20 @@
     border-bottom: 1px solid #eee;
 }
 
+.quick-create {
+    max-height: 660px;
+}
+.inner-box {
+    padding-top: 74px; 
+    padding-bottom: 66px;  
+}
 
 .card {
     border-radius: 15px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     padding: 20px;
     background-color: #ffffff;
-    backdrop-filter: blur(10px); /* subtle blur effect */
+    backdrop-filter: blur(10px);
 }
 
     .card h3 {
@@ -367,9 +418,9 @@
 
     .card.renewals {
         max-width: 700px;
-        padding: 25px 50px;
+        padding: 10px 25px;
         border-radius: 12px;
-        background-color: white;
+        background-color: blueviolet;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
         margin: 0 auto;
         text-align: center;
@@ -463,8 +514,28 @@
         transform: scale(1.03);
     }
 
+.accordion-button {
+    color: white;
+    max-height: 35px;
+    font-weight: 600;
+    margin-top: 2px;
+    padding: 10px 15px;
+    border-radius: 10px;
+}
 
+    .accordion-button:hover {
+        background-color: white;
+        transform: scale(1.02);
+    }
 
+.collapseActive,
+.collapseExpiring,
+.collapseExpired {
+    background-color: #0b71a7;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border-radius: 10px;
+}
 
 .cert-form {
     max-width: 400px;
@@ -489,14 +560,14 @@
 
 .title-cert-dropdown {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: black;
     text-align: center;
 }
 
 .accordion-body {
-    max-height: 500px;
+    max-height: 800px;
     overflow-y: auto;
 }
 
@@ -610,14 +681,14 @@
 
 .form-check-input {
     accent-color: #05131d;
-    transform: scale(1.2);
+    transform: scale(1);
     margin-right: 8px;
     cursor: pointer;
 }
 
 .form-check-label {
     text-align: left !important;
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: #333;
     cursor: pointer;
@@ -627,7 +698,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.9rem;
     text-align: left;
 }
 
@@ -645,9 +716,9 @@
 }
 
 .cert-accordion-container {
-    max-height: 70vh; /* controls total certificate card height */
+    max-height: 70vh; 
     overflow-y: auto;
-    padding-right: 8px; /* for visual spacing from scrollbar */
+    padding-right: 8px; 
 }
 
 .scroll-pane {
@@ -667,7 +738,7 @@
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     padding: 20px;
     background-color: #ffffff;
-    backdrop-filter: blur(10px); /* subtle blur effect */
+    backdrop-filter: blur(10px); 
 }
 
     .card h3 {
@@ -806,15 +877,23 @@
 
 .title-cert-dropdown {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: black;
     text-align: center;
 }
 
 .accordion-body {
-    max-height: 500px;
+    max-height: 400px;
     overflow-y: auto;
+}
+
+.cert-domain {
+    font-size: .5rem;
+    font-weight: 600;
+    color: #0b71a7;
+    text-decoration: none;
+    transition: color 0.2s ease, text-decoration 0.2s ease;
 }
 
 .btn-glow {
@@ -861,8 +940,8 @@
 }
 
 .list-group {
-    padding-top: 0px;
-    padding-bottom: 0px;
+    padding-top: -5px;
+    padding-bottom: -5px;
     padding-left: 5px;
     padding-right: 5px;
 }
@@ -887,6 +966,28 @@
     margin-bottom: 4px !important;
 }
 
+.domain-comma {
+    font-size: 1rem;
+    font-weight: 800;
+    color: black;
+    margin-right: 0.15em;
+    margin-left: -0.12em;
+    user-select: none;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.11);
+}
+
+.domain-link::before {
+    content: "";
+}
+
+.domain-link[data-wildcard="true"]::before {
+    content: "*.";
+    color: #ec9f05;
+    font-weight: bold;
+    margin-right: 0.05em;
+}
+
 .domain-link,
 .expires-in,
 .provider,
@@ -898,17 +999,17 @@
 
 .provider {
     font-weight: 600;
-    font-size: 1rem;
+    font-size: .75rem;
 }
 
 .expires-in {
     font-weight: 600;
-    font-size: 1rem;
+    font-size: .75rem;
     font-style: italic;
 }
 
 .domain-link {
-    font-size: 1.5rem;
+    font-size: .9rem;
     font-weight: 900;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -918,12 +1019,27 @@
 .auto-renew {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    margin-top: 0.25rem;
+    margin-top: 0.13rem;
     padding: 0;
     background-color: transparent;
+    gap: 0.20rem;
+    min-height: .8rem;
+    font-size: 0.79rem; 
 }
 
+    .auto-renew i,
+    .auto-renew .bi {
+        font-size: 1.08rem !important; 
+        margin-right: 3px;
+        vertical-align: middle;
+    }
+
+.auto-renew-text {
+    font-size: 0.7rem;
+    margin-left: 2px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
 
 .form-check-input {
     accent-color: #05131d;
@@ -955,4 +1071,20 @@
     white-space: nowrap;
     max-width: max-content;
 }
+
+.expiry-countdown {
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.info-icon {
+    font-size: .9rem; 
+    color: #1890ff; 
+    vertical-align: middle;
+    transition: color 0.2s;
+}
+
+    .info-icon:hover {
+        color: #0056b3;
+    }
 

@@ -7,16 +7,23 @@
     <div class="row justify-content-center">
         <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
             <h3 class="title text-center mb-3">Manage Certificates</h3>
-            <div class="card bg-light text-dark shadow-sm p-4">
-                <h3 class="title text-dark text-center mb-3">Your Certificates</h3>
+            <div class="card bg-light text-dark shadow-sm p-4 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <input type="text" id="certSearch" class="form-control"
+                           placeholder="Search domains..."
+                           style="max-width: 270px; border-radius: 12px; box-shadow: 0 2px 6px #0001; margin-left: 16px;">
+                    <h6 class="title text-dark text-center mb-0" style="font-weight:600;">
+                        Total: <span id="certCountFiltered">@Model.CertRecords.Count</span>
+                    </h6>
+                </div>
                 <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
                     <table class="table table-striped table-hover align-middle mb-3" id="certTable">
                         <thead>
                             <tr>
                                 <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(0)">Domain <span id="domainSortIcon">⇅</span></th>
                                 <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(1)">Status <span id="statusSortIcon">⇅</span></th>
-                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(2)">AutoRenew <span id="autorenewSortIcon">⇅</span></th>
-                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(3)">Days Left <span id="daysremainingSortIcon">⇅</span></th>
+                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(2)">Days Left <span id="daysremainingSortIcon">⇅</span></th>
+                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(3)">AutoRenew <span id="autorenewSortIcon">⇅</span></th>
                                 <th style="width:140px"></th>
                             </tr>
                         </thead>
@@ -25,6 +32,8 @@
                             {
                                 foreach (var cert in Model.CertRecords)
                                 {
+                                    var allProviders = cert.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
+                                    var providername = Model.DNSProviders.FirstOrDefault(p => p.ProviderId == string.Join(", ", allProviders))?.Provider ?? "Unknown Provider";
                                     var status = "";
                                     if (cert.ExpiryDate < DateTime.UtcNow)
                                     {
@@ -41,7 +50,27 @@
                                     int daysRemaining = (cert.ExpiryDate - DateTime.UtcNow).Days;
                                 
                                     <tr data-cert-id="@cert.OrderId">
-                                        <td id="certTableDomain">@cert.Domain</td>
+                                        <td class="certTableDomain">
+                                            @if (cert.Challenges != null && cert.Challenges.Any())
+                                            {
+                                                <div class="d-flex flex-wrap align-items-center gap-1">
+                                                    @foreach (var challenge in cert.Challenges.DistinctBy(x => x.Domain))
+                                                    {
+                                                        <a href="https://@challenge.Domain" target="_blank"
+                                                           class="badge rounded-pill bg-secondary text-decoration-underline fw-normal me-1 mb-1"
+                                                           style="font-size: 1em;"
+                                                           title="View @challenge.Domain">@challenge.Domain</a>
+                                                    }
+                                                </div>
+                                                <div class="mt-1 small text-muted">
+                                                    Providers: @providername
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">No domains</span>
+                                            }
+                                        </td>
                                         <td class="text-center">
                                             @if (status == "Expired")
                                             {
@@ -49,7 +78,7 @@
                                             }
                                             else if (status == "Expiring")
                                             {
-                                                <span class="badge" style="background:#eab308; color:#222;" title="This certificate will expire soon!" class="badge-pulse">Expiring</span>
+                                                <span class="badge-pulse" style="background:#eab308; color:#222;" title="This certificate will expire soon!">Expiring</span>
                                             }
                                             else
                                             {
@@ -101,70 +130,196 @@
 
             </div>
 
-
+            <h5 class="title text-center mb-3">Certs set for auto renew will renew @Model.RenewalPeriodDays days before the expiry date. </h5>
         </div>
                 
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
 <!-- Sort CERT Table -->
 <script>
-    let sortDirection3 = [1, 1, 1, 1];
+      let sortDirection3 = [1, 1, 1, 1];
 
-    function sortCertTable(colIndex) {
-        const table3 = document.getElementById("certTable");
-        const tbody3 = table3.tBodies[0];
-        const rows3 = Array.from(tbody3.querySelectorAll("tr")).filter(
-            tr => tr.children.length > 2
-        );
+      function sortCertTable(colIndex) {
+          const table3 = document.getElementById("certTable");
+          const tbody3 = table3.tBodies[0];
+          const rows3 = Array.from(tbody3.querySelectorAll("tr")).filter(
+              tr => tr.children.length > 2
+          );
 
-        // Toggle direction
-        sortDirection3[colIndex] *= -1;
+          // Toggle direction
+          sortDirection3[colIndex] *= -1;
 
-        rows3.sort((a, b) => {
-            let aVal = a.cells[colIndex].innerText.trim();
-            let bVal = b.cells[colIndex].innerText.trim();
+          rows3.sort((a, b) => {
+              let aVal = a.cells[colIndex].innerText.trim();
+              let bVal = b.cells[colIndex].innerText.trim();
 
-            if (colIndex === 2) {
-                // AutoRenew: "On" > "Off"
-                aVal = aVal.toLowerCase() === "on" ? 1 : 0;
-                bVal = bVal.toLowerCase() === "on" ? 1 : 0;
-                return (aVal - bVal) * sortDirection3[colIndex];
-            } else if (colIndex === 3) {
-                // Days Remaining: numeric sort
-                aVal = parseInt(aVal, 10);
-                bVal = parseInt(bVal, 10);
-                return (aVal - bVal) * sortDirection3[colIndex];
+              if (colIndex === 2) {
+                  // Days Left: numeric sort (even if badge or extra text)
+                  aVal = parseInt(a.cells[colIndex].textContent.match(/-?\d+/), 10);
+                  bVal = parseInt(b.cells[colIndex].textContent.match(/-?\d+/), 10);
+                  return (aVal - bVal) * sortDirection3[colIndex];
+              } else if (colIndex === 3) {
+                  // AutoRenew: "On" > "Off"
+                  aVal = aVal.toLowerCase() === "on" ? 1 : 0;
+                  bVal = bVal.toLowerCase() === "on" ? 1 : 0;
+                  return (aVal - bVal) * sortDirection3[colIndex];
+              } else {
+                  // String sort (domain, status)
+                  aVal = aVal.toLowerCase();
+                  bVal = bVal.toLowerCase();
+                  if (aVal < bVal) return -1 * sortDirection3[colIndex];
+                  if (aVal > bVal) return 1 * sortDirection3[colIndex];
+                  return 0;
+              }
+          });
+
+          rows3.forEach(row => tbody3.appendChild(row));
+          updateCertCounts();
+          // ^^^ Call after sorting so the visible count is correct
+      }
+
+      document.getElementById('certSearch').addEventListener('input', function() {
+          const search = this.value.trim().toLowerCase();
+          const table = document.getElementById('certTable');
+          const rows = table.tBodies[0].querySelectorAll('tr');
+
+          rows.forEach(row => {
+              // Search all domains in the first column using the class instead of id
+              const domainLinks = row.querySelectorAll('td.certTableDomain a');
+              const domainMatch = Array.from(domainLinks).some(a => a.textContent.toLowerCase().includes(search));
+              row.style.display = (search === '' || domainMatch) ? '' : 'none';
+          });
+          updateCertCounts();
+      });
+
+      function updateCertCounts() {
+          // All rows
+          const allRows = document.querySelectorAll("#certTable tbody tr");
+          // Only visible (not display:none)
+          const filteredRows = Array.from(allRows).filter(tr => tr.style.display !== 'none');
+
+          // Update count
+          document.getElementById("certCountFiltered").textContent = filteredRows.length;
+      }
+
+      // Optionally: run this after page load so counts are always synced
+      document.addEventListener('DOMContentLoaded', updateCertCounts);
+
+</script>
+
+<!--Get Current User Username-->
+<script>
+
+    let currentUsername = null;
+
+    async function fetchCurrentUsername() {
+        try {
+            const resp = await fetch('/Dashboard?handler=GetCurrentUserUsername');
+            const data = await resp.json();
+            if (data.username) {
+                currentUsername = data.username;
             } else {
-                // String sort (domain, status)
-                aVal = aVal.toLowerCase();
-                bVal = bVal.toLowerCase();
-                if (aVal < bVal) return -1 * sortDirection3[colIndex];
-                if (aVal > bVal) return 1 * sortDirection3[colIndex];
-                return 0;
+                console.warn("Username not found in session.");
+            }
+        } catch (err) {
+            console.error("Failed to fetch current username:", err);
+        }
+    }
+</script>
+
+<!-- starting Signal listener -->
+<script>
+    console.log("Starting Signal listener:");
+
+    async function startSignalR() {
+        await fetchCurrentUsername(); // make sure username is set first!
+
+        const connection1 = new signalR.HubConnectionBuilder()
+            .withUrl("/logHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection1.on("UpdateLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.log("Received UpdateLog:", msg)
+            appendToLog(msg, "update");
+
+            if (msg.includes("Certificate stored successfully!")) {
+                certDownloadReady = true;
+                console.log("Certificate download ready:", certDownloadReady);
+                tryShowDownloadButton();
+            }
+            if (msg.includes("Certificates stored successfully!")) {
+                certDownloadsReady = true;
+                console.log("Certificates download ready:", certDownloadsReady);
+                tryShowDownloadButtons();
             }
         });
 
-        rows3.forEach(row => tbody3.appendChild(row));
+        connection1.on("InfoLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.log("Received InfoLog:", msg);
+            appendToLog(msg, "info");
+        });
 
-        // Update sort icons
-        document.getElementById('domainSortIcon').textContent = colIndex === 0
-            ? (sortDirection3[0] === 1 ? '↑' : '↓') : '⇅';
-        document.getElementById('statusSortIcon').textContent = colIndex === 1
-            ? (sortDirection3[1] === 1 ? '↑' : '↓') : '⇅';
-        document.getElementById('autorenewIcon').textContent = colIndex === 2
-            ? (sortDirection3[2] === 1 ? '↑' : '↓') : '⇅';
-        document.getElementById('daysremaining').textContent = colIndex === 3
-            ? (sortDirection3[3] === 1 ? '↑' : '↓') : '⇅';
+        connection1.on("DebugLog", msg => {
+            if (!currentUsername || !msg.includes(`[${currentUsername}]`)) return;
+            console.debug("Received DebugLog:", msg);
+            appendToLog(msg, "debug");
+        });
+
+        connection1.start()
+            .then(() => {
+                console.log("SignalR connection successfully established!");
+            })
+            .catch(err => {
+                console.error("SignalR connection failed: ", err);
+            });
+
+        window.signalHub = connection1;
+    }
+
+    // Call it!
+    startSignalR();
+
+</script>
+
+<!-- append Signal Log -->
+<script>
+    function appendToLog(text, level) {
+          console.log("Signal Line Heard:");
+        const logLine = document.createElement("div");
+        logLine.textContent = text;
+        logLine.className = `log-line ${level}`;
+
+        const container = document.getElementById("signalLogOutput");
+
+        if (!container) {
+            setTimeout(() => appendToLog(text, level), 100);
+            return;
+        }
+
+        container.appendChild(logLine);
+        container.scrollTop = container.scrollHeight;
+
+        console.log("Appending log to:", container);
     }
 </script>
 
 
-
 <style>
 
+    #certCountFiltered {
+        transition: color 0.2s, font-size 0.2s;
+    }
 
+    #certSearch:focus {
+        border-color: #0b71a7;
+        box-shadow: 0 0 0 2px #0b71a766;
+    }
     /* Striped rows */
     #certTable tbody tr:nth-child(odd) {
         background-color: #f5f8fc;

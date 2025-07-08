@@ -1,4 +1,6 @@
-﻿using SphereSSLv2.Models;
+﻿using SphereSSLv2.Data.Repositories;
+using SphereSSLv2.Models;
+using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Services.Config;
 
 namespace SphereSSLv2.Services.CertServices
@@ -6,7 +8,7 @@ namespace SphereSSLv2.Services.CertServices
     public class ExpiryWatcherService : BackgroundService
     {
 
-        private readonly Logger _logger;
+        private  readonly Logger _logger;
 
         public ExpiryWatcherService(Logger logger)
         {
@@ -21,33 +23,59 @@ namespace SphereSSLv2.Services.CertServices
                 {
                     await _logger.Info("Refreshing cert list...");
                     await RefreshExpiringCertList();
-                    await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    // log error
+                    await _logger.Error($"Failed to refresh expiring cert list. {ex.Message}");
                 }
+
+                // Always delay, even after a caught error!
+                await Task.Delay(TimeSpan.FromHours(ConfigureService.RefreshExpiringSoonRateInHours), stoppingToken);
             }
         }
 
-        private async Task RefreshExpiringCertList()
+        internal async Task RefreshExpiringCertList()
         {
-            while (true)
+            try
             {
-                try
-                {
-                    var now = DateTime.UtcNow;
+                var now = DateTime.UtcNow;
+                List<CertRecord> certRecords = await CertRepository.GetAllCertRecords();
 
-                    ConfigureService.ExpiringSoonCertRecords = ConfigureService.CertRecords
-                        .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.ExpiringNoticePeriodInDays));
-                }
-                catch (Exception ex)
+                // Find all certs expiring within the window
+                ConfigureService.ExpiringSoonCertRecords = certRecords
+                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.ExpiringRefreshPeriodInDays));
+
+                // Only certs with autoRenew enabled
+                List<CertRecord> expiringSoon = ConfigureService.ExpiringSoonCertRecords
+                    .Where(c => c.autoRenew)
+                    .ToList();
+
+                bool success = true;
+                foreach (var cert in expiringSoon)
                 {
-                    await _logger.Error(" Error Refreshing cert list...");
+                    CertRecordServiceManager certManager = new CertRecordServiceManager();
+                    // Attempt auto-renew (success is true only if all pass)
+                    success &= await certManager.RenewCertRecordWithAutoDNSById(_logger, cert.OrderId);
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(ConfigureService.RefreshExpiringSoonRateInMinutes));
+                if (success)
+                {
+                    await _logger.Info("Successfully refreshed expiring cert list.");
+                }
+                else
+                {
+                    await _logger.Error("Failed to refresh expiring cert list.");
+                }
+            }
+            catch (Exception ex)
+            {
+                await _logger.Error("Error Refreshing cert list... " + ex.Message);
             }
         }
     }
+
+
+
+
 }
+

@@ -12,7 +12,10 @@
                 <div class="container-fluid px-4">
                     <div class="row justify-content-center">
                         <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
-                            <h3 class="title text-center mb-3">Help</h3>
+                                <h3 class="title text-center mb-3">
+                                    The more you know...
+                                    <span class="shooting-star" aria-label="shooting star">⭐</span>
+                                </h3>
 
                             <div class="card shadow-sm p-4">
 
@@ -42,6 +45,34 @@
 
                                         <li class="nav-item" role="presentation">
                                             <button class="nav-link" id="whynohttp01-tab" data-bs-toggle="tab" data-bs-target="#whynohttp01" type="button" role="tab" aria-controls="whynohttp01" aria-selected="false">Why no http01?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="autoaddrecord-tab" data-bs-toggle="tab" data-bs-target="#autoaddrecord" type="button" role="tab" aria-controls="autoaddrecord" aria-selected="false">Auto Add Records</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whatarewildcards-tab" data-bs-toggle="tab" data-bs-target="#whatarewildcards" type="button" role="tab" aria-controls="whatarewildcards" aria-selected="false">What Are Wildcards?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whataresans-tab" data-bs-toggle="tab" data-bs-target="#whataresans" type="button" role="tab" aria-controls="whataresans" aria-selected="false">What Are SANs?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="needlocalcert-tab" data-bs-toggle="tab" data-bs-target="#needlocalcert" type="button" role="tab" aria-controls="needlocalcert" aria-selected="false"> Local Certs?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="apirequirements-tab" data-bs-toggle="tab" data-bs-target="#apirequirements" type="button" role="tab" aria-controls="whataresans" aria-selected="false">API Credential Requirements</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="whatisstaging-tab" data-bs-toggle="tab" data-bs-target="#whatisstaging" type="button" role="tab" aria-controls="whatisstaging" aria-selected="false">What is Staging?</button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="autorenew-tab" data-bs-toggle="tab" data-bs-target="#autorenew" type="button" role="tab" aria-controls="autorenew" aria-selected="false">What is Auto Renew</button>
                                         </li>
 
                                         <li class="nav-item" role="presentation">
@@ -128,7 +159,7 @@
                                         <div class="tab-pane fade" id="whatisdns01" role="tabpanel" aria-labelledby="whatisdns01-tab">
                                             <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
                                                 <div class="text-center mb-3">
-                                                    <h4 class="fw-bold mb-1">What is DNS01?</h4>
+                                                    <h4 class="fw-bold mb-1 text-primary">What is DNS01?</h4>
 
                                                     <p class="lead domain-lead">
                                                         <b class="domain-term">DNS-01</b> is a challenge type used by certificate authorities (like <span class="domain-vendor">Let’s Encrypt</span>) to verify that <b>you own the domain</b> you’re requesting an SSL certificate for.
@@ -197,7 +228,6 @@
                                             </div>
                                         </div>
 
-
                                         <!-- Why no http01?< -->
                                         <div class="tab-pane fade" id="whynohttp01" role="tabpanel" aria-labelledby="whynohttp01-tab">
                                             <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
@@ -206,7 +236,6 @@
 
                                                     <div class="text-start mx-auto" style="max-width: 520px;">
                                                         <div class="mb-2">
-                                                            <span class="domain-term">Why not HTTP-01?</span>
                                                             <ul class="domain-list">
                                                                 <li>
                                                                     <b>No need for port 80 access:</b>
@@ -234,16 +263,226 @@
                                                                 </li>
                                                             </ul>
                                                         </div>
-                                                        <div class="how-tip">
-                                                            DNS-01 is a lifesaver for closed networks, internal apps, and servers with no public HTTP access.<br>
-                                                            <b>You get verified with <span style="color: #3273fa;">zero firewall drama</span>.</b>
+                                                        <div class="mt-3 how-tip">
+                                                            <b>But wait, when is HTTP-01 actually useful?</b>
+                                                            <ul class="domain-list" style="margin-top:0.5em;">
+                                                                <li>
+                                                                    <b>Super-basic shared web hosting:</b>
+                                                                    If your web host doesn’t give you DNS control or API access, but lets you upload files or run web apps, HTTP-01 might be the only way to prove you own the domain.
+                                                                </li>
+                                                                <li>
+                                                                    <b>You *want* port 80 open:</b>
+                                                                    Maybe you *have* a public-facing web server, *and* you like things simple (just upload a file or set up a route—done!).
+                                                                </li>
+                                                                <li>
+                                                                    <b>Using providers that only support HTTP-01:</b>
+                                                                    Some website builders or older control panels are stuck in 2015, so they only allow HTTP-01 for SSL validation.
+                                                                </li>
+                                                                <li>
+                                                                    <b>Legacy software, appliances, or edge cases:</b>
+                                                                    Sometimes a script, hardware device, or super-locked-down environment *only* knows how to do HTTP-01.
+                                                                </li>
+                                                            </ul>
+                                                            <span style="display:block; margin-top:.7em;">
+                                                                If you’re not sure, <b>DNS-01 is almost always the better choice</b>—it’s more flexible, doesn’t require open web ports, and works for wildcards!
+                                                                <b>You get verified with <span style="color: #3273fa;">zero firewall drama</span>.</b>
+                                                            </span>
                                                         </div>
+
                                                     </div>
 
                                                 </div>
                                             </div>
                                         </div>
 
+                                        <!-- local certs?< -->
+                                        <div class="tab-pane fade" id="needlocalcert" role="tabpanel" aria-labelledby="needlocalcert-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">Local Certs</h4>
+                                                    <p class="lead domain-lead mb-3">
+                                                        Need a certificate for local development or a Windows app? You can create a <b class="domain-term">local .pfx certificate</b> here—no domain needed!
+                                                    </p>
+                                                    <ol class="how-steps mx-auto text-start">
+                                                        <li>
+                                                            <b>Create a Local Certificate</b>
+                                                            <span class="how-detail">
+                                                                Go to <a href="/Dashboard" class="domain-link">/Home</a> and fill out the form with your name or project info.<br>
+                                                                Download your <span class="domain-txt">.pfx</span> file.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Exchange Key Types (Optional)</b>
+                                                            <span class="how-detail">
+                                                                Already have a certificate or need to convert formats?<br>
+                                                                Visit <a href="/Exchange" class="domain-link">/Exchange</a> to swap between <span class="domain-txt">.pfx</span>, <span class="domain-txt">.pem</span>, <span class="domain-txt">.crt</span>, or <span class="domain-txt">.key</span>.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Install Your PFX (Windows)</b>
+                                                            <span class="how-detail">
+                                                                <ol style="list-style-type: lower-alpha; margin-top: 0.4em;">
+                                                                    <li>Double-click your <span class="domain-txt">.pfx</span> file.</li>
+                                                                    <li>Follow the Certificate Import Wizard prompts. Enter password if needed.</li>
+                                                                    <li>Choose <b>“Local Machine”</b> (for all users) or <b>“Current User”</b> (just you).</li>
+                                                                    <li>Let Windows finish up—your cert is now installed!</li>
+                                                                </ol>
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Use with Local Servers</b>
+                                                            <span class="how-detail">
+                                                                In IIS, .NET, or local services, select your installed certificate from the certificate store.<br>
+                                                                For NGINX, Apache, or others, convert your <span class="domain-txt">.pfx</span> to <span class="domain-txt">.crt</span> + <span class="domain-txt">.key</span> using <a href="/Exchange" class="domain-link">/Exchange</a>.
+                                                            </span>
+                                                        </li>
+                                                    </ol>
+                                                    <div class="mt-3">
+                                                        <span class="how-tip">
+                                                            <b>Pro tip:</b> You can always convert between formats—.pfx, .pem, .crt, .key—using the Exchange tool.<br>
+                                                            If Chrome or Windows gives warnings, install the cert as a <b>Trusted Root</b> for full trust.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- What Are SANs?< -->
+                                        <div class="tab-pane fade" id="whataresans" role="tabpanel" aria-labelledby="whataresans-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What Are SANs?</h4>
+                                                    <p class="lead domain-lead">
+                                                        Okay, real talk: <b>SAN</b> stands for <b>Subject Alternative Name</b>—but you can just call it a “bonus name” on your SSL cert!
+                                                        <br><br>
+                                                        Normally, a certificate protects just <b>one</b> domain (like <span class="domain-example">example.com</span>). But with <span class="domain-term">SANs</span>, you can secure <b>multiple domains</b> or subdomains—*all* with one certificate.
+                                                        <br><br>
+                                                        That means <b>example.com</b>, <b>www.example.com</b>, <b>api.example.com</b>, <b>even totally different domains</b>—all covered by one shiny cert. No more juggling a bunch of certs like a circus clown. 
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">Why would I want SANs?</h5>
+                                                    <ul class="domain-list mb-3 text-start mx-auto" style="max-width: 550px;">
+                                                        <li><b>One and done:</b> Secure multiple domains/subdomains with a single cert.</li>
+                                                        <li><b>Less hassle:</b> Fewer renewals, less chaos, more chill.</li>
+                                                        <li><b>Wildcard who?</b> Don’t want a wildcard? Just list your exact domains instead.</li>
+                                                        <li><b>Mix it up:</b> You can protect both <span class="domain-example">example.com</span> and <span class="domain-example">othercooldomain.com</span> in one go. (If you own them both, of course!)</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-info">How do I add SANs in SphereSSL?</h5>
+                                                    <ol class="how-steps mx-auto text-start" style="max-width: 530px;">
+                                                        <li>
+                                                            <b>Head to the Dashboard</b>
+                                                            <span class="how-detail">Click <span class="domain-link">Create Certificate</span> (or edit an existing cert, if supported).</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Enter Your Main Domain</b>
+                                                            <span class="how-detail">Pop in the domain you want as your “main character.”</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Add SANs (Alt Names)</b>
+                                                            <span class="how-detail">
+                                                                Find the field labeled <b>“Additional Domains”</b> or <b>“Subject Alternative Names”</b>.<br>
+                                                                <b>Type in each extra domain or subdomain you want covered</b> (one per line, or separated by commas—whatever the UI says!).
+                                                                <br>
+                                                                <span class="how-api-tip">(Examples: <span class="domain-example">www.yoursite.com</span>, <span class="domain-example">app.yoursite.com</span>, <span class="domain-example">api.other.com</span>…)</span>
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Complete the Request</b>
+                                                            <span class="how-detail">
+                                                                You’ll get a <b>separate verification step for each domain</b>.<br>
+                                                                If you use API auto-DNS, we’ll handle all that nerdy stuff for you.<br>
+                                                                Otherwise, just follow the instructions for each SAN you added.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>That’s it!</b>
+                                                            <span class="how-detail">
+                                                                When it’s all verified, you’ll have a single certificate that protects *every* SAN you listed.<br>
+                                                                <b>Flex with your multi-domain powers! 🔥</b>
+                                                            </span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Pro tip:</b> Want to check your SANs later? View your cert on the Dashboard—hover or click for full details.<br>
+                                                        <b>Wildcard domains</b> (<span class="domain-example">*.example.com</span>) count as SANs too!
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- What are Wildcards? -->
+                                        <div class="tab-pane fade" id="whatarewildcards" role="tabpanel" aria-labelledby="whatarewildcards-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What are Wildcards?</h4>
+                                                    <p class="lead domain-lead">
+                                                        Ever wish you could protect *every* subdomain of your site with just one cert—without typing out every possible name? That’s what <b>Wildcard certificates</b> do!
+                                                        <br><br>
+                                                        A <b>wildcard</b> is a fancy way of saying “<span class="domain-example">anything goes here</span>.”
+                                                        For SSL, a wildcard covers <b>all subdomains</b> at one level of your main domain.
+                                                        Like: <b>*.example.com</b> covers <b>blog.example.com</b>, <b>shop.example.com</b>, <b>pizza.example.com</b> (omg, pizza!), etc.
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">How does it work?</h5>
+                                                    <ul class="domain-list mb-3 text-start mx-auto" style="max-width: 520px;">
+                                                        <li>
+                                                            <b>Wildcard = “*.” at the front</b>
+                                                            When you see <span class="domain-example">*.yourdomain.com</span>, the <b>*</b> means “match anything” (just not double-nested stuff like <b>sub.sub.yourdomain.com</b>).
+                                                        </li>
+                                                        <li>
+                                                            <b>Covers lots of subdomains with one cert</b>
+                                                            Add new subdomains later? They’re covered. *No need to re-issue!*
+                                                        </li>
+                                                        <li>
+                                                            <b>Note:</b> Your <span class="domain-example">root domain</span> (like <b>yourdomain.com</b> without the <b>*.</b>) is <b>not</b> included—add that separately if you want both.
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-info">How to get a wildcard cert in SphereSSL?</h5>
+                                                    <ol class="how-steps mx-auto text-start" style="max-width: 520px;">
+                                                        <li>
+                                                            <b>Go to the Dashboard</b>
+                                                            <span class="how-detail">Start a new cert request (or add to an existing one, if supported).</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Type your wildcard domain</b>
+                                                            <span class="how-detail">
+                                                                In the domain field, type: <span class="domain-example"><b>*.yourdomain.com</b></span><br>
+                                                                (Don’t forget that star and the dot!)
+                                                                <span class="how-api-tip">Tip: You can add regular domains and wildcards together using commas.</span>
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Complete the challenge</b>
+                                                            <span class="how-detail">
+                                                                Wildcards <b>always use DNS-01</b> verification (no http01 allowed).
+                                                                Add the TXT record as shown, or use the API for auto-DNS (so much easier).
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Done!</b>
+                                                            <span class="how-detail">
+                                                                You now have a cert that works for <b>any subdomain</b> at that level—super clutch for apps, catch-alls, and “I’ll probably add more stuff later.”
+                                                            </span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Pro tip:</b> Want <b>both</b> <span class="domain-example">yourdomain.com</span> <b>and</b> <span class="domain-example">*.yourdomain.com</span> covered?<br>
+                                                        Just list them both, separated by a comma!
+                                                        <br>Like: <b>yourdomain.com, *.yourdomain.com</b>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         <!-- local certs?< -->
                                         <div class="tab-pane fade" id="needlocalcert" role="tabpanel" aria-labelledby="needlocalcert-tab">
@@ -297,6 +536,293 @@
                                             </div>
                                         </div>
 
+                                        <!-- API Credential Requirements -->
+                                        <div class="tab-pane fade" id="apirequirements" role="tabpanel" aria-labelledby="apirequirements-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">API Credential Requirements</h4>
+                                                    <p class="lead domain-lead">
+                                                        Here’s what you need to connect SphereSSL to your DNS provider for <b>automatic DNS record creation</b>.<br>
+                                                        <b>Tip:</b> If your provider needs two values (like a key <i>and</i> a secret), enter them as <code>KEY:SECRET</code>—with a colon, no spaces.
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">Supported Providers & API Credentials</h5>
+                                                    <table class="table table-striped mx-auto" style="max-width: 680px;">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Provider</th>
+                                                                <th>API Credential(s)</th>
+                                                                <th>Format</th>
+                                                                <th>Notes</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td><b>AWS Route53</b></td>
+                                                                <td>Access Key + Secret Key</td>
+                                                                <td><code>ACCESSKEY:SECRETKEY</code></td>
+                                                                <td>Separate with <code>:</code> (colon)</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Cloudflare</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Cloudns.net</b></td>
+                                                                <td>Auth ID + Password</td>
+                                                                <td><code>AUTHID:PASSWORD</code></td>
+                                                                <td>Like a username/password combo</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>DigitalOcean</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>DNSMadeEasy</b></td>
+                                                                <td>API Key + API Secret</td>
+                                                                <td><code>APIKEY:SECRET</code></td>
+                                                                <td>Separate with <code>:</code></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>DreamHost</b></td>
+                                                                <td>API Key</td>
+                                                                <td><code>API_KEY</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>DuckDNS</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Gandi</b></td>
+                                                                <td>API Key</td>
+                                                                <td><code>API_KEY</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>GoDaddy</b></td>
+                                                                <td>API Key + API Secret</td>
+                                                                <td><code>APIKEY:SECRET</code></td>
+                                                                <td>Separate with <code>:</code></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Hetzner</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Linode</b></td>
+                                                                <td>API Token</td>
+                                                                <td><code>API_TOKEN</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Namecheap</b></td>
+                                                                <td>Username + API Key</td>
+                                                                <td><code>USERNAME:APIKEY</code></td>
+                                                                <td>Separate with <code>:</code></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Porkbun</b></td>
+                                                                <td>API Key + API Secret</td>
+                                                                <td><code>APIKEY:SECRET</code></td>
+                                                                <td>Separate with <code>:</code></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td><b>Vultr</b></td>
+                                                                <td>API Key</td>
+                                                                <td><code>API_KEY</code></td>
+                                                                <td>Just the token</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Pro tip:</b> You can find these credentials in your provider’s dashboard or API settings page.<br>
+                                                        If your provider requires two values, **enter them together, separated by a colon**.<br>
+                                                        <b>Example:</b> <code>abcd1234:secret9876</code>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Auto Add Record -->
+                                        <div class="tab-pane fade" id="autoaddrecord" role="tabpanel" aria-labelledby="autoaddrecord-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What is “Auto Add Record”?</h4>
+                                                    <p class="lead domain-lead">
+                                                        <b>Auto Add Record</b> is your shortcut to letting SphereSSL do the nerdy stuff for you—like adding DNS records automatically (so you don’t have to log in and click around).
+                                                        <br><br>
+                                                        When you enable this, SphereSSL uses the DNS provider’s API to <b>create the DNS challenge record for you</b>. All you gotta do? Sit back, sip your coffee, and watch your certs get validated on autopilot.
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">Why would I want Auto Add?</h5>
+                                                    <ul class="domain-list mb-3 text-start mx-auto" style="max-width: 540px;">
+                                                        <li><b>Way less hassle:</b> No more copying long TXT records by hand.</li>
+                                                        <li><b>Fast & reliable:</b> DNS records get added the right way, every time.</li>
+                                                        <li><b>Bulk friendly:</b> Perfect if you’ve got lots of certs, SANs, or wildcards to manage.</li>
+                                                        <li><b>“Set it and forget it” vibes:</b> Ideal for auto-renewals and hands-off deployments.</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-info">How do I enable Auto Add?</h5>
+                                                    <ol class="how-steps mx-auto text-start" style="max-width: 520px;">
+                                                        <li>
+                                                            <b>Add a DNS Provider</b>
+                                                            <span class="how-detail">Head to the <b>Exchange</b> tab, click <b>Add DNS Provider</b>, and pick your provider.</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Paste your API Credentials</b>
+                                                            <span class="how-detail">You’ll need the right API key/token (see our <a href="#apirequirements">API Credential Requirements</a> for help).</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Enable Auto Add</b>
+                                                            <span class="how-detail">When creating or renewing a cert, select the DNS provider with auto-add enabled—that’s it!</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Chill while SphereSSL does its thing</b>
+                                                            <span class="how-detail">We’ll handle the challenge record creation, validation, and clean-up for you. Magic!</span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Pro tip:</b> If you have a weird/unsupported provider, you can still <b>add the DNS record manually</b>—SphereSSL will show you the exact value to copy. <br>
+                                                        <b>But seriously:</b> If your provider supports API auto-DNS, use it! 
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                        <!-- What is Staging? -->
+                                        <div class="tab-pane fade" id="whatisstaging" role="tabpanel" aria-labelledby="whatisstaging-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What is Staging?</h4>
+                                                    <p class="lead domain-lead">
+                                                        The <b>Staging</b> environment is like your certificate “practice arena.”
+                                                        It lets you test out certificate creation, DNS challenges, and automated flows <b>without worrying about rate limits</b> or burning through your real cert quota.
+                                                        <br><br>
+                                                        When you use <span class="domain-term">Staging</span>, you get real ACME-style certificates—
+                                                        but <span class="text-danger"><b>they’re NOT trusted by browsers</b></span>.
+                                                        It’s all about debugging, experimenting, and getting your process perfect before you go “live.”
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">Why use Staging?</h5>
+                                                    <ul class="domain-list mb-3 text-start mx-auto" style="max-width: 540px;">
+                                                        <li><b>Unlimited tries:</b> Practice as much as you want—no “rate limit” smackdown.</li>
+                                                        <li><b>Safe space:</b> Mess up? Who cares! Your real cert quota is untouched.</li>
+                                                        <li><b>Debug everything:</b> Iron out DNS, automation, API flows, or wild new configs.</li>
+                                                        <li><b>Zero risk:</b> Staging certs won’t break your website or make Chrome mad.</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-info">When should I use it?</h5>
+                                                    <ol class="how-steps mx-auto text-start" style="max-width: 520px;">
+                                                        <li>
+                                                            <b>First time setup:</b>
+                                                            <span class="how-detail">
+                                                                Trying SphereSSL for the first time?
+                                                                Flip on <b>Staging</b> and get comfortable!
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Testing auto-DNS:</b>
+                                                            <span class="how-detail">Make sure your API keys, provider settings, and DNS automation work—without risking anything real.</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Debugging errors:</b>
+                                                            <span class="how-detail">Got an “ACME” error? Use Staging to troubleshoot safely, then switch to production when you’re confident.</span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Building new features:</b>
+                                                            <span class="how-detail">Developers, this is your playground. Test until you’re 💯 sure it works.</span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Heads up:</b>
+                                                        <span class="text-danger">Staging certificates are <u>NOT trusted by browsers</u>.</span><br>
+                                                        When you’re ready to go live, <b>disable Staging</b> and create a “real” cert—SphereSSL will handle it all!
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                        <!-- What is Auto Renew? -->
+                                        <div class="tab-pane fade" id="autorenew" role="tabpanel" aria-labelledby="autorenew-tab">
+                                            <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                                <div class="text-center mb-3">
+                                                    <h4 class="fw-bold mb-1 text-primary">What is Auto Renew?</h4>
+                                                    <p class="lead domain-lead">
+                                                        <b>Auto Renew</b> means SphereSSL will <span class="text-success fw-bold">automatically renew your SSL certificates</span> before they expire—no reminders, no panic, no manual steps!
+                                                        <br><br>
+                                                        If you enable this feature, SphereSSL will check your certs, handle renewals, and update your DNS provider (if you’re using API auto-DNS).
+                                                        <span class="text-info"><b>Your site stays secure, and you stay stress-free.</b></span>
+                                                    </p>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-success">Why use Auto Renew?</h5>
+                                                    <ul class="domain-list mb-3 text-start mx-auto" style="max-width: 540px;">
+                                                        <li><b>Set it and forget it:</b> Never worry about expiring SSL certificates again.</li>
+                                                        <li><b>No downtime:</b> Your site won’t suddenly break or show scary warnings to visitors.</li>
+                                                        <li><b>Great for lots of domains:</b> Have more than one cert? Let the robot do the work.</li>
+                                                        <li><b>Peace of mind:</b> Even if you’re busy, sick, or on vacation—your renewals are covered.</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="text-center mb-3">
+                                                    <h5 class="fw-bold mb-1 text-info">How does it work?</h5>
+                                                    <ol class="how-steps mx-auto text-start" style="max-width: 520px;">
+                                                        <li>
+                                                            <b>Enable Auto Renew</b>
+                                                            <span class="how-detail">
+                                                                Turn on the <b>Auto Renew</b> toggle when creating or editing a cert.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>SphereSSL keeps watch</b>
+                                                            <span class="how-detail">
+                                                                The app tracks your cert’s expiration date and starts the renewal process in advance.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>DNS automation (optional)</b>
+                                                            <span class="how-detail">
+                                                                If you use an API DNS provider, SphereSSL will update your DNS records for you—hands-free.
+                                                            </span>
+                                                        </li>
+                                                        <li>
+                                                            <b>Cert renewed!</b>
+                                                            <span class="how-detail">
+                                                                You get a fresh cert, and your website stays secure—without lifting a finger.
+                                                            </span>
+                                                        </li>
+                                                    </ol>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <span class="how-tip">
+                                                        <b>Heads up:</b>
+                                                        Make sure your API credentials are up to date and valid, or auto-renew might fail.
+                                                        You can always see which certs are on auto-renew from your Dashboard!
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
                                  </div>
 
                             </div>
@@ -320,7 +846,7 @@
 }
 <style>
 
-    /* Make nav-tabs more pill-like and visually elevated */
+    
     .nav-tabs {
         border-bottom: none;
         justify-content: center;
@@ -561,7 +1087,23 @@
         font-size: 1em;
     }
 
-    
+    .title {
+        position: relative;
+        display: inline-block;
+    }
 
+    .shooting-star {
+        display: inline-block;
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2em;
+        opacity: 0;
+        animation: star-fly 2s 1 ease-out forwards;
+        /* Feel free to adjust the duration */
+    }
+
+  
 
 </style>

@@ -4,6 +4,9 @@ namespace SphereSSLv2.Models.CertModels
 {
     public class AcmeChallenge
     {
+        [JsonProperty("challangeId")]
+        public string ChallengeId { get; set; } = string.Empty;
+
         [JsonProperty("orderId")]
         public string OrderId { get; set; } = string.Empty;
 
@@ -13,10 +16,20 @@ namespace SphereSSLv2.Models.CertModels
         [JsonProperty("domain")]
         public string Domain { get; set; } = string.Empty;
 
+        [JsonProperty("authorizationUrl")]
+        public string AuthorizationUrl { get; set; } = string.Empty;
+
         [JsonProperty("dnsChallengeToken")]
         public string DnsChallengeToken { get; set; } = string.Empty;
 
-        public string Status { get; set; } 
+        [JsonProperty("provider")]
+        public string ProviderId { get; set; } = string.Empty;
+
+        [JsonProperty("status")]
+        public string Status { get; set; }
+
+        [JsonProperty("zoneId")]
+        public string ZoneId { get; set; }
 
     }
 }

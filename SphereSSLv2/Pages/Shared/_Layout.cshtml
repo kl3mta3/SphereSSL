@@ -1,5 +1,6 @@
 ﻿﻿<!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,12 +23,12 @@
                     <span>Sphere</span>
                     <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo" />
                 </h2>
-                <div><p class="minititleText">@ViewData["Title"]</p></div>
+                <div><p class="minititleText"></p></div>
             </div>
 
             <div class="top-bar-icons">
-                <div class="css-avatar"></div>
-                <button id="power-icon" class="settings-icon btn btn-link p-0" style="border: none;">
+                <div >  <img src="~/img/avatar.png" asp-append-version="true" class="css-avatar" /></div>
+                <button id="power-icon" class="settings-icon btn btn-link p-0">
                     <i class="bi bi-power"></i>
                 </button>
                 <a href="/Settings" class="settings-link">
@@ -38,33 +39,35 @@
         </div>
 
         <div class="sidebar-box">
+
+            @{
+                var routePage = (ViewContext.RouteData.Values["page"] ?? "").ToString().ToLower();
+            }
+
             <nav class="sidebar-nav">
-                <a asp-page="/Dashboard" class="sidebar-link">
+                <a asp-page="/Dashboard" class="sidebar-link @(routePage == "/dashboard" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-speedometer2"></i></span>
                     <span class="sidebar-text">Home</span>
                 </a>
-                <a asp-page="/CreateNew" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="bi bi-plus-square"></i></span>
-                    <span class="sidebar-text">Create</span>
-                </a>
-                <a asp-page="/ManageRenewals" class="sidebar-link">
+
+                <a asp-page="/ManageRenewals" class="sidebar-link @(routePage == "/managerenewals" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-arrow-repeat"></i></span>
                     <span class="sidebar-text">Manage</span>
                 </a>
 
-                <a asp-page="/Exchange" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="bi bi-gear-fill"></i></span>
+                <a asp-page="/Exchange" class="sidebar-link @(routePage == "/exchange" ? "active" : "")">
+                    <span class="sidebar-icon"><i class="bi bi-shuffle"></i></span>
                     <span class="sidebar-text">Exchange</span>
                 </a>
 
-                <a asp-page="/Settings" class="sidebar-link">
+                <a asp-page="/Settings" class="sidebar-link @(routePage == "/settings" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-gear-fill"></i></span>
                     <span class="sidebar-text">Settings</span>
                 </a>
 
-                <a asp-page="/LearnMore" class="sidebar-link">
+                <a asp-page="/LearnMore" class="sidebar-link @(routePage == "/learnmore" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-book-half"></i></span>
-                    <span class="sidebar-text">Help</span>
+                    <span class="sidebar-text">Learn</span>
                 </a>
             </nav>
 
@@ -101,6 +104,78 @@
 </body>
 
 </html>
+
+<!-- Manual Renew Modal Shell -->
+<div class="modal fade" id="manualRenewModal" tabindex="-1" aria-labelledby="manualRenewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-light text-dark shadow-sm">
+          
+            <div id="manualRenewModalContent"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Local Certificate Modal -->
+<div class="modal fade" id="localCertModal" tabindex="-1" aria-labelledby="localCertModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="localCertForm" autocomplete="off">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="localCertModalLabel">Create Local Certificate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Subject Name (without CN=) -->
+                    <div class="mb-3">
+                        <label for="subjectNameInput" class="form-label">Subject Name <span class="text-muted">(just the domain, no CN=)</span></label>
+                        <input type="text" class="form-control" id="subjectNameInput" placeholder="example.local" required>
+                    </div>
+                    <!-- SANs -->
+                    <div class="mb-3">
+                        <label for="sanNamesInput" class="form-label">Subject Alternative Names (SANs)</label>
+                        <input type="text" class="form-control" id="sanNamesInput" placeholder="domain.local, www.domain.local, *.domain.local" required>
+                        <div class="form-text">Separate each domain with a comma and a space: <code>domain.com, www.domain.com</code></div>
+                    </div>
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label for="passwordInput" class="form-label">Password <span class="text-muted">(optional)</span></label>
+                        <input type="password" class="form-control" id="passwordInput" autocomplete="new-password" placeholder="(leave blank for none)">
+                    </div>
+                    <!-- Valid Days -->
+                    <div class="mb-3">
+                        <label for="validDaysInput" class="form-label">Valid Days</label>
+                        <input type="number" class="form-control" id="validDaysInput" min="1" value="365" required>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Generate Certificate</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Manage Certificate Modal -->
+<div class="modal fade" id="manageCertMiniModal" tabindex="-1" aria-labelledby="manageCertMiniModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 340px;">
+        <div class="modal-content rounded-3 shadow-lg">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="manageCertMiniModalLabel">Manage Certificate</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex flex-column align-items-center gap-3">
+                <button class="btn btn-success w-100" id="btnRenewCert">Renew</button>
+                <button class="btn btn-danger w-100" id="btnRevokeCert">Revoke</button>
+                <div class="d-flex flex-column align-items-center w-100">
+                    <button class="btn btn-outline-primary w-100 mt-1" id="btnToggleAutoRenew">Toggle Auto-Renew</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Power Confirmation Modal -->
 <div class="modal fade" id="powerConfirmModal" tabindex="-1" aria-labelledby="powerModalLabel" aria-hidden="true">
@@ -657,7 +732,7 @@
         ) {
         showToast("Password must be 8-24 characters, and include uppercase, lowercase, and a number.", true);
         return;
-
+        }
 
         const response = await fetch('/Settings?handler=AddUser', {
             method: 'POST',
@@ -839,35 +914,39 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById('confirmDeleteDNSProviderBtn').addEventListener('click', async function() {
-            if (!pendingProviderIdToDelete) return;
+        const btn = document.getElementById('confirmDeleteDNSProviderBtn');
 
-            const response = await fetch('/Settings?handler=DeleteDNSProvider', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ providerId: pendingProviderIdToDelete })
-            });
+        if (btn) {
+            btn.addEventListener('click', async function () {
+                if (!pendingProviderIdToDelete) return;
 
-            if (response.ok) {
-                showToast("Provider deleted.");
-                const modalInstance = bootstrap.Modal.getInstance(document.getElementById('editProviderModal'));
-                if (modalInstance) modalInstance.hide();
+                const response = await fetch('/Settings?handler=DeleteDNSProvider', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ providerId: pendingProviderIdToDelete })
+                });
 
-                document.querySelector(`[data-provider-id="${pendingProviderIdToDelete}"]`).remove();
+                if (response.ok) {
+                    showToast("Provider deleted.");
+                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('editProviderModal'));
+                    if (modalInstance) modalInstance.hide();
 
-                if (document.querySelectorAll('[data-provider-id]').length === 0) {
-                    document.querySelector('#dnsTable tbody').innerHTML =
-                        `<tr class="no-sort"><td colspan="3" class="text-muted text-center">No DNS Providers found.</td></tr>`;
+                    document.querySelector(`[data-provider-id="${pendingProviderIdToDelete}"]`)?.remove();
+
+                    if (document.querySelectorAll('[data-provider-id]').length === 0) {
+                        document.querySelector('#dnsTable tbody').innerHTML =
+                            `<tr class="no-sort"><td colspan="3" class="text-muted text-center">No DNS Providers found.</td></tr>`;
+                    }
+                } else {
+                    const err = await response.text();
+                    showToast("Failed to delete provider: " + err, true);
                 }
-            } else {
-                const err = await response.text();
-                showToast("Failed to delete provider: " + err, true);
-            }
 
-            // Hide the confirm modal either way
-            bootstrap.Modal.getInstance(document.getElementById('confirmDeleteDNSProviderModal')).hide();
-            pendingProviderIdToDelete = null;
-        });
+                // Hide the confirm modal either way
+                bootstrap.Modal.getInstance(document.getElementById('confirmDeleteDNSProviderModal'))?.hide();
+                pendingProviderIdToDelete = null;
+            });
+        }
     });
 
 </script>
@@ -908,4 +987,469 @@
             showToast("Failed to update provider: " + err, true);
         }
     }
+</script>
+
+<!-- Show Cert Modal -->
+<script>
+    function showCertRecordModal(orderId) {
+        const modalBody = document.getElementById("certRecordModalBody");
+        modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+        fetch(`/Dashboard?handler=GetRecordModal&orderId=${encodeURIComponent(orderId)}`)
+            .then(res => res.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+                const modal = new bootstrap.Modal(document.getElementById('certRecordModal'));
+                modal.show();
+            })
+            .catch(err => {
+                modalBody.innerHTML = `<p class="text-danger">Failed to load record.</p>`;
+                console.error(err);
+            });
+    }
+</script>
+
+<!-- Show Local Cert Modal -->
+<script>
+
+    document.getElementById('localCertForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+      
+        const subjectRaw = document.getElementById('subjectNameInput').value.trim();
+        const subjectName = subjectRaw.startsWith("CN=") ? subjectRaw : `CN=${subjectRaw}`;
+        const sanInput = document.getElementById('sanNamesInput').value.trim();
+      
+
+        const sanNames = sanInput.split(/\s*,\s*/).filter(x => x);
+
+        const password = document.getElementById('passwordInput').value;
+        const validDays = parseInt(document.getElementById('validDaysInput').value, 10) || 365;
+
+       
+        const payload = {
+            subjectName: subjectName,
+            sanNames: sanNames,
+            password: password || "",
+            validDays: validDays
+        };
+
+      
+        const response = await fetch('/Dashboard?handler=LocalCert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "certificate.pfx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            
+            const localCertModal = bootstrap.Modal.getInstance(document.getElementById('localCertModal'));
+            localCertModal.hide();
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+
+        } else {
+           
+            const errorText = await response.text();
+           showToast("Failed to create certificate: " + errorText, true);
+        }
+    });
+
+</script>
+
+<!-- Show Manage Cert Modal -->
+<script>
+    async function showManageCertModal(orderId) {
+        const manageModalEl = document.getElementById('manageCertMiniModal');
+        if (!manageModalEl) {
+            showToast("Modal not found!", true);
+            return;
+        }
+        const manageModal = new bootstrap.Modal(manageModalEl);
+
+
+
+            const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+        if (row) {
+            const autoRenewCell = row.querySelectorAll('td')[3];
+            const badge = autoRenewCell.querySelector('span');
+            const btnToggleAuto = document.getElementById('btnToggleAutoRenew');
+            if (badge && btnToggleAuto) {
+                const isOn = badge.textContent.trim().toLowerCase() === "on";
+                btnToggleAuto.textContent = isOn ? "Toggle Auto-Renew Off" : "Toggle Auto-Renew On";
+                // Optional: Update btn style for visual cue
+                btnToggleAuto.classList.toggle("btn-outline-danger", isOn);
+                btnToggleAuto.classList.toggle("btn-outline-success", !isOn);
+            }
+        }
+
+
+
+        manageModal.show();
+
+        
+        function removeOldWaitModal() {
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+            let oldOverlay = document.getElementById("waitingModalOverlay");
+            if (oldOverlay) oldOverlay.remove();
+        }
+
+        // Bind Renew Button
+        const btnRenew = document.getElementById('btnRenewCert');
+        if (btnRenew) {
+            btnRenew.onclick = async function () {
+                showToast("Renewing certificate for: " + orderId);
+
+                manageModal.hide();
+
+                removeOldWaitModal();
+
+                let waitModalHtml;
+                try {
+                    const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                    waitModalHtml = await waitModalResponse.text();
+                } catch {
+                    waitModalHtml = `
+                        <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content p-4 text-center">
+                              <div class="spinner-border text-primary" role="status"></div>
+                              <p class="mt-2 mb-0 fw-bold">Renewing certificate...</p>
+                            </div>
+                          </div>
+                        </div>`;
+                }
+                document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+          
+                const waitModalEl = document.getElementById("waitModal");
+                let waitModalInstance = null;
+                if (waitModalEl) {
+                    waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                    waitModalInstance.show();
+                }
+
+
+                let result = null;
+                try {
+                    const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    });
+
+                    if (!response.ok) {
+                        showToast("Renewal failed. Try again.", true);
+                        removeOldWaitModal();
+                        return;
+                    }
+
+                    result = await response.json();
+                } catch (e) {
+                    showToast("Error during renewal request.", true);
+                    removeOldWaitModal();
+                    return;
+                }
+
+            
+                removeOldWaitModal();
+
+           
+                if (result?.autoRenewed) {
+                    showToast("Order Auto-Renewed Successfully", false);
+                    const data = await response.json();
+                    
+                    
+                    const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if(row)
+                    {
+                         const statusCell = row.querySelectorAll('td')[1];
+                        statusCell.innerHTML = `<span class="badge bg-primary">Active</span>`;
+
+                         const daysCell = row.querySelectorAll('td')[2];
+                         daysCell.innerHTML = `<span class="badge bg-success">90</span>`;
+
+                    }
+                    
+                    return;
+                }
+                if (result?.status === "manual" && result.html) {
+                    document.getElementById('manualRenewModalContent').innerHTML = result.html;
+                    new bootstrap.Modal(document.getElementById('manualRenewModal')).show();
+                    showToast("Manual renewal initiated. Please complete the challenges.", false);
+                    return;
+                }
+
+                showToast(result?.message || "Unknown renewal status.", true);
+            };
+        }
+    
+    
+
+        // Bind Revoke Button
+        const btnRevoke = document.getElementById('btnRevokeCert');
+        if (btnRevoke) {
+            btnRevoke.onclick = async function () {
+
+ 
+                manageModal.hide();
+
+         
+                removeOldWaitModal();
+
+           
+                let waitModalHtml;
+                try {
+                    const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                    waitModalHtml = await waitModalResponse.text();
+                } catch {
+                    waitModalHtml = `
+                        <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content p-4 text-center">
+                              <div class="spinner-border text-primary" role="status"></div>
+                              <p class="mt-2 mb-0 fw-bold">Renewing certificate...</p>
+                            </div>
+                          </div>
+                        </div>`;
+                }
+                document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+            
+                const waitModalEl = document.getElementById("waitModal");
+                let waitModalInstance = null;
+                if (waitModalEl) {
+                    waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                    waitModalInstance.show();
+                }
+
+        
+                let result = null;
+                try {
+                    const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    });
+
+                    if (!response.ok) {
+                        showToast("Renewal failed. Try again.", true);
+                        removeOldWaitModal();
+                      return;
+                    }
+
+                    const data = await response.json();
+
+                } catch (e) {
+                    showToast("Error during renewal request.", true);
+                    removeOldWaitModal();
+                    return;
+                }
+
+               
+                removeOldWaitModal();
+
+
+                const response = await fetch('/ManageRenewals?handler=RevokeCertificate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+                if (response.ok) {
+                    showToast("Revoked certificate for: " + orderId, false);
+                    manageModal.hide();
+
+                   const data = await response.json();
+                   const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if (row) {
+                    row.style.transition = "opacity 0.3s";
+                    row.style.opacity = 0;
+                    setTimeout(() => row.remove(), 300);
+                }
+
+
+
+                } else {
+                    showToast("Failed to revoke certificate.", true);
+                }
+            };
+        }
+
+        // Bind Toggle Auto-Renew Button
+        const btnToggleAuto = document.getElementById('btnToggleAutoRenew');
+        if (btnToggleAuto) {
+            btnToggleAuto.onclick = async function () {
+                const response = await fetch('/ManageRenewals?handler=ToggleAutoRenew', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+                if (response.ok) {
+                    showToast("Toggled auto-renew for: " + orderId, false);
+                    manageModal.hide();
+                    const data = await response.json();
+
+                    const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if (row) {
+                        const autoRenewCell = row.querySelectorAll('td')[3]; // 4th column!
+                        const badge = autoRenewCell.querySelector('span');
+                        if (badge) {
+                            const isOn = badge.textContent.trim().toLowerCase() === "on";
+                            badge.textContent = isOn ? "Off" : "On";
+                            badge.className = isOn ? "badge bg-danger" : "badge bg-success";
+                            
+                            badge.style.transition = "background 0.2s, color 0.2s";
+                        }
+                    }
+
+                } else {
+                    showToast("Failed to toggle auto-renew.", true);
+                }
+            };
+        }
+    }
+
+
+
+         function CheckManualChallenges(request) {
+        let btn = document.getElementById('manualReadyBtn');
+        if (btn) btn.disabled = true;
+        if (typeof request === "string") {
+            request = { OrderId: request };
+        }
+        fetch('/ManageRenewals?handler=CheckManualChallenges', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('manualRenewModalContent').innerHTML = html;
+
+            
+            certDownloadReady = false;
+            certDownloadsReady = false;
+            let btn1 = document.getElementById("downloadButton");
+            if (btn1) btn1.style.display = "none";
+            let btn2 = document.getElementById("multiDownloadButtons");
+            if (btn2) btn2.style.display = "none";
+
+            new bootstrap.Modal(document.getElementById('manualRenewModal')).show();
+        });
+
+
+
+
+    }
+
+        document.addEventListener('hidden.bs.modal', function () {
+       
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+     
+        document.body.classList.remove('modal-open');
+        document.body.style = '';
+    });
+
+
+
+
+
+
+</script>
+
+<!-- Learn More Open -->
+<script>
+    function learnMore() {
+        window.open("/LearnMore", "_blank");
+    }
+</script>
+
+<!-- Close DNS Challenge Modal -->
+<script>
+       function closeDnsModal() {
+        const modalEl = document.getElementById("dnsChallengeModal");
+        const modal = bootstrap.Modal.getInstance(modalEl);
+
+        const overlay = document.getElementById("waitingModalOverlay");
+        if (overlay) overlay.remove();
+
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
+
+
+        if (modal) {
+            modal.hide();
+        }
+
+    setTimeout(() => {
+        location.reload();
+    }, 300);
+
+    }
+
+
+
+        // document.addEventListener('DOMContentLoaded', function () {
+        // const modalEl = document.getElementById("dnsChallengeModal");
+        // if (!modalEl) return;
+
+        // modalEl.addEventListener('hidden.bs.modal', function () {
+        //     // Clean up overlay
+        //     const overlay = document.getElementById("waitingModalOverlay");
+        //     if (overlay) overlay.remove();
+
+        //     // Show or enable the start button if needed
+        //     const startButton = document.getElementById("startButton");
+        //     if (startButton) {
+        //         startButton.disabled = false;
+        //         startButton.hidden = false;
+        //     }
+
+        //     // Reload page
+        //     setTimeout(() => {
+        //         location.reload();
+        //     }, 300);
+        // });
+    });
+</script>
+
+<!-- Deep Linking for Tabs -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (window.location.hash) {
+            const tabHash = window.location.hash;
+            const tabButton = document.querySelector(`[data-bs-target="${tabHash}"]`);
+            if (tabButton) {
+                var tabTrigger = new bootstrap.Tab(tabButton);
+                tabTrigger.show();
+                // Optional: scroll into view
+                setTimeout(() => {
+                    document.querySelector(tabHash)?.scrollIntoView({behavior:"smooth"});
+                }, 200);
+            }
+        }
+
+        // Update URL hash on tab switch for deep linking
+        const tabLinks = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabLinks.forEach(btn => {
+            btn.addEventListener('shown.bs.tab', function (e) {
+                history.replaceState(null, null, e.target.getAttribute('data-bs-target'));
+            });
+        });
+    });
 </script>

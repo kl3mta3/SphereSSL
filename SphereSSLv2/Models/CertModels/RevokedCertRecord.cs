@@ -1,9 +1,11 @@
 ﻿using Newtonsoft.Json;
 
+
 namespace SphereSSLv2.Models.CertModels
 {
-    public class CertRecord
+    public class RevokedCertRecord
     {
+
         [JsonProperty("orderId")]
         public string OrderId { get; set; } = string.Empty;
 
@@ -24,6 +26,9 @@ namespace SphereSSLv2.Models.CertModels
 
         [JsonProperty("expiryDate")]
         public DateTime ExpiryDate { get; set; }
+
+        [JsonProperty("revokeDate")]
+        public DateTime RevokeDate { get; set; }
 
         [JsonProperty("useSeparateFiles")]
         public bool UseSeparateFiles { get; set; } = false;
@@ -54,6 +59,5 @@ namespace SphereSSLv2.Models.CertModels
 
         [JsonProperty("thumbprint")]
         public string Thumbprint { get; set; } = string.Empty;
-
     }
 }

@@ -29,6 +29,11 @@ using System;
 using SphereSSLv2.Services.Config;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 using SphereSSLv2.Models.CertModels;
+using Org.BouncyCastle.Asn1.Cmp;
+using Newtonsoft.Json.Linq;
+using System.DirectoryServices.ActiveDirectory;
+using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 
 namespace SphereSSLv2.Services.AcmeServices
@@ -42,8 +47,8 @@ namespace SphereSSLv2.Services.AcmeServices
         internal  OrderDetails _order;
         internal  string _domain;
         internal  string _challangeDomain;
-        internal bool _UseStaging = true; // Set to true for testing with Let's Encrypt staging environment
-        //internal  AcmeService _acmeService;
+        internal bool _UseStaging = true; 
+
         internal  Logger _logger;
 
         public AcmeService(Logger logger)
@@ -99,13 +104,18 @@ namespace SphereSSLv2.Services.AcmeServices
             }
         }
 
-        public async Task<OrderDetails> BeginOrder(string domain)
+        public async Task<OrderDetails> BeginOrder(List<string> domains)
         {
+            foreach (string domain in domains)
+            {
+                _domain += $"{domain},";
+            }
+
             try
             {
 
                 _client.Account = _account;
-                return await _client.CreateOrderAsync(new[] { domain });
+                return await _client.CreateOrderAsync(domains);
             }
             catch (Exception ex)
             {
@@ -125,28 +135,44 @@ namespace SphereSSLv2.Services.AcmeServices
             var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
             byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
             string dnsValue = Base64UrlEncode(hash);
-
             return (authz.Identifier.Value, dnsValue);
+
+
         }
 
-        public async Task<List<(string Domain, string DnsValue)>> GetAllDnsChallengeTokens(OrderDetails order)
-        {
-            var results = new List<(string Domain, string DnsValue)>();
-            foreach (var authzUrl in order.Payload.Authorizations)
-            {
-                var authz = await _client.GetAuthorizationDetailsAsync(authzUrl);
-                var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
-                using SHA256 algor = SHA256.Create();
-                var thumbprintBytes = JwsHelper.ComputeThumbprint(_signer, algor);
-                var thumbprint = Base64UrlEncode(thumbprintBytes);
-                var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
-                byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
-                string dnsValue = Base64UrlEncode(hash);
 
-                results.Add((authz.Identifier.Value, dnsValue));
+        public async Task<List<AcmeChallenge>> GetAllDnsChallengeTokens(OrderDetails order)
+        {
+            var results = new List<AcmeChallenge>();
+
+
+            for (int i = 0; i < order.Payload.Identifiers.Length; i++)
+            {
+
+
+                    var authz = await _client.GetAuthorizationDetailsAsync(order.Payload.Authorizations[i]);
+                    authz.Wildcard = true;
+                    var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
+                    using SHA256 algor = SHA256.Create();
+                    var thumbprintBytes = JwsHelper.ComputeThumbprint(_signer, algor);
+                    var thumbprint = Base64UrlEncode(thumbprintBytes);
+                    var keyAuth = $"{dnsChallenge.Token}.{thumbprint}";
+                    byte[] hash = algor.ComputeHash(Encoding.UTF8.GetBytes(keyAuth));
+                    string dnsValue = Base64UrlEncode(hash);
+                    AcmeChallenge challenge = new AcmeChallenge
+                    {
+                        Domain = order.Payload.Identifiers[i].Value,
+                        DnsChallengeToken = dnsValue,
+                        AuthorizationUrl = order.Payload.Authorizations[i]
+                    };
+
+                    results.Add(challenge);
+
             }
+
             return results;
         }
+
 
         internal static string Base64UrlEncode(byte[] data)
         {
@@ -156,253 +182,255 @@ namespace SphereSSLv2.Services.AcmeServices
                 .Replace('/', '_');
         }
 
-        public async Task<(string Token, string Domain)> CreateUserAccountForCert(string email, string requestDomain)
+        public async Task <List<AcmeChallenge>> CreateUserAccountForCert(string email, List<string> requestDomains)
         {
             _order = new OrderDetails();
             _domain = "";
 
-            if (string.IsNullOrWhiteSpace(requestDomain))
+            List<AcmeChallenge> dnsChallengeList = new List<AcmeChallenge>();
+            if (requestDomains.Count==0)
             {
                 await _logger.Error("Domain name is empty.");
-                return (null, null);
+                return null;
             }
-           _domain = requestDomain;
-
-            try
-            {
-                var account = await InitAsync(email);
-                if (!account)
-                {
-
-                    _ = _logger.Debug("Account creation failed. Please check your email.");
-                    return (null, null);
-                }
-            }
-            catch (Exception ex)
-            {
-                _ = _logger.Debug("Unexpected error during account creation.");
-                _ = _logger.Error(ex.Message);
-                _ = _logger.Error(ex.StackTrace);
-
-                return (null, null);
-            }
-
-            try
-            {
-
-                _order = await BeginOrder(_domain);
-
-                if (_order.Payload.Status == "invalid")
-                {
-                    _ = _logger.Debug("Order is invalid. Please check your domain.");
-                    return (null, null);
-                }
-
-            }
-            catch (Exception ex)
-            {
-                _= _logger.Info("Order creation failed. Please check your domain.");
-                _= _logger.Info(ex.Message);
-                return (null, null);
-            }
-
-            var (domain, dnsValue) = await GetDnsChallengeToken(_order);
-
-            return (dnsValue, domain);
-        }
-
-       
-        internal  async Task<bool> ProcessCertificateGeneration( bool useSeperateFiles, string savePath, string dnsChallengeToken, string domain, string username)
-        {
-            var key = KeyFactory.NewKey(KeyAlgorithm.RS256);
-            var csrBuilder = new CertificationRequestBuilder(key);
-            csrBuilder.AddName("CN", _domain);
-            csrBuilder.SubjectAlternativeNames.Add(_domain);
-            var csr = csrBuilder.Generate();
-
-            _= _logger.Info("Submitting challenge to Let's Encrypt...");
-
-            string authUrl = _order.Payload.Authorizations[0];
-            var authz = await _client.GetAuthorizationDetailsAsync(authUrl);
-            var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
-
-            _= _logger.Info($"[{username}]: Domain: {authz.Identifier.Value}");
-            _= _logger.Info($"[{username}]: Challenge URL: {dnsChallenge.Url}");
-            _= _logger.Info($"[{username}]: Challenge status: {dnsChallenge.Status}");
-
-            if (dnsChallenge.Status == "pending")
-            {
-              
-                if (_client.Directory == null || _client.Directory.NewNonce == null)
-                {
-                    var directory = await _client.GetDirectoryAsync();
-                    _client.Directory = directory;
-                }
-
-                await _client.GetNonceAsync();
-                await _client.AnswerChallengeAsync(dnsChallenge.Url);
-                _= _logger.Info("[{username}]: Challenge submitted, waiting for validation...");
-            }
-            else
-            {
-                _= _logger.Info($"[{username}]: Challenge already in status: {dnsChallenge.Status}");
-              
-            }
-
            
-            bool challengeValid = false;
-            int maxPollingAttempts = 30; // 30 attempts * 5 seconds = 2.5 minutes max
 
-            for (int i = 0; i < maxPollingAttempts; i++)
-            {
                 try
                 {
-                    var updatedAuthz = await _client.GetAuthorizationDetailsAsync(authUrl);
-                    var updatedChallenge = updatedAuthz.Challenges.First(c => c.Type == "dns-01");
-
-                    _ = _logger.Info($"[{username}]: Polling ACME challenge validation status...");
-                    _ = _logger.Debug($"[{username}]: Polling attempt {i + 1}: Challenge = {updatedChallenge.Status}, Authz = {updatedAuthz.Status}");
-
-                    if (updatedAuthz.Status == "valid" && updatedChallenge.Status == "valid")
+                    var account = await InitAsync(email);
+                    if (!account)
                     {
-                        challengeValid = true;
-                        _= _logger.Info($"[{username}]: Challenge validated successfully!");
 
-                        break;
+                        _ = _logger.Debug("Account creation failed. Please check your email.");
+                        return null;
                     }
-
-                    if (updatedAuthz.Status == "invalid" || updatedChallenge.Status == "invalid")
-                    {
-         
-                        string errorDetail = "Unknown error";
-                        if (updatedChallenge.Error != null)
-                        {
-                            errorDetail = $"{updatedChallenge.Error.ToString()}";
-                        }
-
-                        throw new Exception($"Challenge validation failed. Error: {errorDetail}");
-                        
-                    }
-
-                    if (updatedAuthz.Status == "pending" || updatedChallenge.Status == "pending")
-                    {
-                        _= _logger.Info($"[{username}]: Still pending, waiting 5 seconds...");
-                        await Task.Delay(5000);
-                        continue;
-                    }
-
-        
-                    _= _logger.Info($"[{username}]: Unexpected status - Auth: {updatedAuthz.Status}, Challenge: {updatedChallenge.Status}");
-                    await Task.Delay(5000);
                 }
                 catch (Exception ex)
                 {
-                    _= _logger.Info($"[{username}]: Error during polling attempt {i + 1}: {ex.Message}");
-                    if (i == maxPollingAttempts - 1) throw; 
-                    await Task.Delay(5000);
+                    _ = _logger.Debug("Unexpected error during account creation.");
+                    _ = _logger.Error(ex.Message);
+                    _ = _logger.Error(ex.StackTrace);
+
+                    return null;
+                }
+
+                try
+                {
+
+                    _order = await BeginOrder(requestDomains);
+
+                    if (_order.Payload.Status == "invalid")
+                    {
+                        _ = _logger.Debug("Order is invalid. Please check your domain.");
+                        return null;
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    _ = _logger.Info("Order creation failed. Please check your domain.");
+                    _ = _logger.Info(ex.Message);
+                    return null;
+            }
+
+            var dnsChallenge = await GetAllDnsChallengeTokens(_order);
+            dnsChallengeList.AddRange(dnsChallenge);
+
+            return dnsChallengeList;
+        }
+
+
+        internal async Task<bool> ProcessCertificateGeneration(bool useSeperateFiles, string savePath, List<AcmeChallenge> challenges, string username)
+        {
+            var key = KeyFactory.NewKey(KeyAlgorithm.RS256);
+            var csrBuilder = new CertificationRequestBuilder(key);
+
+           
+            csrBuilder.AddName("CN", challenges[0].Domain);
+
+            foreach (var ch in challenges)
+            {
+                csrBuilder.SubjectAlternativeNames.Add(ch.Domain);
+            }
+
+            var csr = csrBuilder.Generate();
+
+            _ = _logger.Info("Submitting challenges to Let's Encrypt...");
+
+            
+            foreach (var challenge in challenges)
+            {
+                string domain = challenge.Domain;
+                string authUrl = challenge.AuthorizationUrl;
+                var authz = await _client.GetAuthorizationDetailsAsync(authUrl);
+                var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
+
+                _ = _logger.Info($"[{username}]: Domain: {domain}");
+                _ = _logger.Info($"[{username}]: Challenge URL: {dnsChallenge.Url}");
+                _ = _logger.Info($"[{username}]: Challenge status: {dnsChallenge.Status}");
+
+                if (dnsChallenge.Status == "pending")
+                {
+                    if (_client.Directory == null || _client.Directory.NewNonce == null)
+                        _client.Directory = await _client.GetDirectoryAsync();
+
+                    await _client.GetNonceAsync();
+                    await _client.AnswerChallengeAsync(dnsChallenge.Url);
+                    _ = _logger.Info($"[{username}]: Challenge submitted for {domain}, waiting for validation...");
+                }
+                else
+                {
+                    _ = _logger.Info($"[{username}]: Challenge for {domain} already in status: {dnsChallenge.Status}");
                 }
             }
 
-            if (!challengeValid)
+            // Now poll for all domains to be validated
+            int maxPollingAttempts = 30;
+            for (int i = 0; i < maxPollingAttempts; i++)
             {
-                throw new Exception($"Challenge validation timed out after {maxPollingAttempts} attempts");
-               
+                bool allValid = true;
+
+
+                foreach (var challenge in challenges)
+                {
+                    var authz = await _client.GetAuthorizationDetailsAsync(challenge.AuthorizationUrl);
+                    var dnsChallenge = authz.Challenges.First(c => c.Type == "dns-01");
+
+                    _ = _logger.Debug($"[{username}]: Polling {challenge.Domain} ({i + 1}/{maxPollingAttempts}): {dnsChallenge.Status}");
+
+                    if (authz.Status == "valid" && dnsChallenge.Status == "valid")
+                        continue; // This domain is good!
+                    if (authz.Status == "invalid" || dnsChallenge.Status == "invalid")
+                    {
+                        string err = dnsChallenge.Error != null ? dnsChallenge.Error.ToString() : "Unknown error";
+                        throw new Exception($"Challenge validation failed for {challenge.Domain}. Error: {err}");
+                    }
+                    allValid = false;
+                }
+
+
+                if (allValid)
+                {
+                    _ = _logger.Info($"[{username}]: All domain challenges validated!");
+                    break;
+                }
+
+
+                if (i == maxPollingAttempts - 1)
+                    throw new Exception($"Challenge validation timed out after {maxPollingAttempts} attempts");
+
+                await Task.Delay(3000);
             }
 
             _ = _logger.Info($"[{username}]: Finalizing certificate order...");
 
-         
             await _client.FinalizeOrderAsync(_order.Payload.Finalize, csr);
 
-         
-            _= _logger.Info($"[{username}]: Waiting for certificate to be issued...");
+            _ = _logger.Info($"[{username}]: Waiting for certificate to be issued...");
 
             OrderDetails finalizedOrder;
             int certWaitAttempts = 0;
             const int maxCertWaitAttempts = 20;
-
             do
             {
                 await Task.Delay(3000);
                 finalizedOrder = await _client.GetOrderDetailsAsync(_order.OrderUrl);
-                _= _logger.Info($"[{username}]: Certificate status: {finalizedOrder.Payload.Status}");
+                _ = _logger.Info($"[{username}]: Certificate status: {finalizedOrder.Payload.Status}");
 
                 certWaitAttempts++;
                 if (certWaitAttempts >= maxCertWaitAttempts)
-                {
                     throw new Exception("Certificate issuance timed out");
-                }
 
             } while (finalizedOrder.Payload.Status == "processing");
 
             if (finalizedOrder.Payload.Status != "valid")
-            {
                 throw new Exception($"[{username}]: Certificate order failed with status: {finalizedOrder.Payload.Status}");
-                
-            }
 
             // Download certificate
             var certUrl = finalizedOrder.Payload.Certificate;
             if (string.IsNullOrEmpty(certUrl))
-            {
                 throw new Exception("Certificate URL is missing from the finalized order");
-                
-            }
 
-            _= _logger.Info($"[{username}]: Downloading certificate...");
+            _ = _logger.Info($"[{username}]: Downloading certificate...");
             using var http = new HttpClient();
             var certPem = await http.GetStringAsync(certUrl);
 
-            await DownloadCertificateAsync(useSeperateFiles,  savePath, certPem, key.ToPem(), username);
+            await DownloadCertificateAsync(useSeperateFiles, savePath, certPem, key.ToPem(), username);
 
-            _= _logger.Info($"[{username}]: SSL Certificate successfully generated and downloaded!");
+            _ = _logger.Info($"[{username}]: SSL Certificate successfully generated and downloaded!");
             return true;
         }
 
-        internal async Task<bool> CheckTXTRecordMultipleDNS(string dnsChallengeToken, string domain, string username)
+        internal async Task<List<(AcmeChallenge challange, bool verified)>> CheckTXTRecordMultipleDNS(List<AcmeChallenge> challenges, string username)
         {
-            string fullRecordName = $"{domain}";
-
-       
+         
+            var results = new List<(AcmeChallenge challenge, bool verified)>();
             var dnsServers = new[]
             {
-                IPAddress.Parse("8.8.8.8"), // Google
-                IPAddress.Parse("1.1.1.1"), // Cloudflare
-                IPAddress.Parse("208.67.222.222"), // OpenDNS
-                IPAddress.Parse("9.9.9.9") // Quad9
+            IPAddress.Parse("8.8.8.8"),         // Google
+            IPAddress.Parse("1.1.1.1"),         // Cloudflare
+            IPAddress.Parse("208.67.222.222"),  // OpenDNS
+            IPAddress.Parse("9.9.9.9")          // Quad9
             };
 
-            foreach (var dnsServer in dnsServers)
+            foreach (AcmeChallenge challenge in challenges)
             {
-                try
+                string domain = "";
+
+
+                if (challenge.Domain.StartsWith("*."))
                 {
-                    var lookup = new LookupClient(dnsServer);
-                    _= _logger.Info($"[{username}]: Checking DNS server {dnsServer} for TXT record at {fullRecordName}");
+                    domain = challenge.Domain.Substring(2);
+                }
+                else
+                {
+                    domain = challenge.Domain;
+                }
+                    string fullRecordName = $"_acme-challenge.{domain}";
+                bool matchFound = false;
 
-                    var result = await lookup.QueryAsync(fullRecordName, QueryType.TXT);
-                    var txtRecords = result.Answers.TxtRecords();
-
-                    foreach (var record in txtRecords)
+                foreach (var dnsServer in dnsServers)
+                {
+                    try
                     {
-                        foreach (var txt in record.Text)
+                        var lookup = new LookupClient(dnsServer);
+                        _ = _logger.Info($"[{username}]: Checking DNS server {dnsServer} for TXT record at {fullRecordName}");
+                   
+                        var result = await lookup.QueryAsync(fullRecordName, QueryType.TXT);
+                        var txtRecords = result.Answers.TxtRecords();
+
+                        foreach (var record in txtRecords)
                         {
-                            _= _logger.Info($"[{username}]: Found TXT record: {txt}");
-                            if (txt.Trim('"') == dnsChallengeToken.Trim('"'))
+                            foreach (var txt in record.Text)
                             {
-                                _= _logger.Info($"[{username}]: Match found on DNS server {dnsServer}!");
-                                return true;
+                                _ = _logger.Info($"[{username}]: Found TXT record: {txt}");
+                                if (txt.Trim('"') == challenge.DnsChallengeToken.Trim('"'))
+                                {
+                                    _ = _logger.Info($"[{username}]: Match found on DNS server {dnsServer}!");
+                                    matchFound = true;
+                                    break;
+                                }
                             }
+                            if (matchFound) break;
                         }
+                        if (matchFound) break;
+                    }
+                    catch (Exception ex)
+                    {
+                        await _logger.Info($"[{username}]: DNS server {dnsServer} failed: {ex.Message}");
+                       
                     }
                 }
-                catch (Exception ex)
+                if (!matchFound)
                 {
-                    await _logger.Info($"[{username}]: DNS server {dnsServer} failed: {ex.Message}");
-                    continue; // Try next DNS server
+                    
+                    _ = _logger.Info($"[{username}]: No matching TXT record found for {fullRecordName} on any DNS server.");
+                    
                 }
+                results.Add((challenge, matchFound));
             }
 
-            return false;
+            return results;
         }
 
         public async Task RequestCertAsync(AcmeService acme, string domain)
@@ -536,10 +564,32 @@ namespace SphereSSLv2.Services.AcmeServices
         }
 
 
-        internal async Task RevokeCert(CertRecord record)
+        internal async Task<bool> RevokeCert(CertRecord record)
         {
             ESJwsTool signer = LoadOrCreateSigner(this, "signer.pem");
-            var client = new AcmeProtocolClient(new HttpClient(), null, null, signer);
+
+            var url = record.OrderUrl;
+
+            var uri = new Uri(url);
+
+            var baseUrl = $"{uri.Scheme}://{uri.Host}/";
+
+            var http = new HttpClient
+            {
+                BaseAddress = new Uri(baseUrl),
+            };
+
+            var ACME = new AcmeService(_logger)
+            {
+                _logger = _logger,
+                _signer = signer,
+                _client = new AcmeProtocolClient(http, null, null, signer),
+
+
+            };
+           
+
+            var client = ACME._client;
             client.Directory = await client.GetDirectoryAsync();
             await client.GetNonceAsync();
 
@@ -551,42 +601,55 @@ namespace SphereSSLv2.Services.AcmeServices
             );
 
             client.Account = account;
-
+            
             var order = await client.GetOrderDetailsAsync(record.OrderUrl);
             if (order == null)
             {
                 await _logger.Error($"Order with ID {record.OrderId} not found.");
-                return;
+                return false;
             }
-            if (order.Payload.Status != "valid")
+            if (order.Payload.Status != "valid" && order.Payload.Status != "expired")
             {
                 await _logger.Error($"Order with ID {record.OrderId} is not valid. Cannot revoke.");
-                return;
+                return false;
             }
             try
             {
-           
+                
                 string certBase64 = order.Payload.Certificate;
+             
 
-                // If the string is PEM, strip headers/footers and whitespace
+
+                if (certBase64.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Fetch the PEM from the URL!
+                     http = new HttpClient();
+                    certBase64 = await http.GetStringAsync(certBase64);
+                    
+                }
+
                 if (certBase64.Contains("BEGIN CERTIFICATE"))
                 {
-                    certBase64 = certBase64
-                        .Replace("-----BEGIN CERTIFICATE-----", "")
-                        .Replace("-----END CERTIFICATE-----", "")
-                        .Replace("\r", "")
-                        .Replace("\n", "")
-                        .Trim();
+                    var match = Regex.Match(certBase64, "-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----", RegexOptions.Singleline);
+                    if (!match.Success)
+                    {
+                        await _logger.Error($"Certificate PEM format is invalid! Order: {record.OrderId}");
+                        return false;
+                    }
+                    certBase64 = match.Groups[1].Value.Replace("\r", "").Replace("\n", "").Trim();
                 }
 
                 var certBytes = Convert.FromBase64String(certBase64);
+
                 await client.RevokeCertificateAsync(certBytes, RevokeReason.Unspecified);
 
                 await _logger.Info($"Certificate for order {record.OrderId} has been successfully revoked.");
+                return true;
             }
             catch (Exception ex)
             {
                 await _logger.Error($"Failed to revoke certificate for order {record.OrderId}: {ex.Message}");
+                return false;
             }
         }
     }

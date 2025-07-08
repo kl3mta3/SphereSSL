@@ -1,29 +1,51 @@
 ﻿@page
 @model SphereSSLv2.Pages.DashboardModel
 
-}@{
+@{
     ViewData["Title"] = "Dashboard";
 }
 <div class="container-fluid">
     <div class="d-flex flex-column flex-grow-1">
-        <div class="flex-grow-1 ">
+
             <div class="container text-center ">
 
                 <div class="container-fluid px-4">
 
-                    <div class="row">
+                <div class="row ">
 
                         <!-- Quick Create -->
                         <div class="col-lg-4 mb-4">
-                            <h3 class="title mb-4">Quick Create</h3>
+                            <h5 class="title mb-4">Quick Create</h5>
                             <div class="card quick-create shadow-sm cert-form p-4">
                                 <form onsubmit="event.preventDefault(); submitOrder();">
-                                    <h5>Email Address</h5>
+                                    <h6><strong>Email Address</strong></h6>
                                     <input type="email" id="email" name="email" class="form-control mb-3" placeholder="you@example.com" required />
+                                <div>
+                                <h6 class="d-inline align-middle">
+                                    <strong>Domain Address</strong>
+                                    <a href="/LearnMore#whatisadomain" target="_blank" class="ms-1" title="What is a domain?">
+                                        <i class="bi bi-info-circle info-icon"></i>
+                                    </a>
+                                </h6>
+                                </div>
+                                    <span class="format-subtext">
+                                    Separate SAN's with a
+                                        <strong style="font-size:1.5em; color:#4F46E5; vertical-align:middle;">,</strong>
+                                    &nbsp;and start Wildcards with&nbsp;
+                                    <strong style="font-size:1.5em; color:#DC2626; vertical-align:middle;">*.</strong>
+                                </span><span>. </span>
+                                <span class="icon-group d-inline-flex align-items-center mb-2">
+                                    <a href="/LearnMore#whataresans" target="_blank" title="Learn about SAN's">
+                                        <i class="bi bi-info-circle info-icon"></i>
+                                    </a>
+                                    <a href="/LearnMore#whatarewildcards" target="_blank" title="Learn about Wildcards">
+                                        <i class="bi bi-info-circle info-icon ms-1"></i>
+                                    </a>
+                                </span>
+                              
+                                       
 
-                                    <h5>Domain Address</h5>
                                     <input type="text" id="domain" name="domain" class="form-control mb-3" placeholder="example.com" required />
-
                                     <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
                                         <div class="format-option text-center">
                                             <input type="radio" name="certFormat" value="false" id="useSingleFile" />
@@ -41,7 +63,8 @@
                                         </div>
                                     </div>
 
-                                    <h5>Save Path</h5>
+                                    <h6><strong>Save Path</strong></h6>
+                                <span class="format-subtext"> Ideally this would be where your server will look for the cert.</span>
                                     <div class="input-group mb-3">
                                         <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath" />
                                         <button class="btn btn-outline-secondary" type="button" id="browseBtn">Browse</button>
@@ -51,8 +74,12 @@
                                         <input class="form-check-input" type="checkbox" id="autoAddRecord" onchange="toggleProviderDropdown()" />
                                         <label class="form-check-label" for="autoAddRecord">
                                             Auto add DNS Record
+                                            <a href="/LearnMore#autoaddrecord" target="_blank" class="ms-1" title="Learn about Auto Add Record">
+                                                <i class="bi bi-info-circle info-icon"></i>
+                                            </a>
                                         </label>
                                     </div>
+
                                     <div class="mb-3" id="providerDropdownContainer" style="display: none;">
                                         <label for="dnsProvider" class="form-label">DNS Provider</label>
 
@@ -86,6 +113,9 @@
                                         <input class="form-check-input" type="checkbox" id="autoRenew" />
                                         <label class="form-check-label" for="autoRenew">
                                             Auto Renew (DNS via API)
+                                        <a href="/LearnMore#autorenew" target="_blank" title="Learn about Auto Renew">
+                                            <i class="bi bi-info-circle info-icon ms-1"></i>
+                                        </a>
                                         </label>
                                     </div>
 
@@ -98,6 +128,9 @@
                                             <input class="form-check-input" type="checkbox" id="useStaging" />
                                             <label class="form-check-label" for="useStaging" title="Use Let's Encrypt Staging (for testing)">
                                                 Staging
+                                            <a href="/LearnMore#whatisstaging" target="_blank" title="Learn about Staging">
+                                                <i class="bi bi-info-circle info-icon ms-1"></i>
+                                            </a>
                                             </label>
                                         </div>
                                     </div>
@@ -110,23 +143,23 @@
                         <!-- Certificates Section -->
                         <div class="col-lg-5 col-md-12 col-sm-12 mb-4">
                             <div class="row gx-3">
-                                <h3 class="title text-center mb-3">Certificates</h3>
+                                <h5 class="title text-center mb-3">Certificates</h5>
 
                                 <div class="accordion" id="certAccordion">
 
                                         <!-- Active Certs Column -->
-                                        <h5 class="accordion-header">
+                                        <h6 class="accordion-header">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                             data-bs-target="#collapseActive" aria-expanded="false" aria-controls="collapseActive">
                                                 <span class="w-100 text-center title-cert-dropdown">Active</span>
                                             </button>
-                                        </h5>
+                                        </h6>
 
-                                        <div id="collapseActive" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
+                                     <div id="collapseActive" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
                                             <div class="accordion-body p-0 scroll-pane">
 
 
-                                                <div class="card renewals shadow-sm p-3">
+                                                <div class="card renewals shadow-sm p-1">
 
                                                     <div class="list-group">
                                                         @if (Model.CertRecords != null && Model.CertRecords.Any())
@@ -135,43 +168,56 @@
 
 
 
-
-                                                            foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow.AddDays(60))
-                                                            .OrderByDescending(r => r.CreationDate))
-                                                            {
-
-                                                                var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
-
-                                                                var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
-                                                                <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
-                                                                    <div class="card-body d-flex justify-content-between align-items-center">
-                                                                        <div class="d-flex flex-column text-start">
-
-                                                                            <a href="https://@record.Domain"
-                                                                            target="_blank"
-                                                                            title="Go to @record.Domain"
-                                                                            class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
-                                                                                @record.Domain
-                                                                            </a>
-
-                                                                            <div class="provider"><strong>@record.Provider</strong></div>
-
-                                                                            <div class="d-flex align-items-center gap-2 ">
-                                                                                <small class="expires-in text-dark text-start">
-                                                                                    <strong>Expires in @ExpiresIn</strong>
-                                                                                </small>
-
-
-                                                                                <div class="auto-renew d-flex align-items-center">
-                                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
-                                                                                    title="@autorenewString"></i>
-                                                                                </div>
-                                                                            </div>
-
+                                                        @foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow.AddDays(60)).OrderByDescending(r => r.CreationDate))
+                                                        {
+                                                            var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
+                                                            var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
+                                                            // Get a list of all domains (if you want a single domain for the link, use .FirstOrDefault())
+                                                            var allDomains = record.Challenges?.Select(c => c.Domain).Distinct().ToList() ?? new List<string>();
+                                                            var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
+                                                            var primaryDomain = allDomains.FirstOrDefault() ?? "(none)";
+                                                            var primaryProvider = allProviders.FirstOrDefault() ?? "(none)";
+                                                            var providername = Model.DNSProviders.FirstOrDefault(p => p.ProviderId == string.Join(", ", allProviders))?.Provider ?? "Unknown Provider";
+                                                            <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
+                                                                <div class="card-body d-flex justify-content-between align-items-center">
+                                                                    <div class="d-flex flex-column text-start">
+                                                                        <!-- Show all domains as links -->
+                                                                        <div class="cert-domain gap-2 flex-wrap">
+                                                                            @for (int i = 0; i < allDomains.Count; i++)
+                                                                            {
+                                                                                <a href="https://@allDomains[i]"
+                                                                                   target="_blank"
+                                                                                   title="Go to @allDomains[i]"
+                                                                                   class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap me-1" data-wildcard="@(allDomains[i].StartsWith("*") ? "true" : "false")">
+                                                                                    @allDomains[i]
+                                                                                </a>
+                                                                                @if (i < allDomains.Count - 1)
+                                                                                {
+                                                                                    <span class="domain-comma">,</span>
+                                                                                }
+                                                                            }
                                                                         </div>
+                                                                       
+                                                                        <div class="provider">
+                                                                            <strong>
+                                                                                @providername
+                                                                            </strong>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center gap-2 ">
+                                                                            <small class="expires-in text-dark text-start">
+                                                                                <strong>Expires in @ExpiresIn</strong>
+                                                                            </small>
+                                                                        </div>
+                                                                        <div class="auto-renew d-flex align-items-center">
+                                                                            <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger")"
+                                                                               title="@autorenewString"></i>
+                                                                            <span class="auto-renew-text"> Auto Renew </span>
+                                                                        </div>
+                                                                       
                                                                     </div>
                                                                 </div>
-                                                            }
+                                                            </div>
+                                                        }
                                                         }
                                                         else
                                                         {
@@ -185,56 +231,70 @@
                                     </div>
 
                                     <!-- Expiring Certs Column -->
-                                    <div class="accordion-item">
-
-                                        <h5 class="accordion-header">
+                                   
+                                        <h6 class="accordion-header">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                             data-bs-target="#collapseExpiring" aria-expanded="false" aria-controls="collapseExpiring">
                                                 <span class="w-100 text-center title-cert-dropdown">Expiring</span>
                                             </button>
-                                        </h5>
+                                        </h6>
 
                                         <div id="collapseExpiring" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
                                             <div class="accordion-body p-0 scroll-pane">
 
                                 
-                                                <div class="card renewals shadow-sm p-3">
+                                                <div class="card renewals shadow-sm p-1">
 
                                                     <div class="list-group">
                                                         @if (Model.ExpiringSoonRecords != null && Model.ExpiringSoonRecords.Any())
                                                         {
 
 
-                                                            foreach (var record in Model.ExpiringSoonRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow)
-                                                            .OrderBy(r => r.ExpiryDate))
+                                                            @foreach (var record in Model.ExpiringSoonRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow)
+                                                           .OrderBy(r => r.ExpiryDate))
                                                             {
                                                                 var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
                                                                 var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
+                                                                var allDomains = record.Challenges?.Select(c => c.Domain).Distinct().ToList() ?? new List<string>();
+                                                                var primaryDomain = allDomains.FirstOrDefault() ?? "(none)";
+                                                                var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
+                                                                var primaryProvider = allProviders.FirstOrDefault() ?? "(none)";
+                                                                var providername = Model.DNSProviders.FirstOrDefault(p => p.ProviderId == string.Join(", ", allProviders))?.Provider ?? "Unknown Provider";
+
                                                                 <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
                                                                     <div class="card-body d-flex justify-content-between align-items-center">
                                                                         <div class="d-flex flex-column text-start">
+                                                                            <!-- Show all domains as links -->
+                                                                            <div class="cert-domain gap-2 flex-wrap">
+                                                                                @for (int i = 0; i < allDomains.Count; i++)
+                                                                                {
+                                                                                    <a href="https://@allDomains[i]"
+                                                                                       target="_blank"
+                                                                                       title="Go to @allDomains[i]"
+                                                                                       class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap me-1" data-wildcard="@(allDomains[i].StartsWith("*") ? "true" : "false")">
+                                                                                        @allDomains[i]
+                                                                                    </a>
+                                                                                    @if (i < allDomains.Count - 1)
+                                                                                    {
+                                                                                        <span class="domain-comma">,</span>
+                                                                                    }
+                                                                                }
+                                                                            </div>
 
-                                                                            <a href="https://@record.Domain"
-                                                                            target="_blank"
-                                                                            title="Go to @record.Domain"
-                                                                            class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
-                                                                                @record.Domain
-                                                                            </a>
-
-                                                                            <div class="provider"><strong>@record.Provider</strong></div>
-
-
-                                                                            <div class="d-flex align-items-center gap-2 mt-1">
+                                                                            <div class="provider">
+                                                                                <strong>
+                                                                                    @providername
+                                                                                </strong>
+                                                                            </div>
+                                                                            <div class="d-flex align-items-center gap-2 ">
                                                                                 <small class="expires-in text-dark text-start">
-                                                                                    <strong> Expires in @ExpiresIn</strong>
+                                                                                    <strong>Expires in @ExpiresIn</strong>
                                                                                 </small>
-
-
-
-                                                                                <div class="auto-renew d-flex align-items-center">
-                                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
-                                                                                    title="@autorenewString"></i>
-                                                                                </div>
+                                                                            </div>
+                                                                            <div class="auto-renew d-flex align-items-center">
+                                                                                <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger")"
+                                                                                   title="@autorenewString"></i>
+                                                                                <span class="auto-renew-text"> Auto Renew </span>
                                                                             </div>
 
                                                                         </div>
@@ -253,18 +313,18 @@
 
                                             </div>
                                         </div>
-                                    </div>
+                                 
 
 
                                     <!-- Expired Certs Column -->
-                                    <div class="accordion-item">
+                                <div class="accordion-header">
 
-                                        <h5 class="accordion-header">
+                                        <h6 class="accordion-header">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                             data-bs-target="#collapseExpired" aria-expanded="false" aria-controls="collapseExpired">
                                                 <span class="w-100 text-center title-cert-dropdown">Expired</span>
                                             </button>
-                                        </h5>
+                                        </h6>
 
                                         <div id="collapseExpired" class="accordion-collapse collapse" data-bs-parent="#certAccordion">
                                             <div class="accordion-body p-0 scroll-pane">
@@ -277,49 +337,63 @@
                                                             foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate < DateTime.UtcNow)
                                                             .OrderByDescending(r => r.ExpiryDate))
                                                             {
-                                                         
                                                                 var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
-
                                                                 var expiresRaw = (record.ExpiryDate - DateTime.UtcNow).TotalDays;
                                                                 var ExpiresIn = $"{Math.Abs(expiresRaw):N0} days ago";
-                                                            
-                                                                                                              
+
+                                                                var allDomains = record.Challenges?.Select(c => c.Domain).Distinct().ToList() ?? new List<string>();
+                                                                var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
+                                                                var primaryDomain = allDomains.FirstOrDefault() ?? "(none)";
+                                                                var primaryProvider = allProviders.FirstOrDefault() ?? "(none)";
+                                                                var providername = Model.DNSProviders.FirstOrDefault(p => p.ProviderId == string.Join(", ", allProviders))?.Provider ?? "Unknown Provider";
+
                                                                 <div class="card mb-2 shadow-sm" role="button" onclick="showCertRecordModal('@record.OrderId')" style="cursor: pointer;">
-                                                    <div class="card-body d-flex justify-content-between align-items-center">
-                                                        <div class="d-flex flex-column text-start">
+                                                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                                                        <div class="d-flex flex-column text-start">
+                                                                            <!-- Show all domains as links -->
+                                                                            <div class="cert-domain gap-2 flex-wrap">
+                                                                                @for (int i = 0; i < allDomains.Count; i++)
+                                                                                {
+                                                                                    <a href="https://@allDomains[i]"
+                                                                                       target="_blank"
+                                                                                       title="Go to @allDomains[i]"
+                                                                                       class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap me-1" data-wildcard="@(allDomains[i].StartsWith("*") ? "true" : "false")">
+                                                                                        @allDomains[i]
+                                                                                    </a>
+                                                                                    @if (i < allDomains.Count - 1)
+                                                                                    {
+                                                                                        <span class="domain-comma">,</span>
+                                                                                    }
+                                                                                }
+                                                                            </div>
 
-                                                            <a href="https://@record.Domain"
-                                                               target="_blank"
-                                                               title="Go to @record.Domain"
-                                                               class="domain-link fw-semibold text-decoration-underline mb-1 text-wrap">
-                                                                @record.Domain
-                                                            </a>
+                                                                            <div class="provider">
+                                                                                <strong>
+                                                                                    @providername
+                                                                                </strong>
+                                                                            </div>
+                                                                            <div class="d-flex align-items-center gap-2 ">
+                                                                                <small class="expires-in text-dark text-start">
+                                                                                    <strong>Expires in @ExpiresIn</strong>
+                                                                                </small>
+                                                                            </div>
+                                                                            <div class="auto-renew d-flex align-items-center">
+                                                                                <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger")"
+                                                                                   title="@autorenewString"></i>
+                                                                                <span class="auto-renew-text"> Auto Renew </span>
+                                                                            </div>
 
-                                                            <div class="provider"><strong>@record.Provider</strong></div>
-
-                                                            <div class="d-flex align-items-center gap-2 ">
-                                                                <small class="expires-in text-dark text-start">
-                                                                    <strong>Expired @ExpiresIn</strong>
-                                                                </small>
-
-
-                                                                <div class="auto-renew d-flex align-items-center">
-                                                                    <i class="bi @(record.autoRenew ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") fs-5"
-                                                                       title="@autorenewString"></i>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-
-                                                        </div>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="list-group-item disabled text-muted">No expired certs found.</div>
+                                                        }
                                                     </div>
                                                 </div>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <div class="list-group-item disabled text-muted">No Certs found.</div>
-                                        }
-                                    </div>
-                                </div>
 
 
                                             </div>
@@ -331,13 +405,10 @@
                             </div>
                         </div>
 
-
-
-
                         <!-- Helpful Links -->
                         <div class="col-lg-1 mb-4">
-                            <h3 class="title mb-4" style="  min-width: 250px; ">Helpful Links</h3>
-                            <div class="card useful-links shadow-sm p-3" style="  min-width: 250px; ">
+                            <h5 class="title mb-4" style="  min-width: 200px; ">Helpful Links</h5>
+                            <div class="card useful-links shadow-sm p-3" style="  min-width: 200px; ">
                                 <a href="https://www.cloudflare.com/" target="_blank">
                                     <img src="https://www.cloudflare.com/favicon.ico" alt="Cloudflare" class="link-icon" />
                                     <span>Cloudflare</span>
@@ -359,6 +430,21 @@
                                     <span>GitHub</span>
                                 </a>
                             </div>
+
+                        <div class="card useful-links shadow-sm p-3 mb-2" style="  min-width: 200px; ">
+                         <h5>Get Local Cert</h5>
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    <button class="btn-glow btn-sm" id="getlocalcert" data-bs-toggle="modal" type="button" data-bs-target="#localCertModal" style="font-size:0.97rem; padding:4px 10px;">
+                                        Get Local Cert
+                                    </button>
+                                    <a href="/LearnMore#needlocalcert" target="_blank" class="ms-1" title="Learn about Local Certs">
+                                        <i class="bi bi-info-circle info-icon"></i>
+                                    </a>
+                                </div>
+                        
+                        </div>
+
+
                         </div>
 
                     </div>
@@ -367,21 +453,24 @@
 
 
             </div>
-        </div>
+       
 
     </div>
 
 </div>
 
-<style>
 
-  
-</style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
-
+<style>
+    #getlocalcert {
+        font-size: 0.85rem;
+        padding: 2px 8px;
+        white-space: nowrap;
+    }
+ </style>
 
 <!-- Toggle Preview Dropdown -->
 <script>
@@ -444,9 +533,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         // Build order object
         let order = {
             orderId: "",
-            domain: document.getElementById("domain").value,
             email: document.getElementById("email").value,
-            dnsChallengeToken: "",
             savePath: document.getElementById("savePath").value,
             creationTime: "",
             useSeparateFiles: useSeparateFiles,
@@ -456,11 +543,15 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
         let provider = document.getElementById("dnsProvider")?.value || "";
         let autoAdd = document.getElementById("autoAddRecord")?.checked || false;
 
+        //here we need that list of domains. 
+        let domains = document.getElementById("domain").value.split(", ").map(d => d.trim()).filter(d => d.length > 0);
+
         // Main request object
         const request = {
             order: order,
             provider: provider,
             autoAdd: autoAdd,
+            domains: domains,
             useStaging: useStaging
         };
 
@@ -609,27 +700,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
     }
 </script>
 
-<!-- Show Cert Modal -->
-<script>
-    function showCertRecordModal(orderId) {
-        const modalBody = document.getElementById("certRecordModalBody");
-        modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
-
-        fetch(`/Dashboard?handler=GetRecordModal&orderId=${encodeURIComponent(orderId)}`)
-            .then(res => res.text())
-            .then(html => {
-                modalBody.innerHTML = html;
-                const modal = new bootstrap.Modal(document.getElementById('certRecordModal'));
-                modal.show();
-            })
-            .catch(err => {
-                modalBody.innerHTML = `<p class="text-danger">Failed to load record.</p>`;
-                console.error(err);
-            });
-    }
-</script>
-
-
 <!-- Verify Challenge -->
 <script>
     async function verifyChallange() {
@@ -641,22 +711,7 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
 
         const order = {
             orderId: document.getElementById("orderId")?.value || "",
-            domain: document.getElementById("domainName")?.textContent.trim() || "",
-            dnsChallengeToken: document.getElementById("dnsToken")?.textContent.trim() || "",
-            email: document.getElementById("email")?.value || "",
-            useSeparateFiles:document.getElementById("useSeparateFiles").checked || false,
-            saveForRenewal: document.getElementById("saveForRenewal").checked || false,
-            autoRenew: document.getElementById("autoRenew").checked || false,
-            savePath: document.getElementById("savePath")?.value || "",
-            zoneId: document.getElementById("zoneID")?.value || "",
-            provider: document.getElementById("provider")?.value || "",
-            signer: document.getElementById("signer")?.value || "",
-            accountID: document.getElementById("accountID")?.value || "",
-            orderUrl: document.getElementById("orderUrl")?.value || "",
-            thumbprint: document.getElementById("thumbprint")?.value || "",
-            challengeType: document.getElementById("challengeType")?.value || "",
-            creationDate: document.getElementById("creationDate")?.value || "",
-            expiryDate: document.getElementById("expiryDate")?.value || "",
+
         };
 
         const response = await fetch("/Dashboard?handler=ShowVerifyModal", {
@@ -693,28 +748,6 @@ document.getElementById('browseBtn').addEventListener('click', async () => {
             verifyModal.removeEventListener('hidden.bs.modal', reloadOnHide);
         }
         verifyModal.addEventListener('hidden.bs.modal', reloadOnHide);
-    }
-</script>
-
-<!-- Close DNS Challenge Modal -->
-<script>
-       function closeDnsModal() {
-        const modalEl = document.getElementById("dnsChallengeModal");
-        const modal = bootstrap.Modal.getInstance(modalEl);
-
-        const overlay = document.getElementById("waitingModalOverlay");
-        if (overlay) overlay.remove();
-
-            const startButton = document.getElementById("startButton");
-            if (startButton) {
-                startButton.disabled = false;
-                startButton.hidden = false;
-            }
-
-
-        if (modal) {
-            modal.hide();
-        }
     }
 </script>
 

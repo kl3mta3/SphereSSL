@@ -1,4 +1,6 @@
-﻿using SphereSSLv2.Data;
+﻿using Nager.PublicSuffix.RuleProviders;
+using Nager.PublicSuffix;
+using SphereSSLv2.Data;
 using SphereSSLv2.Services.Config;
 using System.DirectoryServices.ActiveDirectory;
 using System.Net.Http.Headers;
@@ -132,16 +134,46 @@ namespace SphereSSLv2.Services.APISupportedProviders
             }
         }
 
-        internal static async Task<string> AddDNSRecord(Logger _logger, string domain, string apiToken, string content, string username )
+
+        /// <summary>
+        /// Adds a DNS TXT record for ACME challenge verification to Cloudflare DNS.
+        /// Requires an API token with DNS edit permissions as a single string (no key/secret combo).
+        /// 
+        /// <para><b>API Requirements:</b></para>
+        /// <list type="bullet">
+        ///   <item>Cloudflare API token: <c>apiToken</c> (Bearer token; generated in Cloudflare dashboard with "Zone:DNS:Edit" permission).</item>
+        ///   <item>Domain: <c>domain</c> (FQDN to receive the _acme-challenge record).</item>
+        ///   <item>Challenge content: <c>content</c> (the TXT value for validation).</item>
+        /// </list>
+        /// 
+        /// Uses the <c>public_suffix_list.dat</c> for proper root domain detection and finds the appropriate zone.
+        /// </summary>
+        /// <param name="_logger">Logger for info/debug output.</param>
+        /// <param name="domain">Domain to update (e.g., "sub.example.com").</param>
+        /// <param name="apiToken">Cloudflare API Token with edit privileges (single string).</param>
+        /// <param name="content">TXT record value for ACME challenge.</param>
+        /// <param name="username">User context for logging.</param>
+        /// <returns>Zone ID if successful; otherwise, null or zoneId if not found.</returns>
+        internal static async Task<string> AddDNSRecord(Logger _logger, string domain, string apiToken, string content, string username)
         {
+
+            var ruleProvider = new LocalFileRuleProvider("public_suffix_list.dat");
+            await ruleProvider.BuildAsync();
+            var domainParser = new DomainParser(ruleProvider);
+            var domainInfo = domainParser.Parse(domain);
+            string strippedProvider = domainInfo.RegistrableDomain;
+
+
             int ttl = 120;
             bool proxied = false;
             string type = "TXT";
-            string zoneId = await GetZoneId(_logger, apiToken, domain);
+            string zoneId = await GetZoneId(_logger, apiToken, strippedProvider);
             string name = $"_acme-challenge.{domain}";
             if (string.IsNullOrEmpty(zoneId))
             {
-                _ = _logger.Debug("Failed to retrieve zone ID for the domain.");
+
+                _= _logger.Debug("Failed to retrieve zone ID for the domain.");
+
                 return zoneId;
             }
 
@@ -158,6 +190,7 @@ namespace SphereSSLv2.Services.APISupportedProviders
             };
 
             var json = JsonSerializer.Serialize(requestBody);
+
             var contentBody = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await client.PostAsync($"{BaseUrl}/zones/{zoneId}/dns_records", contentBody);
@@ -165,12 +198,16 @@ namespace SphereSSLv2.Services.APISupportedProviders
 
             if (response.IsSuccessStatusCode)
             {
-                _ = _logger.Info($"[{username}]: DNS record added successfully.");
+
+                _ = _logger.Info("DNS record added successfully.");
+
                 return zoneId;
             }
             else
             {
-                _ = _logger.Debug($"[{username}]: Failed to update DNS record:\n{response.StatusCode}\n{responseText}");
+
+                _ = _logger.Debug($"[{username}]: Failed to add DNS record:\n{response.StatusCode}\n{responseText}");
+
                 return zoneId;
             }
         }
@@ -220,7 +257,9 @@ namespace SphereSSLv2.Services.APISupportedProviders
             }
         }
 
-        public async Task<bool> DeleteDNSRecord(Logger _logger, string apiToken, string domain, string username)
+
+        public  static async Task<bool> DeleteDNSRecord(Logger _logger, string apiToken, string domain, string username)
+
         {
             string zoneId = await GetZoneId(_logger, apiToken, domain);
             if (string.IsNullOrEmpty(zoneId))
@@ -256,6 +295,62 @@ namespace SphereSSLv2.Services.APISupportedProviders
         }
 
         public async Task<bool> DeleteAllAcmeChallengeRecords(Logger _logger, string apiToken, string domain, string username)
+        {
+            string zoneId = await GetZoneId(_logger, apiToken, domain);
+            if (string.IsNullOrEmpty(zoneId))
+            {
+                _ = _logger.Debug("Failed to retrieve zone ID for the domain.");
+                return false;
+            }
+
+            string name = $"_acme-challenge.{domain}";
+
+            // Get all TXT records at the location
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+            var listResp = await client.GetAsync($"{BaseUrl}/zones/{zoneId}/dns_records?type=TXT&name={name}");
+            var listText = await listResp.Content.ReadAsStringAsync();
+            if (!listResp.IsSuccessStatusCode)
+            {
+                _ = _logger.Debug($"Failed to list DNS records:\n{listResp.StatusCode}\n{listText}");
+                return false;
+            }
+
+            var json = JsonDocument.Parse(listText);
+            var recordIds = json.RootElement
+                .GetProperty("result")
+                .EnumerateArray()
+                .Select(r => r.GetProperty("id").GetString())
+                .ToList();
+
+            if (recordIds.Count == 0)
+            {
+                _ = _logger.Debug($"No matching TXT records found to delete at {name}.");
+                return true;
+            }
+
+            bool allSuccess = true;
+            foreach (var recordId in recordIds)
+            {
+                var delResp = await client.DeleteAsync($"{BaseUrl}/zones/{zoneId}/dns_records/{recordId}");
+                var delText = await delResp.Content.ReadAsStringAsync();
+                if (delResp.IsSuccessStatusCode)
+                {
+                    _ = _logger.Info($"[{username}]: DNS TXT record deleted successfully (ID: {recordId}).");
+                }
+                else
+                {
+                    _ = _logger.Debug($"[{username}]: Failed to delete DNS record ID {recordId}:\n{delResp.StatusCode}\n{delText}");
+                    allSuccess = false;
+                }
+            }
+
+            return allSuccess;
+        }
+
+
+        public static async Task<bool> DeleteAllAcmeChallengeRecords(Logger _logger, string apiToken, string domain, string username)
         {
             string zoneId = await GetZoneId(_logger, apiToken, domain);
             if (string.IsNullOrEmpty(zoneId))

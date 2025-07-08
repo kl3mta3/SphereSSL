@@ -12,6 +12,9 @@ namespace SphereSSLv2.Models.Dtos
         [JsonProperty("provider")]
         public string Provider { get; set; }
 
+        [JsonProperty("domains")]
+        public List<string> Domains { get; set; } = new();
+
         [JsonProperty("autoAdd")]
         public bool AutoAdd { get; set; }
 

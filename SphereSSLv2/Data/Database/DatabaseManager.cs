@@ -21,7 +21,7 @@ namespace SphereSSLv2.Data.Database
             _logger = logger;
         }
 
-        //start DB
+        //start DB and build tables 
         public static async Task Initialize()
         {
             try
@@ -42,12 +42,9 @@ namespace SphereSSLv2.Data.Database
                 CREATE TABLE IF NOT EXISTS CertRecords (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId TEXT,
-                    OrderId TEXT NOT NULL,
-                    Domain TEXT NOT NULL,
+                    OrderId TEXT NOT NULL UNIQUE,
                     Email TEXT NOT NULL,
-                    DnsChallengeToken TEXT,
                     SavePath TEXT,
-                    Provider TEXT,
                     CreationTime TEXT NOT NULL,
                     ExpiryDate TEXT NOT NULL,
                     UseSeparateFiles INTEGER DEFAULT 0,
@@ -60,21 +57,19 @@ namespace SphereSSLv2.Data.Database
                     OrderUrl TEXT,
                     ChallengeType TEXT,
                     Thumbprint TEXT,
-                    ZoneId TEXT,
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
                 );
 
-                CREATE TABLE IF NOT EXISTS ExpiredCerts (
+
+                CREATE TABLE IF NOT EXISTS RevokedRecords (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId TEXT,
-                    OrderId TEXT NOT NULL,
-                    Domain TEXT NOT NULL,
+                    OrderId TEXT NOT NULL UNIQUE,
                     Email TEXT NOT NULL,
-                    DnsChallengeToken TEXT,
                     SavePath TEXT,
-                    Provider TEXT,
                     CreationTime TEXT NOT NULL,
                     ExpiryDate TEXT NOT NULL,
+                    RevokeDate TEXT NOT NULL,
                     UseSeparateFiles INTEGER DEFAULT 0,
                     SaveForRenewal INTEGER DEFAULT 0,
                     AutoRenew INTEGER DEFAULT 0,
@@ -85,8 +80,35 @@ namespace SphereSSLv2.Data.Database
                     OrderUrl TEXT,
                     ChallengeType TEXT,
                     Thumbprint TEXT,
-                    ZoneId TEXT,
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
+                );
+
+                  CREATE TABLE IF NOT EXISTS Challenges (
+                  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ChallengeId TEXT NOT NULL,
+                    OrderId TEXT NOT NULL,
+                    UserId TEXT,
+                    Domain TEXT NOT NULL,
+                    AuthorizationUrl TEXT NOT NULL,
+                    ChallengeToken TEXT NOT NULL,
+                    ProviderId TEXT NOT NULL,
+                    ZoneId TEXT,
+                    Status TEXT NOT NULL CHECK(Status IN ('Valid', 'Invalid', 'Processing')),
+                    FOREIGN KEY(OrderId ) REFERENCES CertRecords(OrderId) ON DELETE CASCADE
+                     );
+
+                CREATE TABLE IF NOT EXISTS RevokedChallenges (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ChallengeId TEXT NOT NULL,
+                    OrderId TEXT NOT NULL,
+                    UserId TEXT,
+                    Domain TEXT NOT NULL,
+                    AuthorizationUrl TEXT NOT NULL,
+                    ChallengeToken TEXT NOT NULL,
+                    ProviderId TEXT NOT NULL,
+                    ZoneId TEXT,
+                    Status TEXT NOT NULL CHECK(Status IN ('Revoked')),
+                    FOREIGN KEY(OrderId) REFERENCES RevokedRecords(OrderId) ON DELETE CASCADE
                 );
 
                 CREATE TABLE IF NOT EXISTS Health (
