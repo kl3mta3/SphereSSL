@@ -41,7 +41,7 @@
 ---
 
 ## Installation & Quick Start
-
+“This release will only be available here for a short time. After that, visit Spheressl.com for future versions. Coming soon!!!”
 1. **[Download the latest release](https://github.com/SphereNetwork/SphereSSL/releases)** and extract it.
 2. **Run SphereSSL.exe** (no complicated setup).
 3. **Configure your settings:**  
