@@ -109,7 +109,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more info.
 ## License
 
 This project is licensed under the Business Source License 1.1 (BSL-1.1).  
-See [LICENSE](LICENSE) for details.
+See [LICENSE](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL#license) for details.
 
 ---
 
