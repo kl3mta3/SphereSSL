@@ -1,5 +1,4 @@
-﻿using SphereSSLv2.Models;
-using SphereSSLv2.Services.Config;
+﻿using SphereSSLv2.Services.Config;
 public class Program
 {
     [STAThread]

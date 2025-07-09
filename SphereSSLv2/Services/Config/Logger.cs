@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using SphereSSLv2.Models;
-using SphereSSLv2.Data;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using SphereSSLv2.Models.ConfigModels;
