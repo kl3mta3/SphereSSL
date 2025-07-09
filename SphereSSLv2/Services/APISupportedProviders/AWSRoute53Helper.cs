@@ -1,12 +1,6 @@
-﻿using Nager.PublicSuffix.RuleProviders;
-using Nager.PublicSuffix;
-using System.Net.Http.Headers;
-using System.Text;
-using SphereSSLv2.Services.Config;
-using System.Text.Json;
+﻿using SphereSSLv2.Services.Config;
 using Amazon.Route53;
 using Amazon.Route53.Model;
-using Org.BouncyCastle.Asn1.Ocsp;
 
 namespace SphereSSLv2.Services.APISupportedProviders
 {

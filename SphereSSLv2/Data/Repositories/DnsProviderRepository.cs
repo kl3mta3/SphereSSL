@@ -1,10 +1,8 @@
 ﻿using Microsoft.Data.Sqlite;
-using Microsoft.VisualBasic.ApplicationServices;
 using SphereSSLv2.Data.Database;
 using SphereSSLv2.Models.DNSModels;
-using SphereSSLv2.Models.UserModels;
+
 using SphereSSLv2.Services.Config;
-using System.Configuration.Provider;
 
 namespace SphereSSLv2.Data.Repositories
 {

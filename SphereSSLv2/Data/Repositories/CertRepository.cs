@@ -1,8 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Services.Config;
-using System.Security.AccessControl;
-using System.Text.Json;
+
 
 namespace SphereSSLv2.Data.Repositories
 {
@@ -244,8 +243,10 @@ namespace SphereSSLv2.Data.Repositories
 
 
                 cert.Challenges = await GetAllChallengesForOrderIdAsync(cert.OrderId);
-
-                records.Add(cert);
+                if (cert.OrderId != "12345")
+                {
+                    records.Add(cert);
+                }
             }
 
             return records;

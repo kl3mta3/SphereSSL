@@ -2,23 +2,18 @@
 
 using DnsClient;
 using DnsClient.Protocol;
-using Microsoft.AspNetCore.SignalR;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using CertRecord = SphereSSLv2.Models.CertModels.CertRecord;
 using SphereSSLv2.Models.ConfigModels;
 using SphereSSLv2.Models.DNSModels;
-using SphereSSLv2.Services.Security.Auth;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 using SphereSSLv2.Services.AcmeServices;
 using Nager.PublicSuffix.RuleProviders;
 using Nager.PublicSuffix;
+using SphereSSLv2.Data.Repositories;
+using SphereSSLv2.Models.CertModels;
+using SphereSSLv2.Models.UserModels;
+using SphereSSLv2.Services.Security.Auth;
 
 namespace SphereSSLv2.Services.Config
 {
@@ -52,6 +47,8 @@ namespace SphereSSLv2.Services.Config
         {
             _logger = logger;
         }
+        private static DnsProviderRepository _dnsProviderRepository = new();
+        private static readonly UserRepository _userRepository = new(_dnsProviderRepository);
 
         //for testing
         internal static bool GenerateFakeTestCerts = false;
@@ -284,6 +281,97 @@ namespace SphereSSLv2.Services.Config
 
 
 
-    }
 
-}
+            public static async Task SeedCertRecords()
+            {
+                var now = DateTime.UtcNow;
+
+                List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
+               .Cast<DNSProvider.ProviderType>()
+               .Select(p => p.ToString())
+               .ToList();
+
+               
+                    var fakeUserId = Guid.NewGuid().ToString("N");
+                    var fakeUser = new User
+                    {
+                        UserId = fakeUserId,
+                        Username = $"Seed",
+                        PasswordHash = PasswordService.HashPassword("testpass"),
+                        Name = $"Seeduser",
+                        Email = $"Seeduser@email.com",
+                        CreationTime = DateTime.UtcNow,
+                        LastUpdated = DateTime.UtcNow,
+                        UUID = Guid.NewGuid().ToString(),
+                        Notes = $"Seed User"
+
+                    };
+
+                    var fakeRole = new UserRole
+                    {
+                        UserId = fakeUserId,
+                        Role = "Viewer",
+                        IsAdmin = false,
+                        IsEnabled = false,
+
+                    };
+
+                    var fakeStat = new UserStat
+                    {
+                        UserId = fakeUserId,
+                        TotalCerts = 0,
+                        CertsRenewed = 0,
+                        CertCreationsFailed = 0,
+                        CertRenewalsFailed = 0,
+                        LastCertCreated = null
+                    };
+
+                    await _userRepository.InsertUserintoDatabaseAsync(fakeUser);
+                    await _userRepository.InsertUserRoleAsync(fakeRole);
+                    await _userRepository.InsertUserStatAsync(fakeStat);
+
+                    string fakeProvider = SupportedAutoProviders[Random.Shared.Next(SupportedAutoProviders.Count)];
+                    DateTime creationDate = now.AddDays(-Random.Shared.Next(1, 100));
+                    var cert = new CertRecord
+                    {
+                        UserId = fakeUserId,
+                        OrderId = "12345",
+                        Email = $"SeedUser@example.com",
+                        SavePath = $"/fake/path/cert.pem",
+                        UseSeparateFiles = 2 == 0,
+                        SaveForRenewal = true,
+                        autoRenew = 2 == 0,
+                        FailedRenewals = Random.Shared.Next(0, 3),
+                        SuccessfulRenewals = Random.Shared.Next(0, 10),
+                        Signer = "MockSigner",
+                        AccountID = $"acct-",
+                        OrderUrl = $"https://acme.fake/",
+                        ChallengeType = "dns-01",
+                        Thumbprint = $"thumb",
+                        Challenges = new List<AcmeChallenge>(),
+                        CreationDate = creationDate,
+                        ExpiryDate = creationDate.AddDays(90)
+                    };
+
+                    cert.Challenges = new List<AcmeChallenge>
+                    {
+                        new AcmeChallenge
+                        {
+                            ChallengeId = Guid.NewGuid().ToString("N"),
+                            OrderId = cert.OrderId,
+                            UserId = cert.UserId,
+                            AuthorizationUrl = $"https://acme.fake/authorize/",
+                            Domain =  $"test.example.com",
+                            DnsChallengeToken =  $"token-",
+                            Status = "Valid",
+                            ZoneId = $"zone",
+                            ProviderId=ConfigureService.CapitalizeFirstLetter(fakeProvider)
+                        }
+                    };
+
+                    await CertRepository.InsertCertRecord(cert);
+             }
+     }
+ }
+
+

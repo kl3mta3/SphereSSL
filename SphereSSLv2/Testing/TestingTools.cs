@@ -5,8 +5,6 @@ using SphereSSLv2.Services.AcmeServices;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Services.Security.Auth;
 using SphereSSLv2.Models.UserModels;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Text.Json;
 
 namespace SphereSSLv2.Testing
 {
@@ -18,10 +16,10 @@ namespace SphereSSLv2.Testing
         {
             var now = DateTime.UtcNow;
 
-             List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
-            .Cast<DNSProvider.ProviderType>()
-            .Select(p => p.ToString())
-            .ToList();
+            List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
+           .Cast<DNSProvider.ProviderType>()
+           .Select(p => p.ToString())
+           .ToList();
 
             for (int i = 0; i < 12; i++)
             {
@@ -101,9 +99,11 @@ namespace SphereSSLv2.Testing
                         ProviderId=ConfigureService.CapitalizeFirstLetter(fakeProvider)
                     }
                 };
-               
+
                 await CertRepository.InsertCertRecord(cert);
             }
         }
+
+
     }
 }

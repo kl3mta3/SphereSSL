@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic.ApplicationServices;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace SphereSSLv2.Models.ConfigModels
 {

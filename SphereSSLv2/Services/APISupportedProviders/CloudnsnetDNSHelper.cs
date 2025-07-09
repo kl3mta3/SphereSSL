@@ -1,11 +1,5 @@
 ﻿using Microsoft.Extensions.Hosting;
 using SphereSSLv2.Services.Config;
-using static System.Net.Mime.MediaTypeNames;
-using System.DirectoryServices.ActiveDirectory;
-using System.Text.Encodings.Web;
-using System.Windows.Forms;
-using System.Xml.Linq;
-using System.Drawing.Drawing2D;
 using System.Text.Json;
 
 namespace SphereSSLv2.Services.APISupportedProviders

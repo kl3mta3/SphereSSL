@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.VisualBasic.ApplicationServices;
 using Newtonsoft.Json;
 using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Data.Repositories;
@@ -9,7 +8,6 @@ using SphereSSLv2.Services.Config;
 using SphereSSLv2.Services.Security.Auth;
 using System.Security.Cryptography;
 using System.Text;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace SphereSSLv2.Pages
 {

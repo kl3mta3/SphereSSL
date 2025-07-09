@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System.Configuration.Provider;
 using SphereSSLv2.Services.APISupportedProviders;
 using SphereSSLv2.Services.Config;
 

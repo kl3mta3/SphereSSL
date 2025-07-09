@@ -1,10 +1,8 @@
 ﻿using Microsoft.Data.Sqlite;
-using Microsoft.VisualBasic.ApplicationServices;
 using User = SphereSSLv2.Models.UserModels.User;
 using SphereSSLv2.Services.Config;
 using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Models.DNSModels;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 using SphereSSLv2.Services.Security.Auth;
 
 

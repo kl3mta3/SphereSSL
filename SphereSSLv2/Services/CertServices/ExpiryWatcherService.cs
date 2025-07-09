@@ -1,5 +1,4 @@
 ﻿using SphereSSLv2.Data.Repositories;
-using SphereSSLv2.Models;
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Services.Config;
 
