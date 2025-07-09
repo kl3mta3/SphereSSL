@@ -1,37 +1,21 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.DirectoryServices.ActiveDirectory;
 using Newtonsoft.Json;
 using ACMESharp.Crypto.JOSE;
-using Org.BouncyCastle.Crypto;
 using System.Security.Cryptography;
-using Microsoft.VisualBasic.ApplicationServices;
-using Microsoft.AspNetCore.SignalR;
-using DnsClient;
-using System.Net;
 using ACMESharp.Protocol;
-using Certes.Pkcs;
-using Certes;
-using System.Diagnostics;
-using System.IO;
-using Org.BouncyCastle.Asn1.Ocsp;
-using System.Text.Json;
 using ACMESharp.Crypto.JOSE.Impl;
-using Microsoft.Extensions.Logging.Console;
 using SphereSSLv2.Services.Config;
 using SphereSSLv2.Models.Dtos;
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Services.AcmeServices;
-using User = SphereSSLv2.Models.UserModels.User;
 using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Data.Database;
-using Certes.Acme.Resource;
 using Nager.PublicSuffix;
 using Nager.PublicSuffix.RuleProviders;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 using SphereSSLv2.Services.CertServices;
 namespace SphereSSLv2.Pages
 {

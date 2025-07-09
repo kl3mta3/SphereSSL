@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
     <Authors>Kenneth Lasyone</Authors>
     <Version>1.0.0</Version>
 
@@ -15,15 +14,9 @@
     <Company>Sphere Labs</Company>
   </PropertyGroup>
 
-
   <ItemGroup>
-    <Folder Include="View\" />
     <Folder Include="wwwroot\js\" />
     <Folder Include="wwwroot\lib\" />
-  </ItemGroup>
-
-
-  <ItemGroup>
     <None Include="wwwroot\img\SphereSSL.ico" />
     <None Include="wwwroot\img\SphereSSL_ICON.png" />
   </ItemGroup>

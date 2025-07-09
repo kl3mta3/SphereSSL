@@ -1,26 +1,16 @@
-using ACMESharp.Crypto.JOSE;
-using ACMESharp.Crypto.JOSE.Impl;
-using ACMESharp.Protocol;
-using DnsClient.Protocol;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Logging;
-using Nager.PublicSuffix.RuleProviders;
-using Nager.PublicSuffix;
 using Newtonsoft.Json;
 using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Data.Repositories;
-using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Models.Dtos;
 using SphereSSLv2.Models.UserModels;
-using SphereSSLv2.Services.AcmeServices;
 using SphereSSLv2.Services.CertServices;
 using SphereSSLv2.Services.Config;
-using System.Runtime.ConstrainedExecution;
 using CertRecord = SphereSSLv2.Models.CertModels.CertRecord;
-using System.Security.Cryptography;
-using Org.BouncyCastle.Asn1.Ocsp;
+
 
 namespace SphereSSLv2.Pages
 {

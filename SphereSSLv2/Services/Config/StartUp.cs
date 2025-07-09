@@ -3,7 +3,6 @@ using System.Net;
 using System.Diagnostics;
 using SphereSSLv2.Testing;
 using Microsoft.AspNetCore.SignalR;
-using SphereSSLv2.Models;
 using SphereSSLv2.Services.CertServices;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Data.Database;
@@ -135,7 +134,7 @@ namespace SphereSSLv2.Services.Config
             }
            
             await InitilizeDatabase();
-            await StartTrayApp();
+            //await StartTrayApp();
            
         }
 
@@ -165,7 +164,7 @@ namespace SphereSSLv2.Services.Config
 
             if (!File.Exists(ConfigureService.TrayAppPath))
             {
-                MessageBox.Show($"{ConfigureService.TrayAppPath} not found!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+              
                 return;
             }
 

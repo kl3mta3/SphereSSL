@@ -2,20 +2,12 @@
 
 using DnsClient;
 using DnsClient.Protocol;
-using Microsoft.AspNetCore.SignalR;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using CertRecord = SphereSSLv2.Models.CertModels.CertRecord;
 using SphereSSLv2.Models.ConfigModels;
 using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Services.Security.Auth;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 using SphereSSLv2.Services.AcmeServices;
 using Nager.PublicSuffix.RuleProviders;
 using Nager.PublicSuffix;

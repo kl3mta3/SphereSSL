@@ -1,7 +1,4 @@
-﻿using System.Diagnostics.Metrics;
-using System.Runtime.Intrinsics.X86;
-
-namespace SphereSSLv2.Data.Helpers
+﻿namespace SphereSSLv2.Data.Helpers
 {
     public class SphereSSLTaglines
     {

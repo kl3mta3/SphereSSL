@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
 using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Models.UserModels;
-using SphereSSLv2.Services.Config;
 
 namespace SphereSSLv2.Pages
 {

@@ -1,12 +1,9 @@
 ﻿using Nager.PublicSuffix.RuleProviders;
 using Nager.PublicSuffix;
-using SphereSSLv2.Data;
 using SphereSSLv2.Services.Config;
-using System.DirectoryServices.ActiveDirectory;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace SphereSSLv2.Services.APISupportedProviders
 {
@@ -293,62 +290,6 @@ namespace SphereSSLv2.Services.APISupportedProviders
                 return false;
             }
         }
-
-        public async Task<bool> DeleteAllAcmeChallengeRecords(Logger _logger, string apiToken, string domain, string username)
-        {
-            string zoneId = await GetZoneId(_logger, apiToken, domain);
-            if (string.IsNullOrEmpty(zoneId))
-            {
-                _ = _logger.Debug("Failed to retrieve zone ID for the domain.");
-                return false;
-            }
-
-            string name = $"_acme-challenge.{domain}";
-
-            // Get all TXT records at the location
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
-
-            var listResp = await client.GetAsync($"{BaseUrl}/zones/{zoneId}/dns_records?type=TXT&name={name}");
-            var listText = await listResp.Content.ReadAsStringAsync();
-            if (!listResp.IsSuccessStatusCode)
-            {
-                _ = _logger.Debug($"Failed to list DNS records:\n{listResp.StatusCode}\n{listText}");
-                return false;
-            }
-
-            var json = JsonDocument.Parse(listText);
-            var recordIds = json.RootElement
-                .GetProperty("result")
-                .EnumerateArray()
-                .Select(r => r.GetProperty("id").GetString())
-                .ToList();
-
-            if (recordIds.Count == 0)
-            {
-                _ = _logger.Debug($"No matching TXT records found to delete at {name}.");
-                return true;
-            }
-
-            bool allSuccess = true;
-            foreach (var recordId in recordIds)
-            {
-                var delResp = await client.DeleteAsync($"{BaseUrl}/zones/{zoneId}/dns_records/{recordId}");
-                var delText = await delResp.Content.ReadAsStringAsync();
-                if (delResp.IsSuccessStatusCode)
-                {
-                    _ = _logger.Info($"[{username}]: DNS TXT record deleted successfully (ID: {recordId}).");
-                }
-                else
-                {
-                    _ = _logger.Debug($"[{username}]: Failed to delete DNS record ID {recordId}:\n{delResp.StatusCode}\n{delText}");
-                    allSuccess = false;
-                }
-            }
-
-            return allSuccess;
-        }
-
 
         public static async Task<bool> DeleteAllAcmeChallengeRecords(Logger _logger, string apiToken, string domain, string username)
         {

@@ -5,8 +5,6 @@ using SphereSSLv2.Services.AcmeServices;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Services.Security.Auth;
 using SphereSSLv2.Models.UserModels;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Text.Json;
 
 namespace SphereSSLv2.Testing
 {
