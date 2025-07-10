@@ -23,9 +23,10 @@ namespace SphereSSLv2.Services.Config
         internal static bool UseLogOn = false;
         internal static bool IsLogIn = false;
         internal static string ConfigFilePath = "app.config";
-        internal static Process TrayAppProcess;
-        internal static string TrayAppPath = Path.Combine(AppContext.BaseDirectory, "SphereSSL.exe");
-        internal static string ServerIP { get; set; } = "127.0.0.1";
+        // Tray app removed for Docker compatibility
+        // internal static Process TrayAppProcess;
+        // internal static string TrayAppPath = Path.Combine(AppContext.BaseDirectory, "SphereSSL.exe");
+        internal static string ServerIP { get; set; } = "0.0.0.0";
         internal static int ServerPort { get; set; } = 7171;
         public static double RefreshExpiringSoonRateInHours { get; } = 24;
         public static double ExpiringRefreshPeriodInDays { get; } = 30;
@@ -55,18 +56,7 @@ namespace SphereSSLv2.Services.Config
 
         internal static void OnProcessExit(object? sender, EventArgs e)
         {
-            if (TrayAppProcess != null && !TrayAppProcess.HasExited)
-            {
-                try
-                {
-                    TrayAppProcess.Kill();
-                    TrayAppProcess.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Failed to kill TrayAppProcess: {ex.Message}");
-                }
-            }
+            // Tray app cleanup removed for Docker compatibility
         }
 
         internal static async Task SaveConfigFile(StoredConfig config)

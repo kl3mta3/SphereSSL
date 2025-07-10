@@ -63,7 +63,7 @@ namespace SphereSSLv2.Services.Config
 
             builder.WebHost.ConfigureKestrel(options =>
             {
-                options.Listen(IPAddress.Parse(ConfigureService.ServerIP), port); // HTTP
+                options.Listen(IPAddress.Any, port); // HTTP - Listen on all interfaces for Docker
 
                 //options.Listen(IPAddress.Parse(ConfigureService.ServerIP), port -1, listen =>
                 //{
@@ -90,22 +90,23 @@ namespace SphereSSLv2.Services.Config
 
 
 
-            app.Use(async (context, next) =>
-            {
-                var remoteIp = context.Connection.RemoteIpAddress?.ToString();
-                
-                if (string.IsNullOrWhiteSpace(remoteIp) ||
-                    !remoteIp.StartsWith("10.") &&
-                     !remoteIp.StartsWith("192.168.") &&
-                     !remoteIp.StartsWith("127."))
-                {
-                    context.Response.StatusCode = 403;
-                    await context.Response.WriteAsync("Forbidden");
-                    return;
-                }
-
-                await next();
-            });
+            // IP restriction removed for Docker compatibility
+            // app.Use(async (context, next) =>
+            // {
+            //     var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+            //     
+            //     if (string.IsNullOrWhiteSpace(remoteIp) ||
+            //         !remoteIp.StartsWith("10.") &&
+            //          !remoteIp.StartsWith("192.168.") &&
+            //          !remoteIp.StartsWith("127."))
+            //     {
+            //         context.Response.StatusCode = 403;
+            //         await context.Response.WriteAsync("Forbidden");
+            //         return;
+            //     }
+            // 
+            //     await next();
+            // });
 
             app.MapRazorPages();
             app.MapControllers();
@@ -134,45 +135,10 @@ namespace SphereSSLv2.Services.Config
             }
            
             await InitilizeDatabase();
-            await StartTrayApp();
            
         }
 
-        private static async Task StartTrayApp()
-        {
-            var processName = Path.GetFileNameWithoutExtension(ConfigureService.TrayAppPath);
 
-
-            var existing = Process.GetProcessesByName(processName).FirstOrDefault();
-            if (existing != null && !existing.HasExited)
-            {
-
-                try
-                {
-
-                    if (existing.MainModule.FileName != ConfigureService.TrayAppPath)
-                    {
-                        ConfigureService.TrayAppProcess = existing;
-                        return;
-                    }
-                }
-                catch { }
-
-
-                return;
-            }
-
-            if (!File.Exists(ConfigureService.TrayAppPath))
-            {
-                
-                return;
-            }
-
-            ConfigureService.TrayAppProcess = new Process();
-            ConfigureService.TrayAppProcess.StartInfo.FileName = ConfigureService.TrayAppPath;
-            ConfigureService.TrayAppProcess.StartInfo.UseShellExecute = true;
-            ConfigureService.TrayAppProcess.Start();
-        }
 
         private static async Task InitilizeDatabase()
         {
