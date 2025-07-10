@@ -116,7 +116,7 @@ See [LICENSE](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL#license)
 
 - **Questions?** [Open an Issue](https://github.com/SphereNetwork/SphereSSL/issues)
 - **Feature requests?** We wanna hear ‘em!
-- **Need help?** See the [Wiki](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL) or ask in [Discussions](https://github.com/SphereNetwork/SphereSSL/discussions)
+- **Need help?** See the [Wiki](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL).
 
 ---
 
