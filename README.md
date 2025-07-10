@@ -91,7 +91,6 @@ See [API Credential Requirements](https://github.com/SphereNetwork/SphereSSL/wik
 
 Pull requests are welcome!  
 If you spot a bug or want to add a provider, open an [issue](https://github.com/SphereNetwork/SphereSSL/issues) or submit a PR.  
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more info.
 
 ---
 
