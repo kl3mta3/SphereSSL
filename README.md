@@ -110,6 +110,18 @@ If you spot a bug or want to add a provider, open an [issue](https://github.com/
 This project is licensed under the Business Source License 1.1 (BSL-1.1).  
 See [LICENSE](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL#license) for details.
 
+
+---
+
+Yes, the source is open. You can fork it, study it, use it, and self-host for free.
+You can absolutely use SphereSSL to manage certificates for your own company, organization, or projects. The only thing you can’t do is turn it into a paid product, paid service, or SaaS for others without permission.
+
+Some folks argue that only MIT/Apache/OSI-approved licenses are “real” open source.
+I disagree. “Open source” is about sharing knowledge and empowering builders, not giving SaaS companies a free product to resell 1,000,000 times.
+
+If you want to call it “source-available,” that’s fine. The point is:
+You get the code, you get the freedom to use it for anything except commercial exploitation. That’s the trade-off.
+
 ---
 
 ## Support & Feedback
