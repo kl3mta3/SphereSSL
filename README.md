@@ -61,7 +61,7 @@
 
 As of this release, SphereSSL is now fully Docker-compatible!
 All Docker development, images, and instructions have moved to our new Docker-specific repo:
-Thank you @apples723! 
+Thank you [@apples723](https://github.com/apples723)! 
 
  **[SphereSSL-Docker on GitHub](https://github.com/SphereNetwork/SphereSSL-Docker/releases/latest)**
 
