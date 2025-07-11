@@ -22,6 +22,16 @@
     <None Remove="View\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="public_suffix_list.dat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="public_suffix_list.dat">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 
   <ItemGroup>
     <Folder Include="wwwroot\js\" />

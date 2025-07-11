@@ -64,9 +64,10 @@ namespace SphereSSLv2.Services.Config
             if (ConfigureService.IsSetup)
             {
                 await LogRepository.InsertLog(logEntry);
+                File.AppendAllLines(LogFilePath, new[] { entry + Environment.NewLine });
             }
 
-                lock (InMemoryLog)
+            lock (InMemoryLog)
             {
                 InMemoryLog.Add(entry);
                 if (InMemoryLog.Count > 100)
