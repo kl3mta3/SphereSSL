@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  spheressl:
+    build: .
+    ports:
+      - "7171:7171"
+    volumes:
+      - ./data:/app/data
+      - ./certs:/app/certs
+      - ./logs:/app/logs
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ServerIP=0.0.0.0
+      - ServerPort=7171
+    restart: unless-stopped
+    container_name: spheressl
