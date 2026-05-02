@@ -49,6 +49,9 @@ namespace SphereSSLv2.Data.Database
                     OrderUrl TEXT,
                     ChallengeType TEXT,
                     Thumbprint TEXT,
+                    CertPem TEXT DEFAULT '',
+                    CertKey TEXT DEFAULT '',
+                    CertApiKey TEXT DEFAULT '',
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
                 );
 
@@ -187,7 +190,22 @@ namespace SphereSSLv2.Data.Database
                     Message TEXT,
                     Timestamp DATETIME,
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
-                ); 
+                );
+
+                CREATE TABLE IF NOT EXISTS UserConnections (
+                    ConnectionId   TEXT PRIMARY KEY,
+                    UserId         TEXT NOT NULL,
+                    ConnectionName TEXT NOT NULL,
+                    ConnectionType TEXT NOT NULL,
+                    IsEnabled      INTEGER DEFAULT 1,
+                    Settings       TEXT DEFAULT '{{}}',
+                    OnPreRenew     INTEGER DEFAULT 1,
+                    OnPreExpiry    INTEGER DEFAULT 1,
+                    OnRenewSuccess INTEGER DEFAULT 1,
+                    OnRenewFail    INTEGER DEFAULT 1,
+                    CreatedAt      TEXT NOT NULL,
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+                );
 
                 ";
 
@@ -257,10 +275,76 @@ namespace SphereSSLv2.Data.Database
                 }
 
                 await HealthRepository.RecalculateHealthStats();
+                await MigrateAsync();
             }
             catch (Exception ex)
             {
 
+            }
+        }
+
+        private static async Task MigrateAsync()
+        {
+            int version = await GetDatabaseVersion();
+
+            if (version < 2)
+            {
+                using var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn.OpenAsync();
+                foreach (var sql in new[]
+                {
+                    "ALTER TABLE CertRecords ADD COLUMN CertPem TEXT DEFAULT '';",
+                    "ALTER TABLE CertRecords ADD COLUMN CertKey TEXT DEFAULT '';",
+                    "ALTER TABLE RevokedRecords ADD COLUMN CertPem TEXT DEFAULT '';",
+                    "ALTER TABLE RevokedRecords ADD COLUMN CertKey TEXT DEFAULT '';"
+                })
+                {
+                    try { var cmd = conn.CreateCommand(); cmd.CommandText = sql; await cmd.ExecuteNonQueryAsync(); }
+                    catch { /* column already exists */ }
+                }
+                var v = conn.CreateCommand();
+                v.CommandText = "UPDATE DbVersion SET Version = 2 WHERE Id = 1;";
+                await v.ExecuteNonQueryAsync();
+            }
+
+            if (version < 3)
+            {
+                using var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn.OpenAsync();
+                try
+                {
+                    var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE CertRecords ADD COLUMN CertApiKey TEXT DEFAULT '';";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch { /* column already exists */ }
+                var v = conn.CreateCommand();
+                v.CommandText = "UPDATE DbVersion SET Version = 3 WHERE Id = 1;";
+                await v.ExecuteNonQueryAsync();
+            }
+
+            if (version < 4)
+            {
+                using var conn4 = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn4.OpenAsync();
+                var cmd4 = conn4.CreateCommand();
+                cmd4.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS UserConnections (
+                        ConnectionId   TEXT PRIMARY KEY,
+                        UserId         TEXT NOT NULL,
+                        ConnectionName TEXT NOT NULL,
+                        ConnectionType TEXT NOT NULL,
+                        IsEnabled      INTEGER DEFAULT 1,
+                        Settings       TEXT DEFAULT '{}',
+                        OnPreRenew     INTEGER DEFAULT 1,
+                        OnPreExpiry    INTEGER DEFAULT 1,
+                        OnRenewSuccess INTEGER DEFAULT 1,
+                        OnRenewFail    INTEGER DEFAULT 1,
+                        CreatedAt      TEXT NOT NULL,
+                        FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+                    );
+                    UPDATE DbVersion SET Version = 4 WHERE Id = 1;";
+                await cmd4.ExecuteNonQueryAsync();
             }
         }
 

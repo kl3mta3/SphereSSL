@@ -238,8 +238,9 @@ namespace SphereSSLv2.Services.CertServices
                             _challenge.Status = "Valid";
                         }
 
-                        await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
-
+                        var (certPem, certKey) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
+                        order.CertPem = certPem;
+                        order.CertKey = certKey;
 
                         if (order.SaveForRenewal)
                         {
@@ -247,7 +248,7 @@ namespace SphereSSLv2.Services.CertServices
 
 
                             await logger.Update($"[{username}]: Saving order for renewal!");
-                            order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+                            order.ExpiryDate = DateTime.UtcNow.AddDays(ConfigureService.CertValidityDays);
                             order.SuccessfulRenewals++;
                             await CertRepository.UpdateCertRecord(order);
 
@@ -506,7 +507,10 @@ namespace SphereSSLv2.Services.CertServices
                         _challenge.Status = "Valid";
                     }
 
-                    await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
+                    var (certPem2, certKey2) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
+                    order.CertPem = certPem2;
+                    order.CertKey = certKey2;
+
                     if (order.SaveForRenewal)
                     {
 
@@ -514,7 +518,7 @@ namespace SphereSSLv2.Services.CertServices
 
                         await logger.Update($"[{username}]: Saving order for renewal!");
                         order.SuccessfulRenewals++;
-                        order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+                        order.ExpiryDate = DateTime.UtcNow.AddDays(ConfigureService.CertValidityDays);
                         await CertRepository.UpdateCertRecord(order);
 
                         UserStat stats1 = await _userRepository.GetUserStatByIdAsync(order.UserId);

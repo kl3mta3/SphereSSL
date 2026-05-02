@@ -2,6 +2,11 @@
 @model SphereSSLv2.Pages.IndexModel
 @{
     ViewData["Title"] = "Log In";
+    bool demoLoginActive = SphereSSLv2.Services.Config.ConfigureService.DemoLoginEnabled
+        && !string.IsNullOrWhiteSpace(SphereSSLv2.Services.Config.ConfigureService.DemoUsername)
+        && !string.IsNullOrWhiteSpace(SphereSSLv2.Services.Config.ConfigureService.DemoPassword);
+    string demoUser = SphereSSLv2.Services.Config.ConfigureService.DemoUsername ?? "";
+    string demoPass = SphereSSLv2.Services.Config.ConfigureService.DemoPassword ?? "";
 }
 
 
@@ -13,6 +18,18 @@
         </h2>
     </div>
     <p class="lead">SSL Made Easy</p>
+
+    @if (demoLoginActive)
+    {
+        <div class="row justify-content-center mb-3">
+            <div class="col-md-4">
+                <div class="alert alert-info py-2 mb-0 small text-start">
+                    <strong>Demo Log on</strong><br />
+                    Username: <code>@demoUser</code> &nbsp; Password: <code>@demoPass</code>
+                </div>
+            </div>
+        </div>
+    }
 
     <form method="post">
         <div class="row justify-content-center">
@@ -41,6 +58,18 @@
         }
     </form>
 </div>
+
+@if (demoLoginActive)
+{
+    <script>
+        (function () {
+            var u = document.getElementById('Username');
+            var p = document.getElementById('Password');
+            if (u && !u.value) u.value = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(demoUser));
+            if (p && !p.value) p.value = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(demoPass));
+        })();
+    </script>
+}
 <style>
     .custom-login-box {
         border-radius: 25px; /* bigger roundness */

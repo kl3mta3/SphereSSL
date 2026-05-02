@@ -55,5 +55,14 @@ namespace SphereSSLv2.Models.CertModels
         [JsonProperty("thumbprint")]
         public string Thumbprint { get; set; } = string.Empty;
 
+        [JsonProperty("certPem")]
+        public string CertPem { get; set; } = string.Empty;
+
+        [JsonProperty("certKey")]
+        public string CertKey { get; set; } = string.Empty;
+
+        [JsonProperty("certApiKey")]
+        public string CertApiKey { get; set; } = string.Empty;
+
     }
 }

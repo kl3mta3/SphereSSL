@@ -113,6 +113,12 @@ namespace SphereSSLv2.Pages
             return Page();
         }
 
+        public IActionResult OnPostLogOff()
+        {
+            HttpContext.Session.Clear();
+            return new JsonResult(new { success = true });
+        }
+
         private async Task<bool> SetSessionForUser(string username)
         {
             var user = await _userRepository.GetUserByUsernameAsync(username);

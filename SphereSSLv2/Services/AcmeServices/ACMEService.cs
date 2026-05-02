@@ -223,7 +223,7 @@ namespace SphereSSLv2.Services.AcmeServices
         }
 
 
-        internal async Task<bool> ProcessCertificateGeneration(bool useSeperateFiles, string savePath, List<AcmeChallenge> challenges, string username)
+        internal async Task<(string certPem, string keyPem)> ProcessCertificateGeneration(bool useSeperateFiles, string savePath, List<AcmeChallenge> challenges, string username)
         {
             var key = KeyFactory.NewKey(KeyAlgorithm.RS256);
             var csrBuilder = new CertificationRequestBuilder(key);
@@ -337,11 +337,12 @@ namespace SphereSSLv2.Services.AcmeServices
             _ = _logger.Info($"[{username}]: Downloading certificate...");
             using var http = new HttpClient();
             var certPem = await http.GetStringAsync(certUrl);
+            var keyPem = key.ToPem();
 
-            await DownloadCertificateAsync(useSeperateFiles, savePath, certPem, key.ToPem(), username);
+            await DownloadCertificateAsync(useSeperateFiles, savePath, certPem, keyPem, username);
 
             _ = _logger.Info($"[{username}]: SSL Certificate successfully generated and downloaded!");
-            return true;
+            return (certPem, keyPem);
         }
 
         internal async Task<List<(AcmeChallenge challange, bool verified)>> CheckTXTRecordMultipleDNS(List<AcmeChallenge> challenges, string username)

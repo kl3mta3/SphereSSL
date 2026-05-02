@@ -72,24 +72,19 @@ namespace SphereSSLv2.Pages
             CAPrimeUrl = ConfigureService.CAPrimeUrl;
             CAStagingUrl = ConfigureService.CAStagingUrl;
 
-            if (CurrentUser.IsEnabled && _isSuperAdmin)
+            var now = DateTime.UtcNow;
+            if (_isSuperAdmin)
             {
-                var now = DateTime.UtcNow;
                 CertRecords = await CertRepository.GetAllCertRecords();
-                ExpiringSoonRecords = CertRecords
-                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProviders();
-
             }
-            else if (CurrentUser.IsEnabled && !_isSuperAdmin)
+            else
             {
-                var now = DateTime.UtcNow;
                 CertRecords = await _certRepository.GetAllCertsForUserIdAsync(CurrentUser.UserId);
-                ExpiringSoonRecords = CertRecords
-                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
-
             }
+            ExpiringSoonRecords = CertRecords
+                .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.RenewBeforeExpiryDays));
 
             return Page();
         }

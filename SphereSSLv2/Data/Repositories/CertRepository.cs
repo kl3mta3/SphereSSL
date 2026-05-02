@@ -23,12 +23,12 @@ namespace SphereSSLv2.Data.Repositories
             INSERT INTO CertRecords (
                 UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
                 FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-                ChallengeType, Thumbprint
+                ChallengeType, Thumbprint, CertPem, CertKey, CertApiKey
             )
             VALUES (
                 @UserId, @OrderId, @Email, @SavePath, @CreationTime, @ExpiryDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
                 @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl,
-                @ChallengeType, @Thumbprint
+                @ChallengeType, @Thumbprint, @CertPem, @CertKey, @CertApiKey
             );";
 
             command.Parameters.AddWithValue("@UserId", record.UserId);
@@ -47,6 +47,9 @@ namespace SphereSSLv2.Data.Repositories
             command.Parameters.AddWithValue("@OrderUrl", record.OrderUrl);
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
+            command.Parameters.AddWithValue("@CertPem", record.CertPem ?? "");
+            command.Parameters.AddWithValue("@CertKey", record.CertKey ?? "");
+            command.Parameters.AddWithValue("@CertApiKey", record.CertApiKey ?? "");
 
             await command.ExecuteNonQueryAsync();
 
@@ -88,7 +91,10 @@ namespace SphereSSLv2.Data.Repositories
             AccountID = @AccountID,
             OrderUrl = @OrderUrl,
             ChallengeType = @ChallengeType,
-            Thumbprint = @Thumbprint
+            Thumbprint = @Thumbprint,
+            CertPem = @CertPem,
+            CertKey = @CertKey,
+            CertApiKey = @CertApiKey
 
         WHERE OrderId = @OrderId";
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
@@ -106,6 +112,9 @@ namespace SphereSSLv2.Data.Repositories
             command.Parameters.AddWithValue("@OrderUrl", record.OrderUrl);
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
+            command.Parameters.AddWithValue("@CertPem", record.CertPem ?? "");
+            command.Parameters.AddWithValue("@CertKey", record.CertKey ?? "");
+            command.Parameters.AddWithValue("@CertApiKey", record.CertApiKey ?? "");
         
 
             await command.ExecuteNonQueryAsync();
@@ -153,6 +162,17 @@ namespace SphereSSLv2.Data.Repositories
             }
         }
 
+        public static async Task SaveCertApiKey(string orderId, string certApiKey)
+        {
+            using var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE CertRecords SET CertApiKey = @key WHERE OrderId = @orderId";
+            cmd.Parameters.AddWithValue("@key", certApiKey);
+            cmd.Parameters.AddWithValue("@orderId", orderId);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
         public static async Task<CertRecord?> GetCertRecordByOrderId(string orderId)
         {
             using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
@@ -188,6 +208,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     Challenges = new List<AcmeChallenge>()
                 };
 
@@ -210,10 +233,10 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-            SELECT 
+            SELECT
                 UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
                 FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-                ChallengeType, Thumbprint
+                ChallengeType, Thumbprint, CertPem, CertKey, CertApiKey
             FROM CertRecords;
             ";
 
@@ -238,6 +261,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     Challenges = new List<AcmeChallenge>()
                 };
 
@@ -300,6 +326,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     Challenges = new List<AcmeChallenge>()
                 };
 
@@ -347,7 +376,10 @@ namespace SphereSSLv2.Data.Repositories
                     AccountID = reader["AccountID"].ToString(),
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
-                    Thumbprint = reader["Thumbprint"].ToString()
+                    Thumbprint = reader["Thumbprint"].ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? ""
                 };
 
                 records.Add(record);
@@ -382,6 +414,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"]?.ToString() ?? "",
                     ChallengeType = reader["ChallengeType"]?.ToString() ?? "",
                     Thumbprint = reader["Thumbprint"]?.ToString() ?? "",
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     CreationDate = DateTime.TryParse(reader["CreationTime"]?.ToString(), out var created) ? created : DateTime.MinValue,
                     ExpiryDate = DateTime.TryParse(reader["ExpiryDate"]?.ToString(), out var expired) ? expired : DateTime.MinValue,
                     UseSeparateFiles = Convert.ToInt32(reader["UseSeparateFiles"]) == 1,
@@ -410,11 +445,11 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT 
-            Id, UserId, OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider, 
-            CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew, 
-            FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, 
-            ChallengeType, Thumbprint
+        SELECT
+            UserId, OrderId, Email, SavePath,
+            CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
+            FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
+            ChallengeType, Thumbprint, CertPem, CertKey, CertApiKey
         FROM CertRecords
         WHERE UserId = @UserId;
     ";
@@ -442,6 +477,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"]?.ToString(),
                     ChallengeType = reader["ChallengeType"]?.ToString(),
                     Thumbprint = reader["Thumbprint"]?.ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     Challenges = new List<AcmeChallenge>()
                 };
 
@@ -466,10 +504,10 @@ namespace SphereSSLv2.Data.Repositories
                         cmd.Transaction = tx;
                         cmd.CommandText = @"INSERT INTO RevokedRecords (
                         UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, RevokeDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
-                        FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, ChallengeType, Thumbprint
+                        FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, ChallengeType, Thumbprint, CertPem, CertKey
                         ) VALUES (
                             @UserId, @OrderId, @Email, @SavePath, @CreationTime, @ExpiryDate, @RevokeDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
-                            @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl, @ChallengeType, @Thumbprint
+                            @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl, @ChallengeType, @Thumbprint, @CertPem, @CertKey
                         );";
                         // ... add params (as in your code above)
                         cmd.Parameters.AddWithValue("@UserId", record.UserId ?? "");
@@ -489,6 +527,8 @@ namespace SphereSSLv2.Data.Repositories
                         cmd.Parameters.AddWithValue("@OrderUrl", record.OrderUrl ?? "");
                         cmd.Parameters.AddWithValue("@ChallengeType", record.ChallengeType ?? "");
                         cmd.Parameters.AddWithValue("@Thumbprint", record.Thumbprint ?? "");
+                        cmd.Parameters.AddWithValue("@CertPem", record.CertPem ?? "");
+                        cmd.Parameters.AddWithValue("@CertKey", record.CertKey ?? "");
                         await cmd.ExecuteNonQueryAsync();
 
                         // Add all challenges to RevokedChallenges
@@ -551,7 +591,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"]?.ToString() ?? "",
                     ChallengeType = reader["ChallengeType"]?.ToString() ?? "",
                     Thumbprint = reader["Thumbprint"]?.ToString() ?? "",
-                    Challenges = new List<AcmeChallenge>() // Up to you if you want to load challenges for revoked ones
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    Challenges = new List<AcmeChallenge>()
                 };
 
                 List<AcmeChallenge> challenges = await GetAllRevokedChallengesAsync(reader["OrderId"].ToString());

@@ -2,6 +2,7 @@
 @model SphereSSLv2.Pages.ManageRenewalsModel
 @{
     ViewData["Title"] = "Manage";
+    bool isViewer = Model.CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase);
 }
 <div class="container-fluid px-4">
     <div class="row justify-content-center">
@@ -20,10 +21,13 @@
                     <table class="table table-striped table-hover align-middle mb-3" id="certTable">
                         <thead>
                             <tr>
-                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(0)">Domain <span id="domainSortIcon">⇅</span></th>
-                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(1)">Status <span id="statusSortIcon">⇅</span></th>
-                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(2)">Days Left <span id="daysremainingSortIcon">⇅</span></th>
-                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(3)">AutoRenew <span id="autorenewSortIcon">⇅</span></th>
+                                <th class="text-center" style="width:36px;">
+                                    <input type="checkbox" id="selectAllCerts" onclick="selectAll(this)" title="Select all">
+                                </th>
+                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(1)">Domain <span id="domainSortIcon">⇅</span></th>
+                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(2)">Status <span id="statusSortIcon">⇅</span></th>
+                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(3)">Days Left <span id="daysremainingSortIcon">⇅</span></th>
+                                <th class="text-center" style="cursor:pointer;" onclick="sortCertTable(4)">AutoRenew <span id="autorenewSortIcon">⇅</span></th>
                                 <th style="width:140px"></th>
                             </tr>
                         </thead>
@@ -50,6 +54,9 @@
                                     int daysRemaining = (cert.ExpiryDate - DateTime.UtcNow).Days;
                                 
                                     <tr data-cert-id="@cert.OrderId">
+                                        <td class="text-center">
+                                            <input type="checkbox" class="cert-select" data-order-id="@cert.OrderId">
+                                        </td>
                                         <td class="certTableDomain">
                                             @if (cert.Challenges != null && cert.Challenges.Any())
                                             {
@@ -112,7 +119,10 @@
 
                                         <td style="white-space:nowrap;">
                                             <button onclick="showCertRecordModal('@cert.OrderId')" class="btn btn-sm btn-success me-1">View</button>
-                                            <button onclick="showManageCertModal('@cert.OrderId')" class="btn btn-sm btn-info">Manage</button>
+                                            @if (!isViewer)
+                                            {
+                                                <button onclick="showManageCertModal('@cert.OrderId')" class="btn btn-sm btn-info">Manage</button>
+                                            }
                                         </td>
                      
                                     </tr>
@@ -128,6 +138,20 @@
                 </table>
             </div>
 
+                <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top align-items-center">
+                    @if (!isViewer)
+                    {
+                        <button type="button" class="btn btn-sm btn-warning" onclick="bulkRenew(this)">&#x21BA; Renew Selected</button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="bulkToggle(this)">&#x21C4; Toggle AutoRenew</button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="bulkRevoke(this)">&#x2715; Revoke Selected</button>
+                    }
+                    <button type="button" class="btn btn-sm btn-primary" onclick="exportSelected(this)">&#x2193; Export Selected</button>
+                    @if (!isViewer)
+                    {
+                        <button type="button" class="btn btn-sm btn-success ms-auto" onclick="importCerts()">&#x2191; Import Certs</button>
+                        <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(this)">
+                    }
+                </div>
             </div>
 
             <h5 class="title text-center mb-3">Certs set for auto renew will renew @Model.RenewalPeriodDays days before the expiry date. </h5>
@@ -140,7 +164,7 @@
 
 <!-- Sort CERT Table -->
 <script>
-      let sortDirection3 = [1, 1, 1, 1];
+      let sortDirection3 = [1, 1, 1, 1, 1, 1];
 
       function sortCertTable(colIndex) {
           const table3 = document.getElementById("certTable");
@@ -156,12 +180,12 @@
               let aVal = a.cells[colIndex].innerText.trim();
               let bVal = b.cells[colIndex].innerText.trim();
 
-              if (colIndex === 2) {
-                  // Days Left: numeric sort (even if badge or extra text)
+              if (colIndex === 3) {
+                  // Days Left: numeric sort
                   aVal = parseInt(a.cells[colIndex].textContent.match(/-?\d+/), 10);
                   bVal = parseInt(b.cells[colIndex].textContent.match(/-?\d+/), 10);
                   return (aVal - bVal) * sortDirection3[colIndex];
-              } else if (colIndex === 3) {
+              } else if (colIndex === 4) {
                   // AutoRenew: "On" > "Off"
                   aVal = aVal.toLowerCase() === "on" ? 1 : 0;
                   bVal = bVal.toLowerCase() === "on" ? 1 : 0;
@@ -178,7 +202,6 @@
 
           rows3.forEach(row => tbody3.appendChild(row));
           updateCertCounts();
-          // ^^^ Call after sorting so the visible count is correct
       }
 
       document.getElementById('certSearch').addEventListener('input', function() {
@@ -309,6 +332,121 @@
     }
 </script>
 
+
+<!-- Bulk cert operations -->
+<script>
+    function selectAll(cb) {
+        document.querySelectorAll('#certTable tbody tr:not([style*="display:none"]) .cert-select')
+            .forEach(c => c.checked = cb.checked);
+    }
+
+    function getSelectedOrderIds() {
+        return Array.from(document.querySelectorAll('.cert-select:checked')).map(c => c.dataset.orderId);
+    }
+
+    async function bulkRenew(btn) {
+        const ids = getSelectedOrderIds();
+        if (!ids.length) { alert('Select at least one certificate.'); return; }
+        const orig = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Renewing...';
+        try {
+            const resp = await fetch('/ManageRenewals?handler=BulkRenew', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderIds: ids })
+            });
+            const data = await resp.json();
+            alert(data.message || 'Done.');
+            if (data.succeeded > 0) location.reload();
+        } catch { alert('Error during bulk renew.'); }
+        finally { btn.disabled = false; btn.textContent = orig; }
+    }
+
+    async function bulkToggle(btn) {
+        const ids = getSelectedOrderIds();
+        if (!ids.length) { alert('Select at least one certificate.'); return; }
+        const orig = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Toggling...';
+        try {
+            const resp = await fetch('/ManageRenewals?handler=BulkToggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderIds: ids })
+            });
+            const data = await resp.json();
+            alert(data.message || 'Done.');
+            location.reload();
+        } catch { alert('Error during bulk toggle.'); }
+        finally { btn.disabled = false; btn.textContent = orig; }
+    }
+
+    async function bulkRevoke(btn) {
+        const ids = getSelectedOrderIds();
+        if (!ids.length) { alert('Select at least one certificate.'); return; }
+        if (!confirm(`Revoke ${ids.length} certificate(s)? This cannot be undone.`)) return;
+        const orig = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Revoking...';
+        try {
+            const resp = await fetch('/ManageRenewals?handler=BulkRevoke', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderIds: ids })
+            });
+            const data = await resp.json();
+            alert(data.message || 'Done.');
+            location.reload();
+        } catch { alert('Error during bulk revoke.'); }
+        finally { btn.disabled = false; btn.textContent = orig; }
+    }
+
+    async function exportSelected(btn) {
+        const ids = getSelectedOrderIds();
+        if (!ids.length) { alert('Select at least one certificate.'); return; }
+        const orig = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Exporting...';
+        try {
+            const resp = await fetch('/ManageRenewals?handler=ExportCerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderIds: ids })
+            });
+            if (!resp.ok) { alert('Export failed.'); return; }
+            const blob = await resp.blob();
+            const disposition = resp.headers.get('Content-Disposition') || '';
+            const filename = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)?.[1]?.replace(/['"]/g, '')
+                || 'spheressl-certs.json';
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch { alert('Error during export.'); }
+        finally { btn.disabled = false; btn.textContent = orig; }
+    }
+
+    function importCerts() {
+        document.getElementById('importFileInput').click();
+    }
+
+    async function handleImportFile(input) {
+        if (!input.files.length) return;
+        const file = input.files[0];
+        let text;
+        try { text = await file.text(); JSON.parse(text); } catch { alert('Invalid JSON file.'); input.value = ''; return; }
+        try {
+            const resp = await fetch('/ManageRenewals?handler=ImportCerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: text
+            });
+            const data = await resp.json();
+            alert(data.message || 'Import complete.');
+            if (data.imported > 0) location.reload();
+        } catch { alert('Error during import.'); }
+        finally { input.value = ''; }
+    }
+</script>
 
 <style>
 

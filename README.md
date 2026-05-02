@@ -1,4 +1,4 @@
-# SphereSSL
+# SphereSSL-Docker
 
 <p align="center">
   <img src="https://github.com/kl3mta3/SphereSSL/blob/master/Images/SphereSSL_ICON.png" alt="SphereSSL Logo" width="300"/>
@@ -7,12 +7,12 @@
 </h2>
 </p>
 
-<h5 align="center"> Docker Available here <a href ="https://github.com/SphereNetwork/SphereSSL-Docker/releases/tag/1.0.0" > Docker Release</a>. Thanks <a href ="https://github.com/apples723" > @apples723</a></h5>
+Thanks goes to Thanks [@apples723](https://github.com/apples723)!
+Get the Image here- <a href = "https://hub.docker.com/r/kl3mta3/spheressl"> Docker Hub<a/>
 
-> **SphereSSL** is a modern, user-friendly certificate manager for Windows, built with ASP.NET.  
-> Make SSL certificate creation and renewal effortless for everyone, whether you’re a hobbyist or a professional.  
+> **SphereSSL** is a modern, user-friendly certificate manager, built with ASP.NET.  
+> Make SSL certificate creation and renewal effortless for everyone—whether you’re a hobbyist or a professional.  
 > Handles both manual and automated DNS challenges, supports multiple DNS providers, and puts the power of SSL in the hands of, well… literally everyone.
-
 
 ---
 
@@ -43,37 +43,43 @@
 
 ---
 
-## Windows Installation & Quick Start
+## Installation & Quick Start
 “This release will only be available here for a short time. After that, visit Spheressl.com for future versions. Coming soon!!!”
-1. **[Download the latest release](https://github.com/SphereNetwork/SphereSSL/releases)** and extract it.
-2. **Run SphereSSL.exe** (no complicated setup).
-3. **Configure your settings:**  
-   - Add domains
-   - Choose or add a DNS provider
-   - Set up auto-renew (optional)
-4. **Request your certificate** and let SphereSSL handle the rest!
+
+# Option 1- Build Locally
+
+# Build the image
+docker build -t spheressl .
+
+# Run the container with persistent storage
+docker run -d \
+  -p 7171:7171 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/certs:/app/certs \
+  -v $(pwd)/logs:/app/logs \
+  --name spheressl \
+  --restart unless-stopped \
+  spheressl
+
+# Option 2- Run from Docker Hub
+
+# Pull the latest image
+docker pull kl3mta3/spheressl:latest
+
+# Or just run directly (no local build needed!)
+docker run -d \
+  -p 7171:7171 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/certs:/app/certs \
+  -v $(pwd)/logs:/app/logs \
+  --name spheressl \
+  --restart unless-stopped \
+  kl3mta3/spheressl:latest
+
+ **Request your certificate** and let SphereSSL handle the rest!
 
 > **Tip:** For advanced setup, head to the [Wiki](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL).
 
----
-
-## Docker Support Now Available!
-
-As of this release, SphereSSL is now fully Docker-compatible!
-All Docker development, images, and instructions have moved to our new Docker-specific repo:
-Thank you [@apples723](https://github.com/apples723)! 
-
- **[SphereSSL-Docker on GitHub](https://github.com/SphereNetwork/SphereSSL-Docker/releases/latest)**
-
----
-
-## Quick Start
-
-```bash
-git clone https://github.com/SphereNetwork/SphereSSL-Docker.git
-cd SphereSSL-Docker
-docker-compose up -d --build
-```
 ---
 
 ## Supported DNS Providers
@@ -119,7 +125,6 @@ If you spot a bug or want to add a provider, open an [issue](https://github.com/
 ## Roadmap
 
 - [ ] Add more DNS providers
-- [ ] Linux & cross-platform support
 - [ ] Webhooks & external integrations
 - [ ] Fully automated enterprise deployment
 

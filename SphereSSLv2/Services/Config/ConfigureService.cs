@@ -22,16 +22,22 @@ namespace SphereSSLv2.Services.Config
 
         internal static bool UseLogOn = false;
         internal static bool IsLogIn = false;
-        internal static string ConfigFilePath = "app.config";
-        internal static Process TrayAppProcess;
-        internal static string TrayAppPath = Path.Combine(AppContext.BaseDirectory, "SphereSSL.exe");
-        internal static string ServerIP { get; set; } = "127.0.0.1";
+        internal static bool StagingOnly { get; set; } = false;
+        internal static bool RestrictViewers { get; set; } = false;
+        internal static bool HideViewerLogout { get; set; } = false;
+        internal static bool DemoLoginEnabled { get; set; } = false;
+        internal static string DemoUsername { get; set; } = string.Empty;
+        internal static string DemoPassword { get; set; } = string.Empty;
+        internal static string ConfigFilePath = "data/app.config";
+        internal static string ServerIP { get; set; } = "0.0.0.0";
         internal static int ServerPort { get; set; } = 7171;
         public static double RefreshExpiringSoonRateInHours { get; } = 24;
         public static double ExpiringRefreshPeriodInDays { get; } = 30;
         internal static string CAPrimeUrl ;
         internal static string CAStagingUrl ;
-        internal static string dbPath = "certificates.db";
+        internal static int RenewBeforeExpiryDays { get; set; } = 30;
+        internal static int CertValidityDays { get; set; } = 90;
+        internal static string dbPath = "data/certificates.db";
         internal static string HashedPassword = string.Empty;
         internal static string Username = string.Empty;
         internal static string AutoLaunchBrowser = "true";
@@ -52,22 +58,6 @@ namespace SphereSSLv2.Services.Config
 
         //for testing
         internal static bool GenerateFakeTestCerts = false;
-
-        internal static void OnProcessExit(object? sender, EventArgs e)
-        {
-            if (TrayAppProcess != null && !TrayAppProcess.HasExited)
-            {
-                try
-                {
-                    TrayAppProcess.Kill();
-                    TrayAppProcess.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Failed to kill TrayAppProcess: {ex.Message}");
-                }
-            }
-        }
 
         internal static async Task SaveConfigFile(StoredConfig config)
         {
@@ -120,10 +110,10 @@ namespace SphereSSLv2.Services.Config
                     dbPath = config.DatabasePath;
                 }
 
-                if (oldConfig.UseLogOn != config.UseLogOn)
+                if (config.UseLogOn.HasValue && oldConfig.UseLogOn != config.UseLogOn)
                 {
                     oldConfig.UseLogOn = config.UseLogOn;
-                    UseLogOn = config.UseLogOn ? true : false;
+                    UseLogOn = config.UseLogOn.Value;
                 }
 
                 if (!string.IsNullOrWhiteSpace(config.CAPrimeUrl) && oldConfig.CAPrimeUrl != config.CAPrimeUrl)
@@ -138,22 +128,70 @@ namespace SphereSSLv2.Services.Config
                     CAStagingUrl = config.CAStagingUrl;
                 }
 
+                if (config.RenewBeforeExpiryDays.HasValue && config.RenewBeforeExpiryDays.Value > 0 && oldConfig.RenewBeforeExpiryDays != config.RenewBeforeExpiryDays)
+                {
+                    oldConfig.RenewBeforeExpiryDays = config.RenewBeforeExpiryDays;
+                    RenewBeforeExpiryDays = config.RenewBeforeExpiryDays.Value;
+                }
+
+                if (config.CertValidityDays.HasValue && config.CertValidityDays.Value > 0 && oldConfig.CertValidityDays != config.CertValidityDays)
+                {
+                    oldConfig.CertValidityDays = config.CertValidityDays;
+                    CertValidityDays = config.CertValidityDays.Value;
+                }
+
+                if (config.StagingOnly.HasValue)
+                {
+                    oldConfig.StagingOnly = config.StagingOnly;
+                    StagingOnly = config.StagingOnly.Value;
+                }
+
+                if (config.RestrictViewers.HasValue)
+                {
+                    oldConfig.RestrictViewers = config.RestrictViewers;
+                    RestrictViewers = config.RestrictViewers.Value;
+                }
+
+                if (config.HideViewerLogout.HasValue)
+                {
+                    oldConfig.HideViewerLogout = config.HideViewerLogout;
+                    HideViewerLogout = config.HideViewerLogout.Value;
+                }
+
+                if (config.DemoLoginEnabled.HasValue)
+                {
+                    oldConfig.DemoLoginEnabled = config.DemoLoginEnabled;
+                    DemoLoginEnabled = config.DemoLoginEnabled.Value;
+                }
+
+                if (config.DemoUsername != null)
+                {
+                    oldConfig.DemoUsername = config.DemoUsername;
+                    DemoUsername = config.DemoUsername;
+                }
+
+                if (config.DemoPassword != null)
+                {
+                    oldConfig.DemoPassword = config.DemoPassword;
+                    DemoPassword = config.DemoPassword;
+                }
+
                 string json = JsonSerializer.Serialize(oldConfig, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(ConfigFilePath, json);
+                try
+                {
+                    await File.WriteAllTextAsync(ConfigFilePath, json);
+                    Console.WriteLine($"[CONFIG] Saved to {Path.GetFullPath(ConfigFilePath)} | StagingOnly={StagingOnly} RestrictViewers={RestrictViewers} HideViewerLogout={HideViewerLogout} DemoLoginEnabled={DemoLoginEnabled}");
+                }
+                catch (Exception writeEx)
+                {
+                    Console.WriteLine($"[CONFIG] WRITE FAILED to {Path.GetFullPath(ConfigFilePath)}: {writeEx.GetType().Name}: {writeEx.Message}");
+                    throw;
+                }
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException("Failed to update saved config.", ex);
             }
-        }
-
-        private static async Task UpdateConfigSettings(DeviceConfig config)
-        {
-            UseLogOn = config.UsePassword;
-            ServerIP = config.ServerURL;
-            ServerPort = config.ServerPort;
-            Username = config.Username;
-            HashedPassword = config.PasswordHash;
         }
 
         internal static async Task<StoredConfig> LoadConfigFile()
@@ -180,21 +218,7 @@ namespace SphereSSLv2.Services.Config
                 string passhash = PasswordService.HashPassword(storedConfig.AdminPassword);
             
               
-                if (!storedConfig.UseLogOn )
-                {
-                    UseLogOn = false;
-                  
-                }
-                else if (storedConfig.UseLogOn)
-                {
-                    UseLogOn = true;
-                   
-                }
-                else
-                {
-                    UseLogOn = false;
-                    
-                }
+                UseLogOn = storedConfig.UseLogOn ?? false;
 
                 Username = storedConfig.AdminUsername ?? string.Empty;
 
@@ -204,7 +228,14 @@ namespace SphereSSLv2.Services.Config
                 dbPath = storedConfig.DatabasePath;
                 CAPrimeUrl = storedConfig.CAPrimeUrl;
                 CAStagingUrl = storedConfig.CAStagingUrl;
-
+                RenewBeforeExpiryDays = (storedConfig.RenewBeforeExpiryDays ?? 0) > 0 ? storedConfig.RenewBeforeExpiryDays.Value : 30;
+                CertValidityDays = (storedConfig.CertValidityDays ?? 0) > 0 ? storedConfig.CertValidityDays.Value : 90;
+                if (storedConfig.StagingOnly.HasValue) StagingOnly = storedConfig.StagingOnly.Value;
+                if (storedConfig.RestrictViewers.HasValue) RestrictViewers = storedConfig.RestrictViewers.Value;
+                if (storedConfig.HideViewerLogout.HasValue) HideViewerLogout = storedConfig.HideViewerLogout.Value;
+                if (storedConfig.DemoLoginEnabled.HasValue) DemoLoginEnabled = storedConfig.DemoLoginEnabled.Value;
+                if (storedConfig.DemoUsername != null) DemoUsername = storedConfig.DemoUsername;
+                if (storedConfig.DemoPassword != null) DemoPassword = storedConfig.DemoPassword;
 
                 return storedConfig;
 
@@ -279,10 +310,15 @@ namespace SphereSSLv2.Services.Config
             return await ExtractDnsProvider(results[0]);
         }
 
+        public static async Task ForceRestartDockerContainer()
+        {
+
+            Environment.Exit(1);
+
+        }
 
 
-
-            public static async Task SeedCertRecords()
+        public static async Task SeedCertRecords()
             {
                 var now = DateTime.UtcNow;
 
@@ -371,7 +407,106 @@ namespace SphereSSLv2.Services.Config
 
                     await CertRepository.InsertCertRecord(cert);
              }
-     }
+
+        static bool IsRunningInDocker()
+        {
+            // Check for /.dockerenv file (classic Docker detection)
+            if (File.Exists("/.dockerenv"))
+                return true;
+
+            // Check /proc/1/cgroup for "docker" or "containerd"
+            if (File.Exists("/proc/1/cgroup"))
+            {
+                var cgroup = File.ReadAllText("/proc/1/cgroup");
+                if (cgroup.Contains("docker") || cgroup.Contains("containerd") || cgroup.Contains("kubepods"))
+                    return true;
+            }
+
+            return false;
+        }
+
+        static bool IsLinux()
+        {
+            return System.Runtime.InteropServices.RuntimeInformation
+                .IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux);
+        }
+
+        internal static async Task RestartServer()
+        {
+            if (IsRunningInDocker())
+            {
+                await ForceRestartDockerContainer();
+            }
+            else if (IsLinux() && !IsRunningInDocker())
+            {
+                RelaunchSelf();
+            }
+            else
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = "run --no-build",
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                };
+                Process.Start(startInfo);
+                Environment.Exit(0);
+            }
+        }
+
+        public static void RelaunchSelf()
+        {
+            string exePath = Environment.ProcessPath;
+            if (exePath.EndsWith("dotnet", StringComparison.OrdinalIgnoreCase))
+            {
+                string dllPath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+                var psi = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    Arguments = $"\"{dllPath}\"",
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                };
+                Process.Start(psi);
+            }
+            else
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                };
+                Process.Start(psi);
+            }
+            Environment.Exit(0);
+        }
+
+        internal static async Task ResetToFactory()
+        {
+
+          
+            try
+            {
+                string defaultConfigPath = "default.config";
+                if (!File.Exists(defaultConfigPath))
+                {
+                    throw new FileNotFoundException("Default config file not found.", defaultConfigPath);
+                }
+                string defaultConfigContent = await File.ReadAllTextAsync(defaultConfigPath);
+                await File.WriteAllTextAsync(ConfigFilePath, defaultConfigContent);
+
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Failed to reset to factory settings.", ex);
+            }
+
+
+
+        }
+    }
  }
 
 

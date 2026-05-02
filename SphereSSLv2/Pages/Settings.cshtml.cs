@@ -5,9 +5,11 @@ using SphereSSLv2.Controllers;
 using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Models.ConfigModels;
+using SphereSSLv2.Models.ConnectionModels;
 using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Models.Dtos;
 using SphereSSLv2.Models.UserModels;
+using SphereSSLv2.Services;
 using SphereSSLv2.Services.Config;
 using SphereSSLv2.Services.Security.Auth;
 using System.Text.RegularExpressions;
@@ -21,9 +23,11 @@ namespace SphereSSLv2.Pages
         private readonly UserRepository _userRepository;
         private readonly ApiRepository _apiRepository;
         private readonly DnsProviderRepository _dnsProviderRepository;
+        private readonly ConnectionRepository _connectionRepository;
         private readonly Logger _logger;
         public UserSession CurrentUser = new();
         public List<DNSProvider> DNSProviders = new();
+        public List<UserConnection> UserConnections { get; set; } = new();
         public List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
             .Cast<DNSProvider.ProviderType>()
             .Select(p => p.ToString())
@@ -59,12 +63,22 @@ namespace SphereSSLv2.Pages
         [BindProperty]
         public string CAStagingUrl { get; set; } = ConfigureService.CAStagingUrl;
 
-        public SettingsModel(ILogger<SettingsModel> ilogger, Logger logger, UserRepository userRepository, DnsProviderRepository dnsProviderRepository)
+        public int CertValidityDays => ConfigureService.CertValidityDays;
+        public int RenewBeforeExpiryDays => ConfigureService.RenewBeforeExpiryDays;
+        public bool StagingOnly => ConfigureService.StagingOnly;
+        public bool RestrictViewers => ConfigureService.RestrictViewers;
+        public bool HideViewerLogout => ConfigureService.HideViewerLogout;
+        public bool DemoLoginEnabled => ConfigureService.DemoLoginEnabled;
+        public string DemoUsername => ConfigureService.DemoUsername;
+        public string DemoPassword => ConfigureService.DemoPassword;
+
+        public SettingsModel(ILogger<SettingsModel> ilogger, Logger logger, UserRepository userRepository, DnsProviderRepository dnsProviderRepository, ConnectionRepository connectionRepository)
         {
             _ilogger = ilogger;
             _logger = logger;
             _userRepository = userRepository;
             _dnsProviderRepository = dnsProviderRepository;
+            _connectionRepository = connectionRepository;
         }
 
         public async Task<IActionResult> OnGet()
@@ -95,15 +109,13 @@ namespace SphereSSLv2.Pages
 
 
 
-            if (CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            if (CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) || CurrentUser.IsAdmin)
             {
-
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProviders();
             }
             else
             {
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId) ?? new List<DNSProvider>();
-
             }
 
 
@@ -111,6 +123,9 @@ namespace SphereSSLv2.Pages
             ServerPort = ConfigureService.ServerPort;
             ServerUrl = ConfigureService.ServerIP;
             DBPath = ConfigureService.dbPath;
+            AdminUsername = ConfigureService.Username;
+
+            UserConnections = await _connectionRepository.GetConnectionsByUserIdAsync(CurrentUser.UserId);
 
             return Page();
         }
@@ -135,26 +150,33 @@ namespace SphereSSLv2.Pages
             }
 
             if (string.IsNullOrWhiteSpace(logOn.Username) || string.IsNullOrWhiteSpace(logOn.Password))
-            {
-                ModelState.AddModelError("", "Admin username and password cannot be empty.");
-                return Page();
-            }
+                return new JsonResult(new { success = false, message = "Username and password cannot be empty." });
 
+            string oldUsername = ConfigureService.Username;
 
             ConfigureService.UseLogOn = logOn.UseLogOn;
             ConfigureService.Username = logOn.Username;
             ConfigureService.HashedPassword = PasswordService.HashPassword(logOn.Password);
 
-            // Save the updated configuration
             StoredConfig config = new StoredConfig
             {
                 UseLogOn = logOn.UseLogOn,
                 AdminUsername = logOn.Username,
                 AdminPassword = logOn.Password
             };
-
             await ConfigureService.UpdateConfigFile(config);
-            return RedirectToPage("/Settings");
+
+            // Also update the DB user so login works with new credentials
+            var adminUser = await _userRepository.GetUserByUsernameAsync(oldUsername);
+            if (adminUser != null)
+            {
+                adminUser.Username = logOn.Username;
+                adminUser.PasswordHash = PasswordService.HashPassword(logOn.Password);
+                adminUser.LastUpdated = DateTime.UtcNow;
+                await _userRepository.UpdateUserAsync(adminUser);
+            }
+
+            return new JsonResult(new { success = true });
         }
 
         public async Task<IActionResult> OnPostAddUserAsync([FromBody] NewUserRequest userRequest)
@@ -193,7 +215,7 @@ namespace SphereSSLv2.Pages
                 !Regex.IsMatch(userRequest.Password, "[0-9]")
             )
             {
-                return new JsonResult(new { success = false, message = "Password must be 8–24 characters, and include uppercase, lowercase, and a number." });
+                return new JsonResult(new { success = false, message = "Password must be 8ï¿½24 characters, and include uppercase, lowercase, and a number." });
             }
 
 
@@ -518,10 +540,10 @@ namespace SphereSSLv2.Pages
 
             HttpContext.Session.Remove("UserSession");
             HttpContext.Session.Clear();
-            ServerController serverController = new ServerController(_logger);
-            await serverController.UpdateDBPath(dbRequest.DbPath);
-            Task.Delay(5000).Wait();
-            return new JsonResult(new { success = true, redirect = "/Index" });
+
+            await ConfigureService.UpdateConfigFile(config);
+
+            return new JsonResult(new { success = true, redirect = "/Settings#device" });
 
         }
 
@@ -551,17 +573,21 @@ namespace SphereSSLv2.Pages
             }
 
 
-            UpdateServerRequest config = new UpdateServerRequest
+            StoredConfig config = new StoredConfig
             {
 
-                ServerUrl = serverRequest.ServerUrl,
+                ServerURL = serverRequest.ServerUrl,
                 ServerPort = serverRequest.ServerPort,
 
+
             };
-            ServerController serverController = new ServerController(_logger);
-            await serverController.UpdateserverPath(config);
-            Task.Delay(5000).Wait();
-            return new JsonResult(new { success = true, redirect = $"http://{config.ServerUrl}:{config.ServerPort}/Index" });
+
+            HttpContext.Session.Remove("UserSession");
+            HttpContext.Session.Clear();
+
+            await ConfigureService.UpdateConfigFile(config);
+
+            return new JsonResult(new { success = true, redirect = $"http://{config.ServerURL}:{config.ServerPort}/index" });
         }
 
         public async Task<IActionResult> OnPostResetServerToFactoryAsync()
@@ -581,10 +607,12 @@ namespace SphereSSLv2.Pages
 
             try
             {
+               
 
-                ServerController serverController = new ServerController(_logger);
-                await serverController.FactoryReset();
-                Task.Delay(5000).Wait();
+                await ConfigureService.ResetToFactory();
+
+                HttpContext.Session.Remove("UserSession");
+                HttpContext.Session.Clear();
                 return new JsonResult(new { success = true, redirect = $"http://127.0.0.1:7171/Index" });
             }
             catch (Exception ex)
@@ -616,8 +644,8 @@ namespace SphereSSLv2.Pages
             {
                 HttpContext.Session.Remove("UserSession");
                 HttpContext.Session.Clear();
-                ServerController serverController = new ServerController(_logger);
-                await serverController.Restart();
+
+                await ConfigureService.RestartServer();
                 return new JsonResult(new { success = true, redirect = "/Index" });
             }
             catch (Exception ex)
@@ -776,18 +804,168 @@ namespace SphereSSLv2.Pages
             if (CurrentUser == null || !CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
                 return RedirectToPage("/Index");
 
-            StoredConfig config = await ConfigureService.LoadConfigFile();
 
-            config.CAPrimeUrl = caUrlRequest.CAPrimeUrl;
-            config.CAStagingUrl = caUrlRequest.CAStagingUrl;
 
-            ConfigureService.CAPrimeUrl = caUrlRequest.CAPrimeUrl;
-            ConfigureService.CAStagingUrl = caUrlRequest.CAStagingUrl;
+            StoredConfig config = new StoredConfig
+            {
 
-            var json = JsonConvert.SerializeObject(config, Formatting.Indented);
-            System.IO.File.WriteAllText(ConfigureService.ConfigFilePath, json);
+                CAPrimeUrl = caUrlRequest.CAPrimeUrl,
+                CAStagingUrl = caUrlRequest.CAStagingUrl,
 
-            return new JsonResult(new { success = true, message = "CA URLs updated!" });
+            };
+
+            HttpContext.Session.Remove("UserSession");
+            HttpContext.Session.Clear();
+
+            await ConfigureService.UpdateConfigFile(config);
+
+            return new JsonResult(new { success = true, redirect = "/Settings#advanced" });
+        }
+
+        public async Task<IActionResult> OnPostUpdateCertSettingsAsync([FromBody] CertSettingsRequest request)
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null)
+                return RedirectToPage("/Index");
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null || !CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                return RedirectToPage("/Index");
+
+            StoredConfig config = new StoredConfig
+            {
+                RenewBeforeExpiryDays = request.RenewBeforeExpiryDays,
+                CertValidityDays = request.CertValidityDays
+            };
+
+            await ConfigureService.UpdateConfigFile(config);
+
+            return new JsonResult(new { success = true });
+        }
+
+        public async Task<IActionResult> OnPostUpdateModeSettingsAsync([FromBody] ModeSettingsRequest req)
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null) return new JsonResult(new { success = false, message = "Not logged in." });
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null || !CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                return new JsonResult(new { success = false, message = "Not authorized." });
+
+            StoredConfig config = new StoredConfig
+            {
+                StagingOnly = req.StagingOnly,
+                RestrictViewers = req.RestrictViewers,
+                HideViewerLogout = req.HideViewerLogout,
+                DemoLoginEnabled = req.DemoLoginEnabled,
+                DemoUsername = req.DemoUsername,
+                DemoPassword = req.DemoPassword
+            };
+            await ConfigureService.UpdateConfigFile(config);
+            return new JsonResult(new { success = true, message = "Mode settings saved." });
+        }
+
+        public async Task<IActionResult> OnPostAddConnectionAsync([FromBody] ConnectionRequest req)
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null) return new JsonResult(new { success = false, message = "Not logged in." });
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null) return new JsonResult(new { success = false, message = "Not logged in." });
+
+            var conn = new UserConnection
+            {
+                ConnectionId   = Guid.NewGuid().ToString("N"),
+                UserId         = CurrentUser.UserId,
+                ConnectionName = req.ConnectionName,
+                ConnectionType = req.ConnectionType,
+                IsEnabled      = req.IsEnabled,
+                Settings       = req.Settings.ToString(),
+                OnPreRenew     = req.OnPreRenew,
+                OnPreExpiry    = req.OnPreExpiry,
+                OnRenewSuccess = req.OnRenewSuccess,
+                OnRenewFail    = req.OnRenewFail,
+                CreatedAt      = DateTime.UtcNow
+            };
+            bool ok = await _connectionRepository.InsertConnectionAsync(conn);
+            return new JsonResult(new { success = ok, message = ok ? "Connection added." : "Failed to add connection.", connectionId = conn.ConnectionId });
+        }
+
+        public async Task<IActionResult> OnPostUpdateConnectionAsync([FromBody] ConnectionRequest req)
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null) return new JsonResult(new { success = false, message = "Not logged in." });
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null) return new JsonResult(new { success = false, message = "Not logged in." });
+
+            var conn = new UserConnection
+            {
+                ConnectionId   = req.ConnectionId,
+                UserId         = CurrentUser.UserId,
+                ConnectionName = req.ConnectionName,
+                ConnectionType = req.ConnectionType,
+                IsEnabled      = req.IsEnabled,
+                Settings       = req.Settings.ToString(),
+                OnPreRenew     = req.OnPreRenew,
+                OnPreExpiry    = req.OnPreExpiry,
+                OnRenewSuccess = req.OnRenewSuccess,
+                OnRenewFail    = req.OnRenewFail,
+                CreatedAt      = DateTime.UtcNow
+            };
+            bool ok = await _connectionRepository.UpdateConnectionAsync(conn);
+            return new JsonResult(new { success = ok, message = ok ? "Connection updated." : "Failed to update connection." });
+        }
+
+        public async Task<IActionResult> OnGetGetConnectionAsync(string connectionId)
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null) return new JsonResult(new { success = false });
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null) return new JsonResult(new { success = false });
+
+            var conn = await _connectionRepository.GetConnectionByIdAsync(connectionId);
+            if (conn == null || conn.UserId != CurrentUser.UserId)
+                return new JsonResult(new { success = false });
+
+            return new JsonResult(new { success = true, connection = conn });
+        }
+
+        public async Task<IActionResult> OnPostDeleteConnectionAsync([FromBody] ConnectionRequest req)
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null) return new JsonResult(new { success = false, message = "Not logged in." });
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null) return new JsonResult(new { success = false, message = "Not logged in." });
+
+            bool ok = await _connectionRepository.DeleteConnectionAsync(req.ConnectionId, CurrentUser.UserId);
+            return new JsonResult(new { success = ok, message = ok ? "Connection deleted." : "Failed to delete." });
+        }
+
+        public async Task<IActionResult> OnPostTestConnectionAsync([FromBody] ConnectionRequest req)
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null) return new JsonResult(new { success = false, message = "Not logged in." });
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null) return new JsonResult(new { success = false, message = "Not logged in." });
+
+            var conn = new UserConnection
+            {
+                ConnectionId   = "test",
+                UserId         = CurrentUser.UserId,
+                ConnectionName = req.ConnectionName,
+                ConnectionType = req.ConnectionType,
+                IsEnabled      = true,
+                Settings       = req.Settings.ToString(),
+                OnPreRenew = true, OnPreExpiry = true, OnRenewSuccess = true, OnRenewFail = true,
+                CreatedAt      = DateTime.UtcNow
+            };
+            try
+            {
+                await NotificationService.SendAsync(conn, "RenewSuccess", "SphereSSL test notification â€” connection is working!");
+                return new JsonResult(new { success = true, message = "Test notification sent." });
+            }
+            catch (Exception ex)
+            {
+                return new JsonResult(new { success = false, message = ex.Message });
+            }
         }
     }
 }

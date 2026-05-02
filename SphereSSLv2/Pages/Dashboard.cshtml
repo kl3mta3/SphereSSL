@@ -3,6 +3,11 @@
 
 @{
     ViewData["Title"] = "Dashboard";
+    bool stagingOnly = SphereSSLv2.Services.Config.ConfigureService.StagingOnly;
+    bool restrictViewerFields = SphereSSLv2.Services.Config.ConfigureService.RestrictViewers
+        && Model.CurrentUser != null
+        && !string.IsNullOrEmpty(Model.CurrentUser.Role)
+        && Model.CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase);
 }
 <div class="container-fluid">
     <div class="d-flex flex-column flex-grow-1">
@@ -45,7 +50,7 @@
                               
                                        
 
-                                    <input type="text" id="domain" name="domain" class="form-control mb-3" placeholder="example.com" required />
+                                    <input type="text" id="domain" name="domain" class="form-control mb-3" placeholder="example.com" required oninput="autoFillSavePath(this.value)" />
                                     <div class="d-flex justify-content-between align-items-center mb-3 cert-format-options">
                                         <div class="format-option text-center">
                                             <input type="radio" name="certFormat" value="false" id="useSingleFile" />
@@ -63,16 +68,15 @@
                                         </div>
                                     </div>
 
-                                    <h6><strong>Save Path</strong></h6>
+                                    <h6 @(restrictViewerFields ? "class=\"text-muted\"" : "")><strong>Save Path</strong></h6>
                                 <span class="format-subtext"> Ideally this would be where your server will look for the cert.</span>
                                     <div class="input-group mb-3">
-                                        <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath" />
-                                        <button class="btn btn-outline-secondary" type="button" id="browseBtn">Browse</button>
+                                        <input type="text" class="form-control" placeholder="/app/data/certs/example.com" id="savePath" @(restrictViewerFields ? "disabled" : "") />
                                     </div>
 
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" id="autoAddRecord" onchange="toggleProviderDropdown()" />
-                                        <label class="form-check-label" for="autoAddRecord">
+                                        <input class="form-check-input" type="checkbox" id="autoAddRecord" onchange="toggleProviderDropdown()" @(restrictViewerFields ? "disabled" : "") />
+                                        <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="autoAddRecord">
                                             Auto add DNS Record
                                             <a href="/LearnMore#autoaddrecord" target="_blank" class="ms-1" title="Learn about Auto Add Record">
                                                 <i class="bi bi-info-circle info-icon"></i>
@@ -98,21 +102,21 @@
                                                 }
                                             </select>
 
-                                            <button class="btn btn-outline-secondary" onclick="showAddProviderModal()" type="button" id="browseBtn">Add</button>
+                                            <button class="btn btn-outline-secondary" onclick="showAddProviderModal()" type="button">Add</button>
                                         </div>
                                     </div>
 
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" id="saveForRenewal" />
-                                        <label class="form-check-label" for="saveForRenewal">
-                                            Save Order
+                                        <input class="form-check-input" type="checkbox" id="saveForRenewal" @(restrictViewerFields ? "disabled" : "") />
+                                        <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="saveForRenewal">
+                                            Save Order@(restrictViewerFields ? " (locked)" : "")
                                         </label>
                                     </div>
 
                                     <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" id="autoRenew" />
-                                        <label class="form-check-label" for="autoRenew">
-                                            Auto Renew (DNS via API)
+                                        <input class="form-check-input" type="checkbox" id="autoRenew" @(restrictViewerFields ? "disabled" : "") />
+                                        <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="autoRenew">
+                                            Auto Renew (DNS via API)@(restrictViewerFields ? " (locked)" : "")
                                         <a href="/LearnMore#autorenew" target="_blank" title="Learn about Auto Renew">
                                             <i class="bi bi-info-circle info-icon ms-1"></i>
                                         </a>
@@ -123,11 +127,11 @@
 
 
                                     <div class="d-flex align-items-center justify-content-between mb-0">
-                                    
+
                                         <div class="form-check form-switch ms-3">
-                                            <input class="form-check-input" type="checkbox" id="useStaging" />
-                                            <label class="form-check-label" for="useStaging" title="Use Let's Encrypt Staging (for testing)">
-                                                Staging
+                                            <input class="form-check-input" type="checkbox" id="useStaging" @(stagingOnly ? "checked disabled" : "") />
+                                            <label class="form-check-label" for="useStaging" title="@(stagingOnly ? "Staging mode is locked by admin" : "Use Let's Encrypt Staging (for testing)")">
+                                                Staging@(stagingOnly ? " (locked)" : "")
                                             <a href="/LearnMore#whatisstaging" target="_blank" title="Learn about Staging">
                                                 <i class="bi bi-info-circle info-icon ms-1"></i>
                                             </a>
@@ -162,17 +166,19 @@
                                                 <div class="card renewals shadow-sm p-1">
 
                                                     <div class="list-group">
-                                                        @if (Model.CertRecords != null && Model.CertRecords.Any())
+                                                        @{
+                                                            var _activeCutoff = DateTime.UtcNow.AddDays(SphereSSLv2.Services.Config.ConfigureService.RenewBeforeExpiryDays);
+                                                            var activeCerts = Model.CertRecords?
+                                                                .Where(r => r.ExpiryDate > _activeCutoff)
+                                                                .OrderByDescending(r => r.CreationDate)
+                                                                .ToList() ?? new List<SphereSSLv2.Models.CertModels.CertRecord>();
+                                                        }
+                                                        @if (activeCerts.Any())
                                                         {
-
-
-
-
-                                                        @foreach (var record in Model.CertRecords.Where(r => r.ExpiryDate >= DateTime.UtcNow.AddDays(60)).OrderByDescending(r => r.CreationDate))
+                                                        @foreach (var record in activeCerts)
                                                         {
                                                             var autorenewString = record.autoRenew ? "Auto Renew Enabled" : "Auto Renew Disabled";
                                                             var ExpiresIn = $"{(record.ExpiryDate - DateTime.UtcNow).TotalDays:N0} days";
-                                                            // Get a list of all domains (if you want a single domain for the link, use .FirstOrDefault())
                                                             var allDomains = record.Challenges?.Select(c => c.Domain).Distinct().ToList() ?? new List<string>();
                                                             var allProviders = record.Challenges?.Select(c => c.ProviderId).Distinct().ToList() ?? new List<string>();
                                                             var primaryDomain = allDomains.FirstOrDefault() ?? "(none)";
@@ -197,7 +203,7 @@
                                                                                 }
                                                                             }
                                                                         </div>
-                                                                       
+
                                                                         <div class="provider">
                                                                             <strong>
                                                                                 @providername
@@ -213,7 +219,7 @@
                                                                                title="@autorenewString"></i>
                                                                             <span class="auto-renew-text"> Auto Renew </span>
                                                                         </div>
-                                                                       
+
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -317,8 +323,6 @@
 
 
                                     <!-- Expired Certs Column -->
-                                <div class="accordion-header">
-
                                         <h6 class="accordion-header">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                             data-bs-target="#collapseExpired" aria-expanded="false" aria-controls="collapseExpired">
@@ -398,7 +402,6 @@
 
                                             </div>
                                         </div>
-                                    </div>
 
                                 </div>
 
@@ -406,9 +409,9 @@
                         </div>
 
                         <!-- Helpful Links -->
-                        <div class="col-lg-1 mb-4">
-                            <h5 class="title mb-4" style="  min-width: 200px; ">Helpful Links</h5>
-                            <div class="card useful-links shadow-sm p-3" style="  min-width: 200px; ">
+                        <div class="col-lg-3 mb-4">
+                            <h5 class="title mb-4">Helpful Links</h5>
+                            <div class="card useful-links shadow-sm p-3">
                                 <a href="https://www.cloudflare.com/" target="_blank">
                                     <img src="https://www.cloudflare.com/favicon.ico" alt="Cloudflare" class="link-icon" />
                                     <span>Cloudflare</span>
@@ -431,7 +434,7 @@
                                 </a>
                             </div>
 
-                        <div class="card useful-links shadow-sm p-3 mb-2" style="  min-width: 200px; ">
+                        <div class="card useful-links shadow-sm p-3 mb-2">
                          <h5>Get Local Cert</h5>
                                 <div class="d-flex align-items-center justify-content-center gap-1">
                                     <button class="btn-glow btn-sm" id="getlocalcert" data-bs-toggle="modal" type="button" data-bs-target="#localCertModal" style="font-size:0.97rem; padding:4px 10px;">
@@ -485,15 +488,25 @@
     }
 </script>
 
-<!-- Browse btn listener -->
+<!-- Auto-fill save path from domain -->
 <script>
-document.getElementById('browseBtn').addEventListener('click', async () => {
-    const res = await fetch('/select-folder');
-    const path = await res.text();
-    if (path) {
-        document.getElementById('savePath').value = path; 
-    }
-});
+    (function () {
+        function autoFillSavePath(domain) {
+            const sp = document.getElementById('savePath');
+            if (!sp || sp.dataset.userModified) return;
+            const first = domain.split(',')[0].trim().replace(/^\*\./, '').trim();
+            sp.value = first ? '/app/data/certs/' + first : '';
+        }
+        window.autoFillSavePath = autoFillSavePath;
+        document.addEventListener('DOMContentLoaded', function () {
+            const sp = document.getElementById('savePath');
+            if (sp) {
+                sp.addEventListener('input', function () {
+                    this.dataset.userModified = 'true';
+                });
+            }
+        });
+    })();
 </script>
 
 <!-- Listener for clicking links in renewals -->

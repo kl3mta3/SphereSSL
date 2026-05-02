@@ -26,14 +26,29 @@
                 <div><p class="minititleText"></p></div>
             </div>
 
+            @{
+                var _layoutSessionData = Context.Session.GetString("UserSession");
+                bool _layoutIsViewer = false;
+                if (!string.IsNullOrEmpty(_layoutSessionData))
+                {
+                    var _layoutUser = Newtonsoft.Json.JsonConvert.DeserializeObject<SphereSSLv2.Models.UserModels.UserSession>(_layoutSessionData);
+                    _layoutIsViewer = _layoutUser?.Role?.Equals("Viewer", StringComparison.OrdinalIgnoreCase) == true;
+                }
+                bool _layoutHideLogout = _layoutIsViewer && SphereSSLv2.Services.Config.ConfigureService.HideViewerLogout;
+            }
             <div class="top-bar-icons">
-                <div >  <img src="~/img/avatar.png" asp-append-version="true" class="css-avatar" /></div>
-                <button id="power-icon" class="settings-icon btn btn-link p-0">
-                    <i class="bi bi-power"></i>
-                </button>
-                <a href="/Settings" class="settings-link">
-                    <i class="bi bi-gear-fill settings-icon"></i>
-                </a>
+                @if (!_layoutHideLogout)
+                {
+                    <button id="power-icon" type="button" class="settings-icon btn btn-link p-0">
+                        <i class="bi bi-power"></i>
+                    </button>
+                }
+                @if (!_layoutIsViewer)
+                {
+                    <a href="/Settings" class="settings-link">
+                        <i class="bi bi-gear-fill settings-icon"></i>
+                    </a>
+                }
 
             </div>
         </div>
@@ -60,11 +75,6 @@
                     <span class="sidebar-text">Exchange</span>
                 </a>
 
-                <a asp-page="/Settings" class="sidebar-link @(routePage == "/settings" ? "active" : "")">
-                    <span class="sidebar-icon"><i class="bi bi-gear-fill"></i></span>
-                    <span class="sidebar-text">Settings</span>
-                </a>
-
                 <a asp-page="/LearnMore" class="sidebar-link @(routePage == "/learnmore" ? "active" : "")">
                     <span class="sidebar-icon"><i class="bi bi-book-half"></i></span>
                     <span class="sidebar-text">Learn</span>
@@ -80,26 +90,23 @@
             @RenderBody()
         </div>
 
-        <footer class="footer-text">
-
-            <div class="row align-items-center">
-
-                <div class="footer-title">
-                    <h2 class="titleFooter mb-0 d-flex align-items-center justify-content-center">
-                        <span>Sphere</span>
-                        <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo-footer" />
-                    </h2>
-                </div>
-                
-            </div>
-            <div class="row align-items-center">
-                <p>©2025– Powered by SphereSSL</p>  <p> @ViewData["TitleTag"]</p>
-            </div>
-        </footer>
-
-
-
     </div>
+
+<!-- Footer outside the flex container so position:fixed works correctly -->
+<footer class="footer-text">
+    <div class="row align-items-center justify-content-center">
+        <div class="footer-title">
+            <h2 class="titleFooter mb-0 d-flex align-items-center justify-content-center">
+               <p></p>
+                <span>Sphere</span>
+                <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo-footer" />
+            </h2>
+        </div>
+    </div>
+    <div class="row align-items-center justify-content-center">
+        <p>©2025– Powered by SphereSSL<br>@ViewData["TitleTag"]</p>
+    </div>
+</footer>
 
 </body>
 
@@ -169,9 +176,44 @@
             <div class="modal-body d-flex flex-column align-items-center gap-3">
                 <button class="btn btn-success w-100" id="btnRenewCert">Renew</button>
                 <button class="btn btn-danger w-100" id="btnRevokeCert">Revoke</button>
-                <div class="d-flex flex-column align-items-center w-100">
-                    <button class="btn btn-outline-primary w-100 mt-1" id="btnToggleAutoRenew">Toggle Auto-Renew</button>
+                <button class="btn btn-outline-primary w-100" id="btnToggleAutoRenew">Toggle Auto-Renew</button>
+                <div class="d-flex gap-2 w-100">
+                    <a id="btnDownloadCertPem" class="btn btn-outline-success flex-fill" href="#">Download PEM</a>
+                    <a id="btnDownloadCertKey" class="btn btn-outline-warning flex-fill" href="#">Download KEY</a>
                 </div>
+                <button class="btn btn-outline-info w-100" id="btnRequestApi">Request API</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Snippet Modal -->
+<div class="modal fade" id="apiSnippetModal" tabindex="-1" aria-labelledby="apiSnippetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-3 shadow-lg">
+            <div class="modal-header" style="background-color:#042c41; color:white;">
+                <h5 class="modal-title" id="apiSnippetModalLabel"><i class="bi bi-terminal me-2"></i>API Request — <span id="apiSnippetDomain"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-2">Run this on any server to pull the latest certificate. Your API key is found in Settings → Users → View.</p>
+
+                <label class="form-label fw-semibold">curl</label>
+                <div class="position-relative mb-3">
+                    <pre id="apiSnippetCurl" class="bg-dark text-light rounded p-3 small" style="white-space:pre-wrap;word-break:break-all;"></pre>
+                    <button class="btn btn-sm btn-outline-light position-absolute top-0 end-0 m-2" onclick="copySnippet('apiSnippetCurl')">Copy</button>
+                </div>
+
+                <label class="form-label fw-semibold">Shell script (auto-deploy example)</label>
+                <div class="position-relative">
+                    <pre id="apiSnippetScript" class="bg-dark text-light rounded p-3 small" style="white-space:pre-wrap;word-break:break-all;"></pre>
+                    <button class="btn btn-sm btn-outline-light position-absolute top-0 end-0 m-2" onclick="copySnippet('apiSnippetScript')">Copy</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger btn-sm" id="btnRegenerateApiKey">Regenerate Key</button>
+                <small class="text-muted me-auto ms-2">Regenerating invalidates the old key immediately.</small>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -521,23 +563,36 @@
 <!-- CSS styles-->
 <style>
     .main-container {
-        height: 100%;
+        min-height: 100vh;
         max-width: 100vw;
-        background: linear-gradient(100deg, #14083b 60%, #17395d );
+        overflow-x: hidden;
+        background: linear-gradient(100deg, #14083b 60%, #17395d);
         display: flex;
-        align-items: center;
-        justify-content: center;
+        flex-direction: row;
+        align-items: flex-start;
         flex-wrap: nowrap;
+        padding-top: 80px;
+        padding-bottom: 46px;
+        box-sizing: border-box;
+    }
 
+    .sidebar-box {
+        flex-shrink: 0;
+        margin-top: 20px !important;
+        height: auto !important;
+        align-self: flex-start;
+        position: sticky;
+        top: 80px;
     }
 
     .inner-box {
-        background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 10px);
+        flex: 1 1 0;
+        min-width: 0;
         background: linear-gradient(90deg, #0f1a2b, #0b71a7 99%);
         background-blend-mode: overlay;
         transition: background 0.3s ease;
-        width: 100%;
-        height: 80vh; 
+        min-height: calc(100vh - 126px);
+        height: auto;
         overflow-y: auto;
         overflow-x: hidden;
         border-top-left-radius: 60px;
@@ -548,7 +603,24 @@
         padding: 20px;
         box-sizing: border-box;
     }
-    
+
+    @@media (max-width: 576px) {
+        .main-container {
+            padding-top: 70px;
+        }
+        .sidebar-box {
+            width: 52px !important;
+            margin-left: 8px !important;
+            margin-right: 8px !important;
+        }
+        .inner-box {
+            border-top-left-radius: 30px;
+            border-bottom-left-radius: 30px;
+        }
+        .top-bar {
+            padding: 16px 16px 0 16px;
+        }
+    }
 </style>
 
 
@@ -565,7 +637,7 @@
 
     document.getElementById("confirmLogOff").addEventListener("click", async function () {
         try {
-            const response = await fetch("?handler=LogOff", { 
+            const response = await fetch("/Index?handler=LogOff", {
                 method: "POST"
             });
 
@@ -1098,7 +1170,26 @@
 
         manageModal.show();
 
-        
+        // Wire download links
+        const dlPem = document.getElementById('btnDownloadCertPem');
+        const dlKey = document.getElementById('btnDownloadCertKey');
+        if (dlPem) dlPem.href = `/ManageRenewals?handler=DownloadCertPemById&orderId=${encodeURIComponent(orderId)}`;
+        if (dlKey) dlKey.href = `/ManageRenewals?handler=DownloadCertKeyById&orderId=${encodeURIComponent(orderId)}`;
+
+        // Wire Request API button
+        const btnApi = document.getElementById('btnRequestApi');
+        if (btnApi) {
+            btnApi.onclick = async function () {
+                manageModal.hide();
+                const resp = await fetch(`/ManageRenewals?handler=CertApiInfo&orderId=${encodeURIComponent(orderId)}`);
+                if (!resp.ok) { showToast("Could not load cert info.", true); return; }
+                const info = await resp.json();
+
+                buildApiSnippet(info.domain, info.certApiKey, info.orderId);
+                new bootstrap.Modal(document.getElementById('apiSnippetModal')).show();
+            };
+        }
+
         function removeOldWaitModal() {
             let oldWaitModal = document.getElementById("waitModal");
             if (oldWaitModal) oldWaitModal.remove();
@@ -1367,6 +1458,70 @@
 
 
 
+</script>
+
+<!-- API Snippet helpers -->
+<script>
+    let _apiSnippetOrderId = null;
+
+    function buildApiSnippet(domain, apiKey, orderId) {
+        _apiSnippetOrderId = orderId;
+        const base = `${window.location.protocol}//${window.location.host}`;
+
+        document.getElementById('apiSnippetDomain').textContent = domain;
+
+        document.getElementById('apiSnippetCurl').textContent =
+`curl -s \\
+  -H "X-Api-Key: ${apiKey}" \\
+  ${base}/api/cert/${domain}`;
+
+        document.getElementById('apiSnippetScript').textContent =
+`#!/bin/bash
+# Run daily via cron to keep the cert fresh
+SPHERESSL="${base}"
+DOMAIN="${domain}"
+API_KEY="${apiKey}"
+CERT_DIR="/etc/ssl/certs"
+
+RESPONSE=$(curl -s -H "X-Api-Key: $API_KEY" "$SPHERESSL/api/cert/$DOMAIN")
+echo "$RESPONSE" | jq -r '.certPem' > "$CERT_DIR/$DOMAIN.pem"
+echo "$RESPONSE" | jq -r '.certKey' > "$CERT_DIR/$DOMAIN.key"
+
+# Reload your web server (uncomment the one you use)
+# nginx -s reload
+# systemctl reload apache2
+# systemctl reload caddy`;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('btnRegenerateApiKey')?.addEventListener('click', async function () {
+            if (!_apiSnippetOrderId) return;
+            if (!confirm('This will invalidate the current key. Any servers using it will need updating. Continue?')) return;
+
+            const resp = await fetch('/ManageRenewals?handler=RegenerateCertApiKey', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: _apiSnippetOrderId })
+            });
+            if (!resp.ok) { showToast('Failed to regenerate key.', true); return; }
+            const data = await resp.json();
+
+            // Refresh the snippet with the new key — re-fetch to get the domain
+            const infoResp = await fetch(`/ManageRenewals?handler=CertApiInfo&orderId=${encodeURIComponent(_apiSnippetOrderId)}`);
+            const info = await infoResp.json();
+            buildApiSnippet(info.domain, data.certApiKey, _apiSnippetOrderId);
+            showToast('API key regenerated. Update your server scripts.');
+        });
+    });
+
+    function copySnippet(elementId) {
+        const text = document.getElementById(elementId)?.textContent ?? '';
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!');
+        }).catch(() => {
+            showToast('Copy failed — select and copy manually.', true);
+        });
+    }
 </script>
 
 <!-- Learn More Open -->

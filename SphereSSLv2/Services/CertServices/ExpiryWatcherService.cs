@@ -42,7 +42,7 @@ namespace SphereSSLv2.Services.CertServices
 
                 // Find all certs expiring within the window
                 ConfigureService.ExpiringSoonCertRecords = certRecords
-                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.ExpiringRefreshPeriodInDays));
+                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.RenewBeforeExpiryDays));
 
                 // Only certs with autoRenew enabled
                 List<CertRecord> expiringSoon = ConfigureService.ExpiringSoonCertRecords

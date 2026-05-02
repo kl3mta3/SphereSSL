@@ -81,8 +81,8 @@ namespace SphereSSLv2.Data.Repositories
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     Username = reader.GetString(reader.GetOrdinal("Username")),
                     PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                    Name = reader.GetString(reader.GetOrdinal("Name")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? null : reader.GetString(reader.GetOrdinal("Name")),
+                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
                     CreationTime = DateTime.Parse(reader.GetString(reader.GetOrdinal("CreationTime"))),
                     LastUpdated = reader.IsDBNull(reader.GetOrdinal("LastUpdated"))
                         ? null
@@ -122,8 +122,8 @@ namespace SphereSSLv2.Data.Repositories
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     Username = reader.GetString(reader.GetOrdinal("Username")),
                     PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                    Name = reader.GetString(reader.GetOrdinal("Name")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? null : reader.GetString(reader.GetOrdinal("Name")),
+                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
                     CreationTime = DateTime.Parse(reader.GetString(reader.GetOrdinal("CreationTime"))),
                     LastUpdated = reader.IsDBNull(reader.GetOrdinal("LastUpdated"))
                         ? null
@@ -161,8 +161,8 @@ namespace SphereSSLv2.Data.Repositories
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     Username = reader.GetString(reader.GetOrdinal("Username")),
                     PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                    Name = reader.GetString(reader.GetOrdinal("Name")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? null : reader.GetString(reader.GetOrdinal("Name")),
+                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
                     CreationTime = DateTime.Parse(reader.GetString(reader.GetOrdinal("CreationTime"))),
                     LastUpdated = reader.IsDBNull(reader.GetOrdinal("LastUpdated"))
                         ? null
@@ -205,8 +205,8 @@ namespace SphereSSLv2.Data.Repositories
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     Username = reader.GetString(reader.GetOrdinal("Username")),
                     PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                    Name = reader.GetString(reader.GetOrdinal("Name")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? null : reader.GetString(reader.GetOrdinal("Name")),
+                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
                     CreationTime = DateTime.Parse(reader.GetString(reader.GetOrdinal("CreationTime"))),
                     LastUpdated = reader.IsDBNull(reader.GetOrdinal("LastUpdated"))
                         ? null
@@ -260,8 +260,8 @@ namespace SphereSSLv2.Data.Repositories
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     Username = reader.GetString(reader.GetOrdinal("Username")),
                     PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                    Name = reader.GetString(reader.GetOrdinal("Name")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? null : reader.GetString(reader.GetOrdinal("Name")),
+                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
                     CreationTime = DateTime.Parse(reader.GetString(reader.GetOrdinal("CreationTime"))),
                     LastUpdated = reader.IsDBNull(reader.GetOrdinal("LastUpdated"))
                         ? null
@@ -444,8 +444,8 @@ namespace SphereSSLv2.Data.Repositories
                     UserId = reader.GetString(reader.GetOrdinal("UserId")),
                     Username = reader.GetString(reader.GetOrdinal("Username")),
                     PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                    Name = reader.GetString(reader.GetOrdinal("Name")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Name = reader.IsDBNull(reader.GetOrdinal("Name")) ? null : reader.GetString(reader.GetOrdinal("Name")),
+                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
                     CreationTime = DateTime.Parse(reader.GetString(reader.GetOrdinal("CreationTime"))),
                     LastUpdated = reader.IsDBNull(reader.GetOrdinal("LastUpdated"))
                         ? null

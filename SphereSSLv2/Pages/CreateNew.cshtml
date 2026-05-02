@@ -2,6 +2,9 @@
 @model SphereSSLv2.Pages.CreateNewModel
 @{
     ViewData["Title"] = "Create";
+    bool stagingOnly = SphereSSLv2.Services.Config.ConfigureService.StagingOnly;
+    bool restrictViewerFields = SphereSSLv2.Services.Config.ConfigureService.RestrictViewers
+        && Model.CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase);
 }
 <div class="container-fluid px-4">
     <div class="row justify-content-center">
@@ -35,15 +38,15 @@
                                     </div>
                                 </div>
 
-                                <h5>Save Path</h5>
+                                <h5 @(restrictViewerFields ? "class=\"text-muted\"" : "")>Save Path</h5>
                                 <div class="input-group mb-3">
-                                    <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath" />
-                                    <button class="btn btn-outline-secondary" type="button" id="browseBtn2">Browse</button>
+                                    <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath" @(restrictViewerFields ? "disabled" : "") />
+                                    <button class="btn btn-outline-secondary" type="button" id="browseBtn2" @(restrictViewerFields ? "disabled" : "")>Browse</button>
                                 </div>
 
                                 <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="autoAddRecord" onchange="toggleProviderDropdown()" />
-                                    <label class="form-check-label" for="autoAddRecord">
+                                    <input class="form-check-input" type="checkbox" id="autoAddRecord" onchange="toggleProviderDropdown()" @(restrictViewerFields ? "disabled" : "") />
+                                    <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="autoAddRecord">
                                         Auto add DNS Record
                                     </label>
                                 </div>
@@ -70,16 +73,16 @@
                                 </div>
 
                                 <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="saveForRenewal" />
-                                    <label class="form-check-label" for="saveForRenewal">
-                                        Save Order
+                                    <input class="form-check-input" type="checkbox" id="saveForRenewal" @(restrictViewerFields ? "disabled" : "") />
+                                    <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="saveForRenewal">
+                                        Save Order@(restrictViewerFields ? " (locked)" : "")
                                     </label>
                                 </div>
 
                                 <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" id="autoRenew" />
-                                    <label class="form-check-label" for="autoRenew">
-                                        Auto Renew (DNS via API)
+                                    <input class="form-check-input" type="checkbox" id="autoRenew" @(restrictViewerFields ? "disabled" : "") />
+                                    <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="autoRenew">
+                                        Auto Renew (DNS via API)@(restrictViewerFields ? " (locked)" : "")
                                     </label>
                                 </div>
 
@@ -89,9 +92,10 @@
                                 <div class="d-flex align-items-center justify-content-between mb-0">
 
                                     <div class="form-check form-switch ms-3">
-                                        <input class="form-check-input" type="checkbox" id="useStaging" />
-                                        <label class="form-check-label" for="useStaging" title="Use Let's Encrypt Staging (for testing)">
-                                            Staging
+                                        <input class="form-check-input" type="checkbox" id="useStaging"
+                                               @(stagingOnly ? "checked disabled" : "") />
+                                        <label class="form-check-label" for="useStaging" title="@(stagingOnly ? "Staging mode is locked by admin" : "Use Let's Encrypt Staging (for testing)")">
+                                            Staging@(stagingOnly ? " (locked)" : "")
                                         </label>
                                     </div>
                                 </div>
@@ -165,15 +169,15 @@
                                                 </div>
                                             </div>
 
-                                            <h5>Save Path</h5>
+                                            <h5 @(restrictViewerFields ? "class=\"text-muted\"" : "")>Save Path</h5>
                                             <div class="input-group mb-3">
-                                                <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath3" />
-                                                <button class="btn btn-outline-secondary" type="button" id="browseBtn">Browse</button>
+                                                <input type="text" class="form-control" placeholder="C:/path/to/save" id="savePath3" @(restrictViewerFields ? "disabled" : "") />
+                                                <button class="btn btn-outline-secondary" type="button" id="browseBtn" @(restrictViewerFields ? "disabled" : "")>Browse</button>
                                             </div>
 
                                             <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="autoAddRecord3" onchange="toggleProviderDropdown()" />
-                                                <label class="form-check-label" for="autoAddRecord3">
+                                                <input class="form-check-input" type="checkbox" id="autoAddRecord3" onchange="toggleProviderDropdown()" @(restrictViewerFields ? "disabled" : "") />
+                                                <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="autoAddRecord3">
                                                     Auto add DNS Record
                                                 </label>
                                             </div>
@@ -200,16 +204,16 @@
                                             </div>
 
                                             <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox" id="saveForRenewal3" />
-                                                <label class="form-check-label" for="saveForRenewal3">
-                                                    Save Order
+                                                <input class="form-check-input" type="checkbox" id="saveForRenewal3" @(restrictViewerFields ? "disabled" : "") />
+                                                <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="saveForRenewal3">
+                                                    Save Order@(restrictViewerFields ? " (locked)" : "")
                                                 </label>
                                             </div>
 
                                             <div class="form-check mb-3">
-                                                <input class="form-check-input" type="checkbox" id="autoRenew3" />
-                                                <label class="form-check-label" for="autoRenew3">
-                                                    Auto Renew (DNS via API)
+                                                <input class="form-check-input" type="checkbox" id="autoRenew3" @(restrictViewerFields ? "disabled" : "") />
+                                                <label class="form-check-label @(restrictViewerFields ? "text-muted" : "")" for="autoRenew3">
+                                                    Auto Renew (DNS via API)@(restrictViewerFields ? " (locked)" : "")
                                                 </label>
                                             </div>
 
@@ -219,9 +223,10 @@
                                             <div class="d-flex align-items-center justify-content-between mb-0">
 
                                                 <div class="form-check form-switch ms-3">
-                                                    <input class="form-check-input" type="checkbox" id="useStaging3" />
-                                                    <label class="form-check-label" for="useStaging3" title="Use Let's Encrypt Staging (for testing)">
-                                                        Staging
+                                                    <input class="form-check-input" type="checkbox" id="useStaging3"
+                                                           @(stagingOnly ? "checked disabled" : "") />
+                                                    <label class="form-check-label" for="useStaging3" title="@(stagingOnly ? "Staging mode is locked by admin" : "Use Let's Encrypt Staging (for testing)")">
+                                                        Staging@(stagingOnly ? " (locked)" : "")
                                                     </label>
                                                 </div>
                                             </div>
