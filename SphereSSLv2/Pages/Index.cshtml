@@ -57,6 +57,18 @@
             <div class="text-danger mt-2">@modelError.ErrorMessage</div>
         }
     </form>
+
+    @if (demoLoginActive)
+    {
+        <div class="row justify-content-center mt-3">
+            <div class="col-md-4">
+                <div class="alert alert-warning py-2 mb-0 small text-start">
+                    <strong>Heads up:</strong> this is a demo. All certs are issued from the Let's Encrypt <em>staging</em> CA, so they will not be trusted by browsers and won't work in production.<br />
+                    Get the full thing for free at Docker: <a href="https://git.spheressl.com" target="_blank" rel="noopener">git.spheressl.com</a>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @if (demoLoginActive)
