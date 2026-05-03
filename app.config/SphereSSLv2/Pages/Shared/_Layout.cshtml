@@ -1,0 +1,1614 @@
+﻿﻿<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="~/img/SphereSSL.ico" />
+    <title>@ViewData["Title"] SphereSSL</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+</head>
+
+<body>
+
+    <div class="main-container">
+
+        <div class="top-bar">
+
+            <div class="left-side">
+                <h2 class="title mb-0 d-flex align-items-center">
+                    <span>Sphere</span>
+                    <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo" />
+                </h2>
+                <div><p class="minititleText"></p></div>
+            </div>
+
+            @{
+                var _layoutSessionData = Context.Session.GetString("UserSession");
+                bool _layoutIsViewer = false;
+                if (!string.IsNullOrEmpty(_layoutSessionData))
+                {
+                    var _layoutUser = Newtonsoft.Json.JsonConvert.DeserializeObject<SphereSSLv2.Models.UserModels.UserSession>(_layoutSessionData);
+                    _layoutIsViewer = _layoutUser?.Role?.Equals("Viewer", StringComparison.OrdinalIgnoreCase) == true;
+                }
+                bool _layoutHideLogout = _layoutIsViewer && SphereSSLv2.Services.Config.ConfigureService.HideViewerLogout;
+            }
+            <div class="top-bar-icons">
+                @if (!_layoutHideLogout)
+                {
+                    <button id="power-icon" type="button" class="settings-icon btn btn-link p-0">
+                        <i class="bi bi-power"></i>
+                    </button>
+                }
+                @if (!_layoutIsViewer)
+                {
+                    <a href="/Settings" class="settings-link">
+                        <i class="bi bi-gear-fill settings-icon"></i>
+                    </a>
+                }
+
+            </div>
+        </div>
+
+        <div class="sidebar-box">
+
+            @{
+                var routePage = (ViewContext.RouteData.Values["page"] ?? "").ToString().ToLower();
+            }
+
+            <nav class="sidebar-nav">
+                <a asp-page="/Dashboard" class="sidebar-link @(routePage == "/dashboard" ? "active" : "")">
+                    <span class="sidebar-icon"><i class="bi bi-speedometer2"></i></span>
+                    <span class="sidebar-text">Home</span>
+                </a>
+
+                <a asp-page="/ManageRenewals" class="sidebar-link @(routePage == "/managerenewals" ? "active" : "")">
+                    <span class="sidebar-icon"><i class="bi bi-arrow-repeat"></i></span>
+                    <span class="sidebar-text">Manage</span>
+                </a>
+
+                <a asp-page="/Exchange" class="sidebar-link @(routePage == "/exchange" ? "active" : "")">
+                    <span class="sidebar-icon"><i class="bi bi-shuffle"></i></span>
+                    <span class="sidebar-text">Exchange</span>
+                </a>
+
+                <a asp-page="/LearnMore" class="sidebar-link @(routePage == "/learnmore" ? "active" : "")">
+                    <span class="sidebar-icon"><i class="bi bi-book-half"></i></span>
+                    <span class="sidebar-text">Learn</span>
+                </a>
+            </nav>
+
+
+
+        </div>
+
+
+        <div class="inner-box ">
+            @RenderBody()
+        </div>
+
+    </div>
+
+<!-- Footer outside the flex container so position:fixed works correctly -->
+<footer class="footer-text">
+    <div class="row align-items-center justify-content-center">
+        <div class="footer-title">
+            <h2 class="titleFooter mb-0 d-flex align-items-center justify-content-center">
+               <p></p>
+                <span>Sphere</span>
+                <img src="~/img/SphereSSL_ICON.png" asp-append-version="true" class="inline-logo-footer" />
+            </h2>
+        </div>
+    </div>
+    <div class="row align-items-center justify-content-center">
+        <p>©2025– Powered by SphereSSL<br>@ViewData["TitleTag"]</p>
+    </div>
+</footer>
+
+</body>
+
+</html>
+
+<!-- Manual Renew Modal Shell -->
+<div class="modal fade" id="manualRenewModal" tabindex="-1" aria-labelledby="manualRenewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-light text-dark shadow-sm">
+          
+            <div id="manualRenewModalContent"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Local Certificate Modal -->
+<div class="modal fade" id="localCertModal" tabindex="-1" aria-labelledby="localCertModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="localCertForm" autocomplete="off">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="localCertModalLabel">Create Local Certificate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Subject Name (without CN=) -->
+                    <div class="mb-3">
+                        <label for="subjectNameInput" class="form-label">Subject Name <span class="text-muted">(just the domain, no CN=)</span></label>
+                        <input type="text" class="form-control" id="subjectNameInput" placeholder="example.local" required>
+                    </div>
+                    <!-- SANs -->
+                    <div class="mb-3">
+                        <label for="sanNamesInput" class="form-label">Subject Alternative Names (SANs)</label>
+                        <input type="text" class="form-control" id="sanNamesInput" placeholder="domain.local, www.domain.local, *.domain.local" required>
+                        <div class="form-text">Separate each domain with a comma and a space: <code>domain.com, www.domain.com</code></div>
+                    </div>
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label for="passwordInput" class="form-label">Password <span class="text-muted">(optional)</span></label>
+                        <input type="password" class="form-control" id="passwordInput" autocomplete="new-password" placeholder="(leave blank for none)">
+                    </div>
+                    <!-- Valid Days -->
+                    <div class="mb-3">
+                        <label for="validDaysInput" class="form-label">Valid Days</label>
+                        <input type="number" class="form-control" id="validDaysInput" min="1" value="365" required>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Generate Certificate</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Manage Certificate Modal -->
+<div class="modal fade" id="manageCertMiniModal" tabindex="-1" aria-labelledby="manageCertMiniModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 340px;">
+        <div class="modal-content rounded-3 shadow-lg">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="manageCertMiniModalLabel">Manage Certificate</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex flex-column align-items-center gap-3">
+                <button class="btn btn-success w-100" id="btnRenewCert">Renew</button>
+                <button class="btn btn-danger w-100" id="btnRevokeCert">Revoke</button>
+                <button class="btn btn-outline-primary w-100" id="btnToggleAutoRenew">Toggle Auto-Renew</button>
+                <div class="d-flex gap-2 w-100">
+                    <a id="btnDownloadCertPem" class="btn btn-outline-success flex-fill" href="#">Download PEM</a>
+                    <a id="btnDownloadCertKey" class="btn btn-outline-warning flex-fill" href="#">Download KEY</a>
+                </div>
+                <button class="btn btn-outline-info w-100" id="btnRequestApi">Request API</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Snippet Modal -->
+<div class="modal fade" id="apiSnippetModal" tabindex="-1" aria-labelledby="apiSnippetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-3 shadow-lg">
+            <div class="modal-header" style="background-color:#042c41; color:white;">
+                <h5 class="modal-title" id="apiSnippetModalLabel"><i class="bi bi-terminal me-2"></i>API Request — <span id="apiSnippetDomain"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-2">Run this on any server to pull the latest certificate. Your API key is found in Settings → Users → View.</p>
+
+                <label class="form-label fw-semibold">curl</label>
+                <div class="position-relative mb-3">
+                    <pre id="apiSnippetCurl" class="bg-dark text-light rounded p-3 small" style="white-space:pre-wrap;word-break:break-all;"></pre>
+                    <button class="btn btn-sm btn-outline-light position-absolute top-0 end-0 m-2" onclick="copySnippet('apiSnippetCurl')">Copy</button>
+                </div>
+
+                <label class="form-label fw-semibold">Shell script (auto-deploy example)</label>
+                <div class="position-relative">
+                    <pre id="apiSnippetScript" class="bg-dark text-light rounded p-3 small" style="white-space:pre-wrap;word-break:break-all;"></pre>
+                    <button class="btn btn-sm btn-outline-light position-absolute top-0 end-0 m-2" onclick="copySnippet('apiSnippetScript')">Copy</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger btn-sm" id="btnRegenerateApiKey">Regenerate Key</button>
+                <small class="text-muted me-auto ms-2">Regenerating invalidates the old key immediately.</small>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Power Confirmation Modal -->
+<div class="modal fade" id="powerConfirmModal" tabindex="-1" aria-labelledby="powerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="powerModalLabel">Log Off</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to Log off? 
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmLogOff">Yes, Log Off</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DNS Challenge Modal-->
+<div class="modal fade" id="dnsChallengeModal" tabindex="-1" aria-labelledby="dnsChallengeLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 650px; min-width: 400px;">
+        <div class="modal-content bg-light text-dark shadow-sm">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dnsChallengeLabel">DNS Challenge</h5>
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+                        aria-label="Close" onclick="closeDnsModal()"
+                        data-bs-toggle="tooltip" title="Close this window">
+                </button>
+            </div>
+            <div class="modal-body" id="dnsChallengeModalBody">
+           
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit DNS Provider Modal-->
+<div class="modal fade" id="editProviderModal" tabindex="-1" aria-labelledby="editProviderLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 650px; min-width: 400px;">
+        <div class="modal-content bg-light text-dark shadow-sm">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProviderLabel">Edit DNS Provider</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="editProviderModalBody">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DNS Verify Modal-->
+<div class="modal fade" id="dnsVerifyModal" tabindex="-1" aria-labelledby="dnsVerifyLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 650px; min-width: 400px;">
+        <div class="modal-content bg-light text-dark shadow-sm">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dnsVerifyLabel">Verify Challenge</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="VerifyModalBody">
+            </div>
+            <div class="modal-footer" id="verifyModalFooter">
+
+
+                <div id="downloadButton" style="display: none;" gap-2">
+                    <span class="me-2 text-success fw-semibold">Certificate saved! Download a copy?</span>
+                    <button class="btn btn-primary" onclick="window.location.href='/Dashboard?handler=DownloadCertPem&savePath=Temp'">
+                        Download PEM
+                    </button>
+                </div>
+
+                <div id="multiDownloadButtons" style="display: none;" gap-2">
+                    <span class="me-2 text-success fw-semibold">Certificates saved! Download copies?</span>
+                    <a href="@Url.Page("Dashboard", "DownloadCertKey", new { savePath = "Temp" })" class="btn btn-primary">Download KEY</a>
+                    <a href="@Url.Page("Dashboard", "DownloadCertCrt", new { savePath = "Temp" })" class="btn btn-primary">Download CRT</a>
+
+                </div>
+
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cert Record Modal-->
+<div class="modal fade" id="certRecordModal" tabindex="-1" aria-labelledby="certRecordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-sm">
+            <div class="modal-header" style="background-color: #042c41; color: white;">
+                <h5 class="modal-title" id="certRecordModalLabel">Certificate Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="certRecordModalBody">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editUserForm" autocomplete="off">
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="editUsername" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label d-block">Role</label>
+                            <div id="editRoleGroup" class="d-flex gap-3 align-items-center">
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="editRole" id="editRoleViewer" value="Viewer">
+                                    <label class="form-check-label" for="editRoleViewer">Viewer</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="editRole" id="editRoleUser" value="User">
+                                    <label class="form-check-label" for="editRoleUser">User</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0" id="editRoleAdminGroup" style="display: none;">
+                                    <input class="form-check-input" type="radio" name="editRole" id="editRoleAdmin" value="Admin">
+                                    <label class="form-check-label" for="editRoleAdmin">Admin</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-center">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" id="editIsEnabled">
+                                <label class="form-check-label" for="editIsEnabled"><strong>Is Enabled</strong></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="editName">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmail">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="editNotes" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View User Modal -->
+<div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewUserModalLabel">View User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="viewUserForm" autocomplete="off">
+                <div class="modal-body">
+                    <!-- All fields filled in dynamically by JS -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">User ID</label>
+                            <input type="text" class="form-control" id="vuUserId" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">UUID</label>
+                            <input type="text" class="form-control" id="vuUUID" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="vuUsername" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label d-block">Role</label>
+                            <div class="d-flex gap-3 align-items-center">
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="vuRole" id="vuRoleViewer" value="Viewer" disabled>
+                                    <label class="form-check-label" for="vuRoleViewer">Viewer</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="vuRole" id="vuRoleUser" value="User" disabled>
+                                    <label class="form-check-label" for="vuRoleUser">User</label>
+                                </div>
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input" type="radio" name="vuRole" id="vuRoleAdmin" value="Admin" disabled>
+                                    <label class="form-check-label" for="vuRoleAdmin">Admin</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-2 d-flex align-items-center align-items-end">
+                            <div class="form-check mt-4 ">
+                                <input class="form-check-input" type="checkbox" id="vuEnabled" disabled>
+                                <label class="form-check-label" for="vuEnabled"><strong>Is Enabled</strong></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" id="vuName" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="vuEmail" readonly>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+
+                        <div class="col-md-12">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="vuNotes" rows="3" readonly></textarea>
+                        </div>
+                    </div>
+                    <hr>
+                    <div id="userStatsSection">
+                        <h5><strong>User Stats</strong></h5>
+                        <div>Total Certs: <span id="vuTotalCerts"></span></div>
+                        <div>Certs Renewed: <span id="vuCertsRenewed"></span></div>
+                        <div>Certs Failed: <span id="vuCertsFailed"></span></div>
+                        <div>Last Cert Created: <span id="vuLastCertCreated"></span></div>
+                    </div>
+                    <hr>
+                    <div id="apiKeySection">
+                        <h5><strong>API Key</strong></h5>
+                        <div>API Key: <span id="vuApiKey"></span></div>
+                        <div>Created: <span id="vuApiCreated"></span></div>
+                        <div>Last Used: <span id="vuApiLastUsed"></span></div>
+                        <div>Revoked: <span id="vuApiRevoked"></span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type='button' class='btn btn-primary me-2' onclick='changePassword(document.getElementById("vuUserId").value)'>Change Password</button>
+                    <button type="button" class="btn btn-primary" id="editUserBtn">Edit</button>
+                    <button type="button" class="btn btn-danger" id="deleteUserBtn" style="display:none;" onclick="deleteUser(document.getElementById('vuUserId').value)">Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Add User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addUserForm" autocomplete="off">
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label for="newUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="newUsername" required>
+                    </div>
+                    <div class="mb-2">
+                        <label for="newPassword" class="form-label">Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="newPassword" name="password" required autocomplete="new-password">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label for="newName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="newName">
+                    </div>
+                    <div class="mb-2">
+                        <label for="newEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="newEmail">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Role</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="roleViewer" value="Viewer" required>
+                            <label class="form-check-label" for="roleViewer">Viewer</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="roleUser" value="User">
+                            <label class="form-check-label" for="roleUser">User</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="Admin">
+                            <label class="form-check-label" for="roleAdmin">Admin</label>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label for="newNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="newNotes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!--Error Modal-->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-danger text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Deletion Blocked</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>This user is an admin and cannot be deleted.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSS styles-->
+<style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .main-container {
+        height: 100vh;
+        max-height: 100vh;
+        max-width: 100vw;
+        overflow: hidden;
+        background: linear-gradient(100deg, #14083b 60%, #17395d);
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        flex-wrap: nowrap;
+        padding-top: 80px;
+        padding-bottom: 46px;
+        box-sizing: border-box;
+    }
+
+    .sidebar-box {
+        flex-shrink: 0;
+        margin-top: 20px !important;
+        align-self: flex-start;
+        max-height: calc(100vh - 146px);
+        overflow-y: auto;
+    }
+
+    .inner-box {
+        flex: 1 1 0;
+        min-width: 0;
+        background: linear-gradient(90deg, #0f1a2b, #0b71a7 99%);
+        background-blend-mode: overlay;
+        transition: background 0.3s ease;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border-top-left-radius: 60px;
+        border-bottom-left-radius: 60px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        box-shadow: inset 8px 0 15px rgba(0, 0, 0, 0.25);
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    @@media (max-width: 576px) {
+        .main-container {
+            padding-top: 70px;
+        }
+        .sidebar-box {
+            width: 52px !important;
+            margin-left: 8px !important;
+            margin-right: 8px !important;
+        }
+        .inner-box {
+            border-top-left-radius: 30px;
+            border-bottom-left-radius: 30px;
+        }
+        .top-bar {
+            padding: 16px 16px 0 16px;
+        }
+    }
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signalr@6.0.0/dist/browser/signalr.min.js"></script>
+
+
+<!-- PowerIcon Listener -->
+<script>
+    document.getElementById("power-icon").addEventListener("click", function () {
+        const modal = new bootstrap.Modal(document.getElementById("powerConfirmModal"));
+        modal.show();
+    });
+
+    document.getElementById("confirmLogOff").addEventListener("click", async function () {
+        try {
+            const response = await fetch("/Index?handler=LogOff", {
+                method: "POST"
+            });
+
+            if (response.ok) {
+                window.location = "/Index";
+            } else {
+                showToast("Failed to log off the server.", true);
+            }
+        } catch (err) {
+            console.error(err);
+             showToast("An error occurred while trying to log off.", true);
+        }
+    });
+</script>
+
+<!-- Toggle Single File Download Button -->
+<script>
+    let certDownloadReady = false;
+
+    function tryShowDownloadButton() {
+        const downloadSection = document.getElementById("downloadButton");
+        if (certDownloadReady && downloadSection) {
+            downloadSection.style.display = "block";
+
+            const overlay = document.getElementById("waitingModalOverlay");
+            if (overlay) overlay.remove();
+
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
+        }
+    }
+
+    // DOM listener
+    const observer = new MutationObserver(() => {
+        if (certDownloadReady) {
+            tryShowDownloadButton();
+        }
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+</script>
+
+<!-- Toggle Multi File Download Buttons -->
+<script>
+    let certDownloadsReady = false;
+
+    function tryShowDownloadButtons() {
+        const downloadSections = document.getElementById("multiDownloadButtons");
+        if (certDownloadsReady && downloadSections) {
+            downloadSections.style.display = "block"; // <-- fixed!
+
+            const overlay = document.getElementById("waitingModalOverlay");
+            if (overlay) overlay.remove();
+
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
+        }
+    }
+
+    // DOM listener
+    const observer2 = new MutationObserver(() => {
+        if (certDownloadsReady) {
+            tryShowDownloadButtons();
+        }
+    });
+
+    observer2.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+</script>
+
+<!--Toast-->
+<script>
+    function showToast(message, isError = false) {
+        const toast = document.createElement("div");
+        toast.textContent = message;
+        toast.style.position = "fixed";
+        toast.style.bottom = "20px";
+        toast.style.left = "50%";
+        toast.style.transform = "translateX(-50%)";
+        toast.style.background = isError ? "#dc3545" : "#198754"; // Red or green
+        toast.style.color = "#fff";
+        toast.style.padding = "10px 20px";
+        toast.style.borderRadius = "8px";
+        toast.style.boxShadow = "0 0 10px rgba(0,0,0,0.2)";
+        toast.style.zIndex = 9999;
+        toast.style.transition = "opacity 0.4s ease";
+        toast.style.opacity = "1";
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 400);
+        }, 2500);
+    }</script>
+
+<!--Auto Select Save on Select AutoRenew-->
+<script>
+    var autoRenew = document.getElementById("autoRenew");
+    if (autoRenew) {
+        autoRenew.addEventListener("change", function () {
+            const autoRenewVal = this.checked;
+            const saveForRenewal = document.getElementById("saveForRenewal");
+
+            if (autoRenewVal && saveForRenewal && !saveForRenewal.checked) {
+                saveForRenewal.checked = true;
+            }
+        });
+    }
+</script>
+
+<!--Show/Hide Add User Password-->
+<script>
+
+        document.getElementById('togglePassword').addEventListener('click', function () {
+        const pwInput = document.getElementById('newPassword');
+        const icon = document.getElementById('togglePasswordIcon');
+        if (pwInput.type === 'password') {
+            pwInput.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            pwInput.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    });
+
+</script>
+
+<!--Show Add User Form-->
+<script>
+
+    document.getElementById('addUserForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        console.log(document.querySelectorAll('#newPassword').length)
+        const userDto = {
+            Username: document.getElementById('newUsername').value.trim(),
+            Password: document.getElementById('newPassword').value,
+            Name: document.getElementById('newName').value.trim(),
+            Email: document.getElementById('newEmail').value.trim(),
+            Role: document.querySelector('input[name="role"]:checked').value,
+            Notes: document.getElementById('newNotes').value.trim()
+        };
+
+        if (
+        userDto.Password.length < 8 ||
+        userDto.Password.length > 24 ||
+        !/[A-Z]/.test(userDto.Password) ||
+        !/[a-z]/.test(userDto.Password) ||
+        !/[0-9]/.test(userDto.Password)
+        ) {
+        showToast("Password must be 8-24 characters, and include uppercase, lowercase, and a number.", true);
+        return;
+        }
+
+        const response = await fetch('/Settings?handler=AddUser', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userDto)
+        });
+
+           if (response.redirected) {
+            window.location = response.url;
+        } else if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+            showToast('User added successfully!');
+            setTimeout(() => location.reload(), 800); // Give a moment for the toast to show or call a function to refresh the list without reload
+        } else {
+            showToast('Error adding user: ' + (await response.text()), true);
+        }
+    });
+
+</script>
+
+<!--Show Error Modal-->
+<script>
+    function showErrorModal() {
+    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+    errorModal.show();
+    }
+</script>
+
+<!-- Show Add provider Modal -->
+<script>
+    async function showAddProviderModal() {
+      const response = await fetch('/Dashboard?handler=ShowAddProviderModal', {
+        method: 'POST'
+      });
+
+      const html = await response.text();
+      document.getElementById('dnsChallengeModalBody').innerHTML = html;
+      const modal = new bootstrap.Modal(document.getElementById('dnsChallengeModal'));
+      modal.show();
+    }
+
+      async function submitNewProvider() {
+      const provider = {
+        providerName: document.getElementById('providerName').value,
+        provider: document.getElementById('provider').value,
+        apiKey: document.getElementById('apiKey').value,
+        ttl: parseInt(document.getElementById('ttl').value)
+      };
+
+      const response = await fetch('/Dashboard?handler=AddDNSProvider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(provider)
+      });
+
+      if (response.ok) {
+        showToast("Provider added successfully!");
+        bootstrap.Modal.getInstance(document.getElementById('dnsChallengeModal')).hide();
+
+        // For dashboard page (dropdown)
+        const select = document.getElementById('dnsProvider');
+        if (select) {
+          // Fetch updated list from the server (assumes you have a handler for this)
+          const updatedList = await fetch('/Dashboard?handler=GetDNSProviders');
+          if (updatedList.ok) {
+            const providers = await updatedList.json();
+
+            // Clear current list
+            select.innerHTML = '';
+
+            // Add new options
+            providers.forEach(p => {
+              const option = document.createElement('option');
+              option.value = p.providerName;
+              option.textContent = p.providerName;
+              select.appendChild(option);
+            });
+
+            // Optional: auto-select the one that was just added
+            select.value = provider.providerName;
+          }
+        }
+
+        // For settings page (table)
+        if (window.location.pathname.toLowerCase().includes('settings')) {
+          // Usually your backend should return the new provider including its ID and username.
+          // If not, you may need to fetch the full list and add the last one. But let's try with optimistic update:
+
+          // Example: You get back the new provider in the response (ideal)
+          const addedProvider = await response.json(); // e.g. { providerId, providerName, username }
+
+          // Remove "No DNS Providers found." row if present
+          const tbody = document.querySelector("#dnsTable tbody");
+          if (!tbody) return;
+
+          const emptyRow = tbody.querySelector('.no-sort');
+          if (emptyRow) emptyRow.remove();
+
+          // Build new row HTML
+          const newRow = document.createElement('tr');
+          newRow.setAttribute('data-provider-id', addedProvider.providerId);
+          newRow.innerHTML = `
+            <td>${addedProvider.providerName}</td>
+            <td class="text-center">${addedProvider.username}</td>
+            <td>
+              <button class="btn btn-sm btn-info" onclick="showEditProviderModal('${addedProvider.providerId}')">Edit</button>
+            </td>
+          `;
+          tbody.appendChild(newRow);
+        }
+      } else {
+        const err = await response.text();
+        showToast("Failed to add provider: " + err, true);
+      }
+    }
+</script>
+
+<!-- Sort DNSTable-->
+<script>
+      let lastSortedCol1 = -1;
+    let sortDirection1 = 1; // 1 = ascending, -1 = descending
+
+    function sortDNSTable(colIndex) {
+        const table1 = document.getElementById("dnsTable");
+        const tbody1 = table1.tBodies[0];
+        const rowsArray1 = Array.from(tbody1.querySelectorAll("tr"));
+
+        // Only sort rows without the 'no-sort' class
+        const dataRows1 = rowsArray1.filter(row => !row.classList.contains("no-sort"));
+
+        // If sorting same col again, reverse direction
+        if (lastSortedCol1 === colIndex) {
+            sortDirection1 *= -1;
+        } else {
+            sortDirection1 = 1;
+        }
+        lastSortedCol1 = colIndex;
+
+        // Sort the rows
+        dataRows1.sort((a, b) => {
+            let aText = a.cells[colIndex].textContent.trim().toLowerCase();
+            let bText = b.cells[colIndex].textContent.trim().toLowerCase();
+
+            let aNum = parseFloat(aText), bNum = parseFloat(bText);
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return sortDirection1 * (aNum - bNum);
+            }
+            if (aText < bText) return -1 * sortDirection1;
+            if (aText > bText) return 1 * sortDirection1;
+            return 0;
+        });
+
+        // Remove all data rows
+        dataRows1.forEach(row => tbody1.removeChild(row));
+        // Re-add sorted rows
+        dataRows1.forEach(row => tbody1.appendChild(row));
+    }
+</script>
+
+<!-- Delete DNS Provider -->
+<script>
+    let pendingProviderIdToDelete = null;
+
+    function promptDeleteProvider(providerId) {
+        pendingProviderIdToDelete = providerId;
+        const modal = new bootstrap.Modal(document.getElementById('confirmDeleteDNSProviderModal'));
+        modal.show();
+
+
+       const editdnsModalEl = document.getElementById('editProviderModal');
+       const  editdnsModalInstance = bootstrap.Modal.getInstance(editdnsModalEl)
+        || new bootstrap.Modal(editdnsModalEl);
+        editdnsModalInstance.hide();
+
+
+
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const btn = document.getElementById('confirmDeleteDNSProviderBtn');
+
+        if (btn) {
+            btn.addEventListener('click', async function () {
+                if (!pendingProviderIdToDelete) return;
+
+                const response = await fetch('/Settings?handler=DeleteDNSProvider', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ providerId: pendingProviderIdToDelete })
+                });
+
+                if (response.ok) {
+                    showToast("Provider deleted.");
+                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('editProviderModal'));
+                    if (modalInstance) modalInstance.hide();
+
+                    document.querySelector(`[data-provider-id="${pendingProviderIdToDelete}"]`)?.remove();
+
+                    if (document.querySelectorAll('[data-provider-id]').length === 0) {
+                        document.querySelector('#dnsTable tbody').innerHTML =
+                            `<tr class="no-sort"><td colspan="3" class="text-muted text-center">No DNS Providers found.</td></tr>`;
+                    }
+                } else {
+                    const err = await response.text();
+                    showToast("Failed to delete provider: " + err, true);
+                }
+
+                // Hide the confirm modal either way
+                bootstrap.Modal.getInstance(document.getElementById('confirmDeleteDNSProviderModal'))?.hide();
+                pendingProviderIdToDelete = null;
+            });
+        }
+    });
+
+</script>
+
+<!-- Save Edited DNS Provider-->
+<script>
+    async function saveEditedProvider() {
+        const updateDNSProviderRequest = {
+            providerId: document.getElementById('editProviderId').value,
+            providerName: document.getElementById('editProviderName').value,
+            provider: document.getElementById('editProvider').value,
+            apiKey: document.getElementById('editApiKey').value,
+            ttl: parseInt(document.getElementById('editTtl').value)
+        };
+            console.log("Saving edited updateDNSProviderRequest:", updateDNSProviderRequest);
+            const response = await fetch('/Settings?handler=UpdateDNSProvider', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+
+                body: JSON.stringify(updateDNSProviderRequest)
+
+            });
+
+        if (response.ok) {
+            showToast("Provider updated successfully!");
+                    bootstrap.Modal.getInstance(document.getElementById('editProviderModal')).hide();
+
+
+                    // Update the row in the table
+                    const row = document.querySelector(`[data-provider-id="${updateDNSProviderRequest.providerId}"]`);
+                    if (row) {
+                        row.cells[0].textContent = updateDNSProviderRequest.providerName;
+     
+                    }
+
+        } else {
+            const err = await response.text();
+            showToast("Failed to update provider: " + err, true);
+        }
+    }
+</script>
+
+<!-- Show Cert Modal -->
+<script>
+    function showCertRecordModal(orderId) {
+        const modalBody = document.getElementById("certRecordModalBody");
+        modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+        fetch(`/Dashboard?handler=GetRecordModal&orderId=${encodeURIComponent(orderId)}`)
+            .then(res => res.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+                const modal = new bootstrap.Modal(document.getElementById('certRecordModal'));
+                modal.show();
+            })
+            .catch(err => {
+                modalBody.innerHTML = `<p class="text-danger">Failed to load record.</p>`;
+                console.error(err);
+            });
+    }
+</script>
+
+<!-- Show Local Cert Modal -->
+<script>
+
+    document.getElementById('localCertForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+      
+        const subjectRaw = document.getElementById('subjectNameInput').value.trim();
+        const subjectName = subjectRaw.startsWith("CN=") ? subjectRaw : `CN=${subjectRaw}`;
+        const sanInput = document.getElementById('sanNamesInput').value.trim();
+      
+
+        const sanNames = sanInput.split(/\s*,\s*/).filter(x => x);
+
+        const password = document.getElementById('passwordInput').value;
+        const validDays = parseInt(document.getElementById('validDaysInput').value, 10) || 365;
+
+       
+        const payload = {
+            subjectName: subjectName,
+            sanNames: sanNames,
+            password: password || "",
+            validDays: validDays
+        };
+
+      
+        const response = await fetch('/Dashboard?handler=LocalCert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "certificate.pfx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            
+            const localCertModal = bootstrap.Modal.getInstance(document.getElementById('localCertModal'));
+            localCertModal.hide();
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+
+        } else {
+           
+            const errorText = await response.text();
+           showToast("Failed to create certificate: " + errorText, true);
+        }
+    });
+
+</script>
+
+<!-- Show Manage Cert Modal -->
+<script>
+    async function showManageCertModal(orderId) {
+        const manageModalEl = document.getElementById('manageCertMiniModal');
+        if (!manageModalEl) {
+            showToast("Modal not found!", true);
+            return;
+        }
+        const manageModal = new bootstrap.Modal(manageModalEl);
+
+
+
+            const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+        if (row) {
+            const autoRenewCell = row.querySelectorAll('td')[3];
+            const badge = autoRenewCell.querySelector('span');
+            const btnToggleAuto = document.getElementById('btnToggleAutoRenew');
+            if (badge && btnToggleAuto) {
+                const isOn = badge.textContent.trim().toLowerCase() === "on";
+                btnToggleAuto.textContent = isOn ? "Toggle Auto-Renew Off" : "Toggle Auto-Renew On";
+                // Optional: Update btn style for visual cue
+                btnToggleAuto.classList.toggle("btn-outline-danger", isOn);
+                btnToggleAuto.classList.toggle("btn-outline-success", !isOn);
+            }
+        }
+
+
+
+        manageModal.show();
+
+        // Wire download links
+        const dlPem = document.getElementById('btnDownloadCertPem');
+        const dlKey = document.getElementById('btnDownloadCertKey');
+        if (dlPem) dlPem.href = `/ManageRenewals?handler=DownloadCertPemById&orderId=${encodeURIComponent(orderId)}`;
+        if (dlKey) dlKey.href = `/ManageRenewals?handler=DownloadCertKeyById&orderId=${encodeURIComponent(orderId)}`;
+
+        // Wire Request API button
+        const btnApi = document.getElementById('btnRequestApi');
+        if (btnApi) {
+            btnApi.onclick = async function () {
+                manageModal.hide();
+                const resp = await fetch(`/ManageRenewals?handler=CertApiInfo&orderId=${encodeURIComponent(orderId)}`);
+                if (!resp.ok) { showToast("Could not load cert info.", true); return; }
+                const info = await resp.json();
+
+                buildApiSnippet(info.domain, info.certApiKey, info.orderId);
+                new bootstrap.Modal(document.getElementById('apiSnippetModal')).show();
+            };
+        }
+
+        function removeOldWaitModal() {
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+            let oldOverlay = document.getElementById("waitingModalOverlay");
+            if (oldOverlay) oldOverlay.remove();
+        }
+
+        // Bind Renew Button
+        const btnRenew = document.getElementById('btnRenewCert');
+        if (btnRenew) {
+            btnRenew.onclick = async function () {
+                showToast("Renewing certificate for: " + orderId);
+
+                manageModal.hide();
+
+                removeOldWaitModal();
+
+                let waitModalHtml;
+                try {
+                    const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                    waitModalHtml = await waitModalResponse.text();
+                } catch {
+                    waitModalHtml = `
+                        <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content p-4 text-center">
+                              <div class="spinner-border text-primary" role="status"></div>
+                              <p class="mt-2 mb-0 fw-bold">Renewing certificate...</p>
+                            </div>
+                          </div>
+                        </div>`;
+                }
+                document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+          
+                const waitModalEl = document.getElementById("waitModal");
+                let waitModalInstance = null;
+                if (waitModalEl) {
+                    waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                    waitModalInstance.show();
+                }
+
+
+                let result = null;
+                try {
+                    const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    });
+
+                    if (!response.ok) {
+                        showToast("Renewal failed. Try again.", true);
+                        removeOldWaitModal();
+                        return;
+                    }
+
+                    result = await response.json();
+                } catch (e) {
+                    showToast("Error during renewal request.", true);
+                    removeOldWaitModal();
+                    return;
+                }
+
+            
+                removeOldWaitModal();
+
+           
+                if (result?.autoRenewed) {
+                    showToast("Order Auto-Renewed Successfully", false);
+                    const data = await response.json();
+                    
+                    
+                    const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if(row)
+                    {
+                         const statusCell = row.querySelectorAll('td')[1];
+                        statusCell.innerHTML = `<span class="badge bg-primary">Active</span>`;
+
+                         const daysCell = row.querySelectorAll('td')[2];
+                         daysCell.innerHTML = `<span class="badge bg-success">90</span>`;
+
+                    }
+                    
+                    return;
+                }
+                if (result?.status === "manual" && result.html) {
+                    document.getElementById('manualRenewModalContent').innerHTML = result.html;
+                    new bootstrap.Modal(document.getElementById('manualRenewModal')).show();
+                    showToast("Manual renewal initiated. Please complete the challenges.", false);
+                    return;
+                }
+
+                showToast(result?.message || "Unknown renewal status.", true);
+            };
+        }
+    
+    
+
+        // Bind Revoke Button
+        const btnRevoke = document.getElementById('btnRevokeCert');
+        if (btnRevoke) {
+            btnRevoke.onclick = async function () {
+
+ 
+                manageModal.hide();
+
+         
+                removeOldWaitModal();
+
+           
+                let waitModalHtml;
+                try {
+                    const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                    waitModalHtml = await waitModalResponse.text();
+                } catch {
+                    waitModalHtml = `
+                        <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content p-4 text-center">
+                              <div class="spinner-border text-primary" role="status"></div>
+                              <p class="mt-2 mb-0 fw-bold">Renewing certificate...</p>
+                            </div>
+                          </div>
+                        </div>`;
+                }
+                document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+            
+                const waitModalEl = document.getElementById("waitModal");
+                let waitModalInstance = null;
+                if (waitModalEl) {
+                    waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                    waitModalInstance.show();
+                }
+
+        
+                let result = null;
+                try {
+                    const response = await fetch('/ManageRenewals?handler=RenewCertificate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    });
+
+                    if (!response.ok) {
+                        showToast("Renewal failed. Try again.", true);
+                        removeOldWaitModal();
+                      return;
+                    }
+
+                    const data = await response.json();
+
+                } catch (e) {
+                    showToast("Error during renewal request.", true);
+                    removeOldWaitModal();
+                    return;
+                }
+
+               
+                removeOldWaitModal();
+
+
+                const response = await fetch('/ManageRenewals?handler=RevokeCertificate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+                if (response.ok) {
+                    showToast("Revoked certificate for: " + orderId, false);
+                    manageModal.hide();
+
+                   const data = await response.json();
+                   const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if (row) {
+                    row.style.transition = "opacity 0.3s";
+                    row.style.opacity = 0;
+                    setTimeout(() => row.remove(), 300);
+                }
+
+
+
+                } else {
+                    showToast("Failed to revoke certificate.", true);
+                }
+            };
+        }
+
+        // Bind Toggle Auto-Renew Button
+        const btnToggleAuto = document.getElementById('btnToggleAutoRenew');
+        if (btnToggleAuto) {
+            btnToggleAuto.onclick = async function () {
+                const response = await fetch('/ManageRenewals?handler=ToggleAutoRenew', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+                if (response.ok) {
+                    showToast("Toggled auto-renew for: " + orderId, false);
+                    manageModal.hide();
+                    const data = await response.json();
+
+                    const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                    if (row) {
+                        const autoRenewCell = row.querySelectorAll('td')[3]; // 4th column!
+                        const badge = autoRenewCell.querySelector('span');
+                        if (badge) {
+                            const isOn = badge.textContent.trim().toLowerCase() === "on";
+                            badge.textContent = isOn ? "Off" : "On";
+                            badge.className = isOn ? "badge bg-danger" : "badge bg-success";
+                            
+                            badge.style.transition = "background 0.2s, color 0.2s";
+                        }
+                    }
+
+                } else {
+                    showToast("Failed to toggle auto-renew.", true);
+                }
+            };
+        }
+    }
+
+
+
+         function CheckManualChallenges(request) {
+        let btn = document.getElementById('manualReadyBtn');
+        if (btn) btn.disabled = true;
+        if (typeof request === "string") {
+            request = { OrderId: request };
+        }
+        fetch('/ManageRenewals?handler=CheckManualChallenges', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request)
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('manualRenewModalContent').innerHTML = html;
+
+            
+            certDownloadReady = false;
+            certDownloadsReady = false;
+            let btn1 = document.getElementById("downloadButton");
+            if (btn1) btn1.style.display = "none";
+            let btn2 = document.getElementById("multiDownloadButtons");
+            if (btn2) btn2.style.display = "none";
+
+            new bootstrap.Modal(document.getElementById('manualRenewModal')).show();
+        });
+
+
+
+
+    }
+
+        document.addEventListener('hidden.bs.modal', function () {
+       
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+     
+        document.body.classList.remove('modal-open');
+        document.body.style = '';
+    });
+
+
+
+
+
+
+</script>
+
+<!-- API Snippet helpers -->
+<script>
+    let _apiSnippetOrderId = null;
+
+    function buildApiSnippet(domain, apiKey, orderId) {
+        _apiSnippetOrderId = orderId;
+        const base = `${window.location.protocol}//${window.location.host}`;
+
+        document.getElementById('apiSnippetDomain').textContent = domain;
+
+        document.getElementById('apiSnippetCurl').textContent =
+`curl -s \\
+  -H "X-Api-Key: ${apiKey}" \\
+  ${base}/api/cert/${domain}`;
+
+        document.getElementById('apiSnippetScript').textContent =
+`#!/bin/bash
+# Run daily via cron to keep the cert fresh
+SPHERESSL="${base}"
+DOMAIN="${domain}"
+API_KEY="${apiKey}"
+CERT_DIR="/etc/ssl/certs"
+
+RESPONSE=$(curl -s -H "X-Api-Key: $API_KEY" "$SPHERESSL/api/cert/$DOMAIN")
+echo "$RESPONSE" | jq -r '.certPem' > "$CERT_DIR/$DOMAIN.pem"
+echo "$RESPONSE" | jq -r '.certKey' > "$CERT_DIR/$DOMAIN.key"
+
+# Reload your web server (uncomment the one you use)
+# nginx -s reload
+# systemctl reload apache2
+# systemctl reload caddy`;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('btnRegenerateApiKey')?.addEventListener('click', async function () {
+            if (!_apiSnippetOrderId) return;
+            if (!confirm('This will invalidate the current key. Any servers using it will need updating. Continue?')) return;
+
+            const resp = await fetch('/ManageRenewals?handler=RegenerateCertApiKey', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: _apiSnippetOrderId })
+            });
+            if (!resp.ok) { showToast('Failed to regenerate key.', true); return; }
+            const data = await resp.json();
+
+            // Refresh the snippet with the new key — re-fetch to get the domain
+            const infoResp = await fetch(`/ManageRenewals?handler=CertApiInfo&orderId=${encodeURIComponent(_apiSnippetOrderId)}`);
+            const info = await infoResp.json();
+            buildApiSnippet(info.domain, data.certApiKey, _apiSnippetOrderId);
+            showToast('API key regenerated. Update your server scripts.');
+        });
+    });
+
+    function copySnippet(elementId) {
+        const text = document.getElementById(elementId)?.textContent ?? '';
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!');
+        }).catch(() => {
+            showToast('Copy failed — select and copy manually.', true);
+        });
+    }
+</script>
+
+<!-- Learn More Open -->
+<script>
+    function learnMore() {
+        window.open("/LearnMore", "_blank");
+    }
+</script>
+
+<!-- Close DNS Challenge Modal -->
+<script>
+       function closeDnsModal() {
+        const modalEl = document.getElementById("dnsChallengeModal");
+        const modal = bootstrap.Modal.getInstance(modalEl);
+
+        const overlay = document.getElementById("waitingModalOverlay");
+        if (overlay) overlay.remove();
+
+            const startButton = document.getElementById("startButton");
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.hidden = false;
+            }
+
+
+        if (modal) {
+            modal.hide();
+        }
+
+    setTimeout(() => {
+        location.reload();
+    }, 300);
+
+    }
+
+
+
+        // document.addEventListener('DOMContentLoaded', function () {
+        // const modalEl = document.getElementById("dnsChallengeModal");
+        // if (!modalEl) return;
+
+        // modalEl.addEventListener('hidden.bs.modal', function () {
+        //     // Clean up overlay
+        //     const overlay = document.getElementById("waitingModalOverlay");
+        //     if (overlay) overlay.remove();
+
+        //     // Show or enable the start button if needed
+        //     const startButton = document.getElementById("startButton");
+        //     if (startButton) {
+        //         startButton.disabled = false;
+        //         startButton.hidden = false;
+        //     }
+
+        //     // Reload page
+        //     setTimeout(() => {
+        //         location.reload();
+        //     }, 300);
+        // });
+    });
+</script>
+
+<!-- Deep Linking for Tabs -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (window.location.hash) {
+            const tabHash = window.location.hash;
+            const tabButton = document.querySelector(`[data-bs-target="${tabHash}"]`);
+            if (tabButton) {
+                var tabTrigger = new bootstrap.Tab(tabButton);
+                tabTrigger.show();
+                // Optional: scroll into view
+                setTimeout(() => {
+                    document.querySelector(tabHash)?.scrollIntoView({behavior:"smooth"});
+                }, 200);
+            }
+        }
+
+        // Update URL hash on tab switch for deep linking
+        const tabLinks = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabLinks.forEach(btn => {
+            btn.addEventListener('shown.bs.tab', function (e) {
+                history.replaceState(null, null, e.target.getAttribute('data-bs-target'));
+            });
+        });
+    });
+</script>

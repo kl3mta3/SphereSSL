@@ -1,0 +1,1676 @@
+﻿@page
+@model SphereSSLv2.Pages.SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+@{
+    bool isSuperadmin = Model.CurrentUser.Role == "SuperAdmin";
+    bool isAdmin = Model.CurrentUser.IsAdmin || isSuperadmin;
+    bool isViewer = Model.CurrentUser.Role == "Viewer";
+    bool useLogOn = Model.UseLogOn;
+}
+
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-grow-1">
+        <div class="flex-grow-1 ">
+            <div class="container text-center ">
+
+                <div class="container-fluid px-4">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-10 col-md-12 col-sm-12 mb-4">
+                            <h3 class="title text-center mb-3">Settings</h3>
+                            <div class="card shadow-sm p-4">
+
+                                <!-- Tabs Navigation -->
+                                <ul class="nav nav-tabs mb-4" id="settingsTab" role="tablist">
+
+                                    @if (isSuperadmin)
+                                    {
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="cert-tab" data-bs-toggle="tab" data-bs-target="#cert" type="button" role="tab" aria-controls="cert" aria-selected="true">Cert</button>
+                                        </li>
+                                    }
+
+                                    @if (!isViewer)
+                                    {
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="dns-tab" data-bs-toggle="tab" data-bs-target="#dns" type="button" role="tab" aria-controls="dns" aria-selected="false">DNS </button>
+                                        </li>
+
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="connect-tab" data-bs-toggle="tab" data-bs-target="#connect" type="button" role="tab" aria-controls="connect" aria-selected="false">Connect</button>
+                                        </li>
+                                    }
+
+                                    @if (isSuperadmin)
+                                    {
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="device-tab" data-bs-toggle="tab" data-bs-target="#device" type="button" role="tab" aria-controls="device" aria-selected="false">Device </button>
+                                        </li>
+                                    }
+
+                                    @if (isAdmin)
+                                    {
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">Advanced </button>
+                                        </li>
+                                    }
+
+                                </ul>
+
+                                <!-- Tab Content -->
+                                <div class="tab-content" id="settingsTabContent">
+
+                                    <!-- Cert Settings-->
+                                    <div class="tab-pane fade show active" id="cert" role="tabpanel" aria-labelledby="cert-tab">
+                                        @if (isSuperadmin)
+                                        {
+                                            <div class="card ca-card mx-auto shadow p-4">
+                                                <div class="text-center mb-2">
+                                                    <h4 class="fw-bold mb-1">Certificate Authority Address</h4>
+                                                    <p class="mb-3 text-muted">You can change the Certificate Authority used. Enter the CA's URL.</p>
+                                                </div>
+                                                <form>
+                                                    <div class="mb-3">
+                                                        <label for="caPrimeUrl" class="form-label">Certificate Authority Main URL</label>
+                                                        <input type="text"
+                                                        class="form-control url-input"
+                                                        id="caPrimeUrl"
+                                                        name="CAPrimeUrl"
+                                                        value="@Model.CAPrimeUrl" />
+                                                        <p class="small text-muted mt-1 mb-0">This is the main URL used for creating Certificates. (Must accept ACME protocol)</p>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="caStagingUrl" class="form-label">Certificate Authority Staging URL</label>
+                                                        <input type="text"
+                                                        class="form-control url-input"
+                                                        id="caStagingUrl"
+                                                        name="CAStagingUrl"
+                                                        value="@Model.CAStagingUrl" />
+                                                        <p class="small text-muted mt-1 mb-0">This is the URL used for staging (testing).</p>
+                                                    </div>
+                                                    <div class="text-center mt-4">
+                                                        <button type="button" class="btn btn-primary px-5 py-2" onclick="submitCAUpdateCreds()">Update</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+
+                                            <!-- Certificate Settings -->
+                                            <div class="card bg-light text-dark shadow-sm p-4 mt-4">
+                                                <h6 class="fw-semibold mb-3">Certificate Settings</h6>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Cert Validity Days</label>
+                                                    <input type="number" class="form-control" id="certValidityDaysInput" min="1" max="3650"
+                                                        value="@Model.CertValidityDays"
+                                                        placeholder="90" />
+                                                    <div class="form-text">How long issued certs are valid (default: 90). Change this if your CA uses a different lifetime.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Renew Before Expiry (Days)</label>
+                                                    <input type="number" class="form-control" id="renewBeforeExpiryDaysInput" min="1" max="365"
+                                                        value="@Model.RenewBeforeExpiryDays"
+                                                        placeholder="30" />
+                                                    <div class="form-text">How many days before expiry to trigger auto-renewal (default: 30).</div>
+                                                </div>
+                                                <div class="text-center mt-4">
+                                                    <button type="button" class="btn btn-primary px-5 py-2" onclick="submitCertSettings()">Update</button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Server Mode Settings -->
+                                            <div class="card bg-light text-dark shadow-sm p-4 mt-4">
+                                                <h6 class="fw-semibold mb-3">Server Mode</h6>
+                                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom mb-2">
+                                                    <div>
+                                                        <div class="fw-semibold">Staging Only</div>
+                                                        <small class="text-muted">Forces all cert creation to use the Staging CA. Users cannot override the Staging toggle.</small>
+                                                    </div>
+                                                    <div class="form-check form-switch ms-3 flex-shrink-0">
+                                                        <input class="form-check-input custom-toggle" type="checkbox" id="stagingOnlySwitch"
+                                                               @(Model.StagingOnly ? "checked" : "") onchange="saveModeSettings()" />
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom mb-2">
+                                                    <div>
+                                                        <div class="fw-semibold">Restrict Viewers</div>
+                                                        <small class="text-muted">Locks Save Path, Auto DNS Record, Save Order, and Auto Renew for Viewer-role accounts.</small>
+                                                    </div>
+                                                    <div class="form-check form-switch ms-3 flex-shrink-0">
+                                                        <input class="form-check-input custom-toggle" type="checkbox" id="restrictViewersSwitch"
+                                                               @(Model.RestrictViewers ? "checked" : "") onchange="saveModeSettings()" />
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center py-2">
+                                                    <div>
+                                                        <div class="fw-semibold">Hide Logout for Viewers</div>
+                                                        <small class="text-muted">Hides the logout (power) button for Viewer-role accounts. Sessions still time out normally.</small>
+                                                    </div>
+                                                    <div class="form-check form-switch ms-3 flex-shrink-0">
+                                                        <input class="form-check-input custom-toggle" type="checkbox" id="hideViewerLogoutSwitch"
+                                                               @(Model.HideViewerLogout ? "checked" : "") onchange="saveModeSettings()" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Demo Login Settings -->
+                                            <div class="card bg-light text-dark shadow-sm p-4 mt-4">
+                                                <h6 class="fw-semibold mb-1">Demo Login</h6>
+                                                <small class="text-muted mb-3">When enabled, the login page displays the demo credentials below and pre-fills the login form. The form does NOT auto-submit, so you can still log in as another user.</small>
+                                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom mb-2">
+                                                    <div class="fw-semibold">Demo Login Enabled</div>
+                                                    <div class="form-check form-switch ms-3 flex-shrink-0">
+                                                        <input class="form-check-input custom-toggle" type="checkbox" id="demoLoginEnabledSwitch"
+                                                               @(Model.DemoLoginEnabled ? "checked" : "") />
+                                                    </div>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label for="demoUsernameInput" class="form-label fw-semibold">Demo Username</label>
+                                                    <input type="text" class="form-control" id="demoUsernameInput" value="@Model.DemoUsername" placeholder="demo_user" autocomplete="off" />
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="demoPasswordInput" class="form-label fw-semibold">Demo Password</label>
+                                                    <input type="text" class="form-control" id="demoPasswordInput" value="@Model.DemoPassword" placeholder="demo_password" autocomplete="off" />
+                                                    <small class="text-muted">Stored in plaintext in app.config since it's displayed publicly on the login page. Make sure this account is a low-privilege Viewer.</small>
+                                                </div>
+                                                <div class="text-center">
+                                                    <button type="button" class="btn btn-primary px-5 py-2" onclick="saveDemoLogin()">Save Demo Settings</button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                   <!-- DNS Settings  -->
+                                    <div class="tab-pane fade" id="dns" role="tabpanel" aria-labelledby=dns-tab">
+                                        <div class="card bg-light text-dark shadow-sm p-4">
+                                            <h6 class="fw-semibold mb-3">DNS Providers</h6>
+
+                                                <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                                                <table class="table table-striped table-hover align-middle mb-3" id="dnsTable">
+                                                      <thead>
+                                                          <tr>
+                                                            <th style="cursor:pointer;" onclick="sortDNSTable(0)">Provider <span id="providerSortIcon">⇅</span></th>
+                                                            <th class="text-center" style="cursor:pointer;" onclick="sortDNSTable(1)">User <span id="usernameSortIcon">⇅</span></th>
+                                                              <th style="width:140px"></th>
+                                                          </tr>
+                                                       </thead>
+                                             
+                                                       <tbody>
+                                                            @if (Model.DNSProviders != null && Model.DNSProviders.Any())
+                                                            {
+                                                                foreach (var provider in Model.DNSProviders)
+                                                                {
+                                                                    <tr data-provider-id="@provider.ProviderId">
+
+                                                                        <td>@provider.ProviderName</td>
+                                                                        <td class="text-center">@provider.Username</td>
+                                                                        <td><button class="btn btn-sm btn-info" onclick="showEditProviderModal('@provider.ProviderId')">Edit</button></td>
+
+                                                                     </tr>
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                <tr class="no-sort">
+                                                                    <td colspan="3" class="text-muted text-center">No DNS Providers found.</td>
+                                                                </tr>
+                                                            }
+                                                       </tbody>
+
+                                                    </table>
+                                                </div>
+
+                                            <button class="btn btn-success w-80" data-bs-toggle="modal" onclick="showAddProviderModal()">Add DNSProvider</button>
+
+                                        </div>
+                                    </div>
+                                   <!-- Device Settings  -->
+                                    <div class="tab-pane fade" id="device" role="tabpanel" aria-labelledby="device-tab">
+                                        @if (isSuperadmin)
+                                        {
+
+                                          <!-- Only SuperAdmin sees these controls -->
+                                            <div class="card bg-light text-dark shadow-sm p-4 mb-4">
+                                                <div class="text-center">
+                                                    <h4>Restart Server</h4>
+                                                    <p>(This will restart the server and apply all settings)</p>
+                                                    <div class="d-flex justify-content-center">
+                                                        <div class="card shadow-sm bg-dark" style="width:50px; height:50px; display:flex; align-items:center; justify-content:center;">
+                                                            <button id="settings-power-icon"
+                                                                    class="settings-icon btn btn-link p-0"
+                                                                    style="color: #f44336; font-size:2rem;"
+                                                                    onclick="restartServerTrigger(); return false;">
+                                                                <i class="bi bi-power"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                 </div>
+                                            </div>
+
+                                            <div class="card bg-light text-dark shadow-sm p-4 mb-4">
+                                                <h4>Server Connection Settings</h4>
+                                                <div class="row g-2 align-items-center justify-content-center">
+                                                    <div class="col-md-5 mb-3">
+                                                        <label for="serverUrl" class="form-label">Server Url</label>
+                                                        <input type="text"
+                                                               class="form-control"
+                                                               id="serverUrl"
+                                                               name="ServerUrl"
+                                                               value="@Model.ServerUrl" />
+                                                    </div>
+                                                    <div class="col-md-5 mb-3">
+                                                        <label for="serverPort" class="form-label">Server Port</label>
+                                                        <input type="number"
+                                                               class="form-control"
+                                                               id="serverPort"
+                                                               name="ServerPort"
+                                                               value="@Model.ServerPort" />
+                                                    </div>
+                                                </div>
+                                                <div class="row g-2 align-items-center justify-content-center">
+                                                    <div class="col-md-2 mb-3 d-flex text center align-items-center">
+                                                        <button type="button" class="btn btn-danger w-100" id="submitServerCredsBtn">Update</button>
+                                                    </div>
+                                                </div>
+                                                <p>(This will cause a restart of the server to apply these setting.)</p>
+                                            </div>
+
+
+                                            <div class="card bg-light text-dark shadow-sm p-4 mb-4">
+                                                <h4>Database Settings</h4>
+                                                <div class="row g-2 align-items-center justify-content-center ">
+                                                    <div class="col-md-5 mb-3">
+                                                        <label for="dbPath" class="form-label">Database Path</label>
+                                                        <input type="text"
+                                                               class="form-control"
+                                                               id="dbPath"
+                                                               name="DbPath"
+                                                               value="@Model.DBPath" />
+                                                    </div>
+
+                                                </div>
+                                                <div class="row g-2 align-items-center justify-content-center">
+                                                    <div class="col-md-2 mb-3 d-flex align-items-center justify-content-center">
+                                                        <button type="button" class="btn btn-danger w-100" id="submitDbSettingsBtn">Update</button>
+                                                    </div>
+                                                </div>
+                                                <p>(This will cause a restart of the server to apply these setting.)</p>
+                                                <span>
+                                                    <p style="color: red;"><strong>*** CAUTION: Changing the Database path will destroy access to current Database. ***</strong></p>
+                                                </span>
+                                            </div>
+
+
+
+                                                    <!-- Reset to Factory -->
+                                            <div class="card  bg-dark text-light shadow-sm p-4 mb-4">
+                                                <h4>Reset Server to Factory</h4>
+                                                <div class="row g-2 align-items-center justify-content-center">
+
+                                                    <div class="col-md-2 mb-3 d-flex align-items-center justify-content-center">
+                                                        <button id="resetServerBtn" type="button" class="btn btn-danger w-100">RESET SERVER</button>
+                                                    </div>
+                                                </div>
+                                                <p>(This will cause a restart of the server to apply these setting.)</p>
+                                                <span>
+                                                    <p style="color: red;"><strong>*** CAUTION: This will destroy access to current Database and return the Server to new freshly installed state. ***</strong></p>
+                                                </span>
+                                            </div>
+
+                                        }
+                                    </div>
+
+                                   <!-- Advanced  Settings -->  
+                                    <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
+
+                                                <!-- Only SuperAdmin sees these controls -->
+                                        @if (isSuperadmin)
+                                        {
+                                                <div class="card bg-light text-dark shadow-sm p-4 mb-4">
+                                                    <form id="adminCredsForm" method="post">
+                                                        <div class="text-center">
+                                                            <h4>Enable Multi User Support</h4>
+                                                            <p>(Server Restart Required To take Effect)</p>
+                                                            <div class="form-check form-switch d-flex justify-content-center mt-2">
+                                                                <input class="form-check-input custom-toggle"
+                                                                       type="checkbox"
+                                                                       id="useLogOnSwitch"
+                                                                       name="UseLogOn"
+                                                                       value="true"
+                                                            @(         useLogOn ? "checked" : "") />
+                                                            </div>
+                                                        </div>
+
+                                                        <h5 class="fw-semibold mb-3">SuperAdmin Creds</h5>
+                                                        <div class="row g-2">
+                                                            <div class="col-md-6 mb-3">
+                                                                <label for="adminUsername" class="form-label">Admin Username</label>
+                                                                <input type="text"
+                                                                       class="form-control"
+                                                                       id="adminUsername"
+                                                                       name="Username"
+                                                                       value="@Model.AdminUsername" />
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label for="adminPassword" class="form-label">Admin Password</label>
+                                                                <input type="password"
+                                                                       class="form-control"
+                                                                       id="adminPassword"
+                                                                       name="Password"
+                                                                       placeholder="Enter new password"
+                                                                       autocomplete="new-password" />
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" class="btn btn-primary mt-2" onclick="submitAdminCreds()">Save Admin Credentials</button>
+                                                    </form>
+                                                </div>
+                                        }
+
+                                        @if (isAdmin)
+                                        {
+                                            <!-- User Account Management (all Admins/Superadmins) -->
+                                                <br/>
+                                                <div class="card bg-light text-dark shadow-sm p-4">
+                                            <h6 class="fw-semibold mb-3">User Accounts</h6>
+                                            <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                                                    <table class="table table-striped table-hover align-middle mb-3" id="usersTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="cursor:pointer;" onclick="sortTable(0)">Username <span id="userSortIcon">⇅</span></th>
+                                                        <th class="text-center" style="cursor:pointer;" onclick="sortTable(1)">Name <span id="nameSortIcon">⇅</span></th>
+                                                        <th style="width:140px"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                @if (Model.UserList != null && Model.UserList.Any())
+                                                {
+                                                    foreach (var user in Model.UserList)
+                                                    {
+                                                        if (user.Name != "Locke-Ann Key")
+                                                        {
+                                                            <tr data-user-id="@user.UserId">
+                                                                <td>@user.Username</td>
+                                                                <td class="text-center">@user.Name</td>
+                                                                <td>
+                                                                    <button onclick="showViewUserModal('@user.UserId')" class="btn btn-sm btn-info">View</button>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <tr>
+                                                        <td colspan="3" class="text-muted text-center">No users found.</td>
+                                                    </tr>
+                                                }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#addUserModal">Add User</button>
+                                        </div>
+                                        }
+
+                                    </div>
+
+                                    <!-- Connect Settings -->
+                                    <div class="tab-pane fade" id="connect" role="tabpanel" aria-labelledby="connect-tab">
+                                        <div class="card bg-light text-dark shadow-sm p-4">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h6 class="fw-semibold mb-0">Notification Connections</h6>
+                                                <button class="btn btn-sm btn-success" onclick="openTypePickerModal()">+ Add Connection</button>
+                                            </div>
+                                            <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                                                <table class="table table-striped table-hover align-middle mb-3" id="connectionsTable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Name</th>
+                                                            <th>Type</th>
+                                                            <th>Events</th>
+                                                            <th>Enabled</th>
+                                                            <th style="width:130px"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @if (Model.UserConnections != null && Model.UserConnections.Any())
+                                                        {
+                                                            foreach (var c in Model.UserConnections)
+                                                            {
+                                                                <tr data-connection-id="@c.ConnectionId">
+                                                                    <td>@c.ConnectionName</td>
+                                                                    <td>@c.ConnectionType</td>
+                                                                    <td class="small">
+                                                                        @(c.OnPreRenew ? "PreRenew " : "")@(c.OnPreExpiry ? "PreExpiry " : "")@(c.OnRenewSuccess ? "Success " : "")@(c.OnRenewFail ? "Fail" : "")
+                                                                    </td>
+                                                                    <td>@(c.IsEnabled ? "Yes" : "No")</td>
+                                                                    <td class="text-end">
+                                                                        <button class="btn btn-sm btn-info me-1" onclick="editConnection('@c.ConnectionId')">Edit</button>
+                                                                        <button class="btn btn-sm btn-danger" onclick="deleteConnection('@c.ConnectionId', '@c.ConnectionName')">Delete</button>
+                                                                    </td>
+                                                                </tr>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <tr class="no-sort">
+                                                                <td colspan="5" class="text-muted text-center">No connections configured. Click Add Connection to get started.</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+ </div>
+
+
+
+
+<!-- Type Picker Modal -->
+<div class="modal fade" id="typePickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose Connection Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 text-center">
+                    @foreach (var t in new[]{"Discord","Slack","Webhook","ntfy","Gotify","Telegram","Email","Script"})
+                    {
+                        <div class="col-3">
+                            <button class="btn btn-outline-secondary w-100 py-3"
+                                    onclick="openConnectionModal('@t', null); bootstrap.Modal.getInstance(document.getElementById('typePickerModal')).hide();">
+                                @t
+                            </button>
+                        </div>
+                    }
+                </div>
+                <p class="text-muted small mt-3 mb-0">Twitter and Signal — coming soon</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Config Modal -->
+<div class="modal fade" id="connectionConfigModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow">
+            <div class="modal-header">
+                <h5 class="modal-title" id="connectionConfigTitle">Connection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="connEditId" value="">
+                <input type="hidden" id="connType" value="">
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" id="connName" placeholder="e.g. My Discord">
+                </div>
+                <div id="connSettingsFields"></div>
+                <hr>
+                <p class="form-label mb-1 fw-semibold">Notify On</p>
+                <div class="d-flex gap-3 flex-wrap mb-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="connOnPreRenew" checked>
+                        <label class="form-check-label" for="connOnPreRenew">Pre-Auto Renew</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="connOnPreExpiry" checked>
+                        <label class="form-check-label" for="connOnPreExpiry">Pre-Expiry</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="connOnRenewSuccess" checked>
+                        <label class="form-check-label" for="connOnRenewSuccess">Successful Renewal</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="connOnRenewFail" checked>
+                        <label class="form-check-label" for="connOnRenewFail">Failed Renewal</label>
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="connIsEnabled" checked>
+                    <label class="form-check-label" for="connIsEnabled">Enabled</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-auto" onclick="testConnection()">Test</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveConnection()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--Change Password Modal-->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-light text-dark shadow-sm">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Reset Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="container-md text-start">
+                    <h2>Reset Password</h2>
+
+                    <form id="addUser">
+                        <div class="mb-3">
+                            <label for="newPassword2" class="form-label text-dark">New Password</label>
+                            <input type="password" class="form-control" id="newPassword2" placeholder="Enter New Password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPass" class="form-label text-dark">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPass" placeholder="Re-enter New Password" required>
+                        </div>
+                        <div class="mb-3">
+                            <p>Password must be 8-24 characters, and include uppercase, lowercase, and a number.</p>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Reset Password</button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete User Modal -->
+<div class="modal fade" id="confirmDeleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete this User?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteUserBtn">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Reset Server Modal -->
+<div class="modal fade" id="confirmRestartServerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to restart the server?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmRestartServerBtn">Yes, Restart</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Factory Reset Modal -->
+<div class="modal fade" id="confirmResetServerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to reset the Server to factory?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmResetServerBtn">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete DNS Provider Modal -->
+<div class="modal fade" id="confirmDeleteDNSProviderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete this DNS Provider?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteDNSProviderBtn">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Update DNS Provider Modal -->
+<div class="modal fade" id="confirmUpdateDNSProviderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete this DNS Provider?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmUpdateDNSProviderBtn">Yes, Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Update DB Settings Modal -->
+<div class="modal fade" id="confirmUpdateDBSettingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to change the Database Path?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmUpdateDBSettingBtn">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Update ServerUrl Modal -->
+<div class="modal fade" id="confirmUpdateServerUrlModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to change Server Connection Info?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmUpdateServerUrlBtn">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+
+<!-- Sort Table -->
+<script>
+    let sortDirection = [1, 1]; // [Username, Name] 1=asc, -1=desc
+
+    function sortTable(colIndex) {
+        const table = document.getElementById("usersTable");
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.querySelectorAll("tr")).filter(
+            tr => tr.children.length > 2 // Skip "No users found" row
+        );
+
+        // Toggle sort direction for this column
+        sortDirection[colIndex] *= -1;
+
+        rows.sort((a, b) => {
+            const aText = a.cells[colIndex].innerText.trim().toLowerCase();
+            const bText = b.cells[colIndex].innerText.trim().toLowerCase();
+            if (aText < bText) return -1 * sortDirection[colIndex];
+            if (aText > bText) return 1 * sortDirection[colIndex];
+            return 0;
+        });
+
+        // Remove all rows, then add them back in new order
+        rows.forEach(row => tbody.appendChild(row));
+
+        // Optionally update sort icons (simple toggle)
+        document.getElementById('userSortIcon').textContent = colIndex === 0
+            ? (sortDirection[0] === 1 ? '↑' : '↓') : '⇅';
+        document.getElementById('nameSortIcon').textContent = colIndex === 1
+            ? (sortDirection[1] === 1 ? '↑' : '↓') : '⇅';
+    }
+</script>
+
+<!-- Try Register Error -->
+<script>
+    const tryRegisterErrorLog = () => {
+        if (window.signalHub && window.signalHub.connectionState === "Connected") {
+            window.signalHub.on("ErrorLog", msg => {
+                console.log("Received ErrorLog:", msg);
+                appendToLog(msg, "error");
+            });
+        } else {
+            setTimeout(tryRegisterErrorLog, 100); // wait until connection is ready
+        }
+    };
+
+    tryRegisterErrorLog();
+    
+</script>
+
+<!-- Submit Admin Creds Update -->
+ <script>
+       function submitAdminCreds() {
+        const useLogOn = document.getElementById("useLogOnSwitch").checked;
+        const username = document.getElementById("adminUsername").value;
+        const password = document.getElementById("adminPassword").value;
+
+        fetch('/Settings?handler=UpdateLogOn', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: username,
+                useLogOn: useLogOn,
+                password: password
+            })
+        })
+        .then(async resp => {
+            const data = await resp.json().catch(() => ({}));
+            if (resp.ok && data.success) {
+                location.reload();
+            } else {
+                alert(data.message || "Error saving admin credentials.");
+            }
+        })
+       .catch(err => alert("Request failed: " + err));
+    }
+    </script>
+
+<!-- Submit Server setting Update -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Open confirm modal on Update button click
+        document.getElementById("submitServerCredsBtn").addEventListener("click", function() {
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmUpdateServerUrlModal'));
+            confirmModal.show();
+        });
+
+        // Handle confirm in modal
+        document.getElementById("confirmUpdateServerUrlBtn").addEventListener("click", async function() {
+            const serverUrl = document.getElementById("serverUrl").value;
+            const serverPort = document.getElementById("serverPort").value;
+
+            // Remove any existing overlays or wait modals
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+            let oldOverlay = document.getElementById("waitingModalOverlay");
+            if (oldOverlay) oldOverlay.remove();
+
+            // Hide confirm modal
+            const confirmModalEl = document.getElementById('confirmUpdateServerUrlModal');
+            const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // Show spinner overlay/modal
+            let waitModalHtml;
+            try {
+                const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                waitModalHtml = await waitModalResponse.text();
+            } catch {
+                waitModalHtml = `
+                    <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content p-4 text-center">
+                          <div class="spinner-border text-primary" role="status"></div>
+                          <p class="mt-2 mb-0 fw-bold">Updating server settings...</p>
+                        </div>
+                      </div>
+                    </div>`;
+            }
+
+            document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+            // If using Bootstrap modal, show with JS. If custom overlay, it just appears.
+            const waitModalEl = document.getElementById("waitModal");
+            if (waitModalEl) {
+                const waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                waitModalInstance.show();
+            }
+
+            // Do the fetch for updating server settings
+            try {
+                const resp = await fetch('/Settings?handler=UpdateServerSetting', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        serverUrl: serverUrl,
+                        serverPort: serverPort
+                    })
+                });
+                if (resp.redirected) {
+                    window.location = resp.url;
+                } else if (resp.ok) {
+                    setTimeout(() => { location.reload(); }, 1500);
+                } else {
+                    alert("Error saving server credentials.");
+                    setTimeout(() => { location.reload(); }, 2000);
+                }
+            } catch (err) {
+                alert("Request failed: " + err);
+                setTimeout(() => { location.reload(); }, 2000);
+            }
+        });
+    });
+</script>
+
+<!-- Submit DB setting Update -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Open confirm modal on button click
+        document.getElementById("submitDbSettingsBtn").addEventListener("click", function() {
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmUpdateDBSettingModal'));
+            confirmModal.show();
+        });
+
+        // On confirmation, do update and show waiting overlay or modal
+        document.getElementById("confirmUpdateDBSettingBtn").addEventListener("click", async function() {
+            let dbPath = document.getElementById("dbPath").value;
+
+            // Remove any old overlays or modals
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+            let oldOverlay = document.getElementById("waitingModalOverlay");
+            if (oldOverlay) oldOverlay.remove();
+
+            // Hide confirmation modal
+            const confirmModalEl = document.getElementById('confirmUpdateDBSettingModal');
+            const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // Get waiting modal/overlay from server or use fallback
+            let waitModalHtml;
+            try {
+                const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                waitModalHtml = await waitModalResponse.text();
+            } catch {
+                waitModalHtml = `
+                    <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content p-4 text-center">
+                          <div class="spinner-border text-primary" role="status"></div>
+                          <p class="mt-2 mb-0 fw-bold">Updating database settings...</p>
+                        </div>
+                      </div>
+                    </div>`;
+            }
+
+            // Insert wait modal/overlay HTML into DOM
+            document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+            // If the inserted element is a real Bootstrap modal, show it using Bootstrap JS
+            const waitModalEl = document.getElementById("waitModal");
+            if (waitModalEl) {
+                const waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                waitModalInstance.show();
+            }
+            // If it's a custom overlay (waitingModalOverlay), it will show up by itself and block UI
+
+            // Do the actual DB update
+            try {
+                await fetch('/Settings?handler=UpdateDbSetting', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ dbPath: dbPath })
+                });
+                setTimeout(() => { location.reload(); }, 1500);
+            } catch (err) {
+                alert("An error occurred.");
+                setTimeout(() => { location.reload(); }, 2000);
+            }
+        });
+    });
+</script>
+
+<!-- Show View User Modal -->
+<script>
+       let lastViewedUser = null;
+
+    // --- SHOW VIEW USER MODAL ---
+    function showViewUserModal(userId) {
+        fetch(`/Settings?handler=ViewUserModal&userId=${encodeURIComponent(userId)}`)
+            .then(res => res.json())
+            .then(data => {
+                // Fill fields
+                const r = data.userRole || {};
+                const u = data.user || {};
+                const role = r.role || "";
+
+                document.getElementById('vuUserId').value = u.userId || "";
+                document.getElementById('vuUUID').value = u.uuid || "";
+                document.getElementById('vuUsername').value = u.username || "";
+                document.getElementById('vuName').value = u.name || "";
+                document.getElementById('vuEmail').value = u.email || "";
+                document.getElementById('vuRoleViewer').checked = (role === "Viewer");
+                document.getElementById('vuRoleUser').checked   = (role === "User");
+                document.getElementById('vuRoleAdmin').checked  = (role === "Admin");
+                document.getElementById('vuEnabled').checked = !!data.isEnabled;
+                document.getElementById('vuNotes').value = u.notes || "";
+
+                // User stats
+                const s = data.userStat || {};
+                document.getElementById('vuTotalCerts').innerText = s.totalCerts ?? "-";
+                document.getElementById('vuCertsRenewed').innerText = s.certsRenewed ?? "-";
+                document.getElementById('vuCertsFailed').innerText = s.certsFailed ?? "-";
+                document.getElementById('vuLastCertCreated').innerText = s.lastCertCreated ? new Date(s.lastCertCreated).toLocaleString() : "-";
+
+                // API Key
+                const k = data.apiKey || {};
+                document.getElementById('vuApiKey').innerText = k.apiKey ?? "-";
+                document.getElementById('vuApiCreated').innerText = k.created ? new Date(k.created).toLocaleString() : "-";
+                document.getElementById('vuApiLastUsed').innerText = k.lastUsed ? new Date(k.lastUsed).toLocaleString() : "-";
+                document.getElementById('vuApiRevoked').innerText = k.isRevoked ? "Yes" : "No";
+
+                document.getElementById('deleteUserBtn').style.display = data.isSuperAdmin ? "" : "none";
+
+                lastViewedUser = data;
+
+                // Remove old click listener to avoid stacking multiple!
+                const editBtn = document.getElementById('editUserBtn');
+                const newEditBtn = editBtn.cloneNode(true);
+                editBtn.parentNode.replaceChild(newEditBtn, editBtn);
+
+                newEditBtn.addEventListener('click', function () {
+                    if (lastViewedUser) {
+                        showEditUserModal(
+                            lastViewedUser.user,
+                            lastViewedUser.userRole,
+                            lastViewedUser.isSuperAdmin,
+                            lastViewedUser.isAdmin
+                        );
+                    }
+                });
+
+                // Show modal
+                var modal = new bootstrap.Modal(document.getElementById('viewUserModal'));
+                modal.show();
+            });
+    }
+
+</script>
+
+<!-- Change Password -->
+<script>
+       let pendingUserIdToChange = null;
+
+    function changePassword(userId) {
+        pendingUserIdToChange = userId;
+        document.getElementById("newPassword2").value = "";
+        document.getElementById("confirmPass").value = "";
+
+       const userModalEl = document.getElementById('viewUserModal');
+       const userModalInstance = bootstrap.Modal.getInstance(userModalEl)
+        || new bootstrap.Modal(userModalEl);
+       userModalInstance.hide();
+
+        const passwordModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+        passwordModal.show();
+    }
+
+    // Attach form submit handler
+    document.getElementById('addUser').onsubmit = resetPassword;
+
+    function resetPassword(event) {
+        event.preventDefault();
+
+        const newPass = document.getElementById("newPassword2").value;
+        const confirmPass = document.getElementById("confirmPass").value;
+
+        if (newPass !== confirmPass) {
+            showToast("Passwords do not match!", true);
+            return;
+        }
+
+        if (!pendingUserIdToChange) {
+            showToast("No user selected for password change.", true);
+            return;
+        }
+
+        if (
+            newPass.length < 8 ||
+            newPass.length > 24 ||
+            !/[A-Z]/.test(newPass) ||
+            !/[a-z]/.test(newPass) ||
+            !/[0-9]/.test(newPass)
+        ) {
+            showToast("Password must be 8-24 characters, and include uppercase, lowercase, and a number.", true);
+            return;
+        }
+
+        const payload = {
+            userId: pendingUserIdToChange,
+            newPassword: newPass
+        };
+
+        fetch(`/Settings?handler=ChangePassword`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (response.ok) {
+                const modalEl = document.getElementById('changePasswordModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+
+                showToast("Password changed successfully!");
+                setTimeout(() => location.reload(), 800);
+            } else {
+                response.text().then(txt => console.error("Server responded with error:", txt));
+                showToast("Error changing password.", true);
+            }
+        })
+        .catch(err => {
+            console.error("Error changing password:", err);
+            showToast("Something went wrong.", true);
+        });
+    }
+</script>
+
+<!--Reset Server to Factory-->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById("submitDbSettingsBtn").addEventListener("click", function() {
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmUpdateDBSettingModal'));
+            confirmModal.show();
+        });
+
+        document.getElementById("confirmUpdateDBSettingBtn").addEventListener("click", async function() {
+            let dbPath = document.getElementById("dbPath").value;
+
+            // Remove any existing waitModal before creating a new one
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+
+            // Hide confirmation modal
+            const confirmModalEl = document.getElementById('confirmUpdateDBSettingModal');
+            const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // Show wait modal (either from fetch or fallback)
+            let waitModalHtml;
+            try {
+                const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitingModal");
+                waitModalHtml = await waitModalResponse.text();
+            } catch {
+                waitModalHtml = `
+                    <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content p-4 text-center">
+                          <div class="spinner-border text-primary" role="status"></div>
+                          <p class="mt-2 mb-0 fw-bold">Updating database settings...</p>
+                        </div>
+                      </div>
+                    </div>`;
+            }
+
+            // Insert and show wait modal *synchronously* (no timeout)
+            document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+
+            // Now actually show it
+            const waitModalEl = document.getElementById("waitModal");
+            const waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+            waitModalInstance.show();
+
+            try {
+                await fetch('/Settings?handler=UpdateDbSetting', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ dbPath: dbPath })
+                });
+                setTimeout(() => { location.reload(); }, 1500);
+            } catch (err) {
+                alert("An error occurred.");
+                setTimeout(() => { location.reload(); }, 2000);
+            }
+        });
+    });
+</script>
+
+<!--Restart Server -->
+<script>
+           function restartServerTrigger() {
+        const confirmModal = new bootstrap.Modal(document.getElementById('confirmRestartServerModal'));
+        confirmModal.show();
+    }
+
+
+    document.addEventListener('click', async (event) => {
+        if (event.target && event.target.id === 'confirmRestartServerBtn') {
+            
+            let oldWaitModal = document.getElementById("waitModal");
+            if (oldWaitModal) oldWaitModal.remove();
+
+            
+            const confirmModalEl = document.getElementById('confirmRestartServerModal');
+            const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
+            if (modalInstance) modalInstance.hide();
+
+          
+            let waitModalHtml;
+            try {
+                const waitModalResponse = await fetch("/Dashboard?handler=ShowWaitningModal");
+                waitModalHtml = await waitModalResponse.text();
+            } catch {
+                waitModalHtml = `
+                    <div class="modal fade" id="waitModal" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content p-4 text-center">
+                          <div class="spinner-border text-primary" role="status"></div>
+                          <p class="mt-2 mb-0 fw-bold">Restarting server...</p>
+                        </div>
+                      </div>
+                    </div>`;
+            }
+            document.body.insertAdjacentHTML("beforeend", waitModalHtml);
+            let waitModalEl = document.getElementById("waitModal");
+
+           
+            setTimeout(() => {
+                let waitModalInstance = new bootstrap.Modal(waitModalEl, { backdrop: 'static', keyboard: false });
+                waitModalInstance.show();
+            }, 10);
+
+            console.log("Restarting server...");
+            fetch('/Settings?handler=RestartServer', {
+                method: 'POST'
+            })
+            .then(response => {
+                setTimeout(() => { location.reload(); }, 5000);
+            })
+            .catch(err => {
+                alert("An error occurred.");
+                setTimeout(() => { location.reload(); }, 5000);
+            });
+        }
+    });
+</script>
+
+<!--Delete User-->
+<script>
+    let pendingUserIdToDelete = null;
+
+    function deleteUser(userId) {
+        pendingUserIdToDelete = userId;
+
+               const userModalEl = document.getElementById('viewUserModal');
+       const userModalInstance = bootstrap.Modal.getInstance(userModalEl)
+        || new bootstrap.Modal(userModalEl);
+       userModalInstance.hide();
+
+
+        const confirmModal = new bootstrap.Modal(document.getElementById('confirmDeleteUserModal'));
+        confirmModal.show();
+    }
+
+    document.addEventListener('click', (event) => {
+        if (event.target && event.target.id === 'confirmDeleteUserBtn') {
+            if (!pendingUserIdToDelete) return;
+
+            fetch(`/Settings?handler=DeleteCurrentUser&userId=${encodeURIComponent(pendingUserIdToDelete)}`, {
+                method: 'POST'
+            })
+            .then(response => {
+
+            if (response.ok) {
+                const confirmModalEl = document.getElementById('confirmDeleteUserModal');
+                const modalInstance = bootstrap.Modal.getInstance(confirmModalEl);
+                if (modalInstance) modalInstance.hide();
+
+           
+              document.querySelector(`[data-user-id="${pendingUserIdToDelete}"]`).remove();
+            } else {
+                response.text().then(txt => console.error("Server responded with error:", txt));
+               showErrorModal();
+            }
+    })
+    .catch(err => {
+        console.error("Error deleting user:", err);
+        alert("An error occurred.");
+    });
+        }
+    });
+</script>
+
+<!--Edit User-->
+<script>
+
+           function showEditUserModal(user, userRole, isSuperAdmin, isAdmin) {
+        document.getElementById('editUserId').value = user.userId || "";
+        document.getElementById('editUsername').value = user.username || "";
+        document.getElementById('editName').value = user.name || "";
+        document.getElementById('editEmail').value = user.email || "";
+        document.getElementById('editNotes').value = user.notes || "";
+        document.getElementById('editIsEnabled').checked = userRole.isEnabled === true;
+
+        document.getElementById('editRoleViewer').checked = userRole.role === "Viewer";
+        document.getElementById('editRoleUser').checked = userRole.role === "User";
+        document.getElementById('editRoleAdmin').checked = userRole.role === "Admin";
+
+        // Show Admin radio only for super admins
+        document.getElementById('editRoleAdminGroup').style.display = isSuperAdmin ? "inline-block" : "none";
+
+        // Only allow changing Viewer/User roles if current user is Admin (not SuperAdmin) and target user is not Admin
+        document.getElementById('editRoleViewer').disabled = !isSuperAdmin && userRole.role === "Admin";
+        document.getElementById('editRoleUser').disabled = !isSuperAdmin && userRole.role === "Admin";
+        document.getElementById('editRoleAdmin').disabled = !isSuperAdmin;
+
+        // Only super admins can edit Admin roles
+        if (!isSuperAdmin && userRole.role === "Admin") {
+            document.getElementById('editRoleViewer').disabled = true;
+            document.getElementById('editRoleUser').disabled = true;
+            document.getElementById('editRoleAdmin').disabled = true;
+        }
+
+        // Only super admins can edit admins; others can't change Admins at all
+        document.getElementById('editUsername').readOnly = userRole.role === "Admin" && !isSuperAdmin;
+
+        // Hide View modal, show Edit modal
+        const userModalEl = document.getElementById('viewUserModal');
+        const userModalInstance = bootstrap.Modal.getInstance(userModalEl) || new bootstrap.Modal(userModalEl);
+        userModalInstance.hide();
+
+        var modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        modal.show();
+    }
+
+    // --- SUBMIT HANDLER ---
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('editUserForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const data = {
+                userId: document.getElementById('editUserId').value,
+                username: document.getElementById('editUsername').value.trim(),
+                name: document.getElementById('editName').value.trim(),
+                email: document.getElementById('editEmail').value.trim(),
+                notes: document.getElementById('editNotes').value.trim(),
+                role: document.querySelector('input[name="editRole"]:checked')?.value,
+                isEnabled: document.getElementById('editIsEnabled').checked
+            };
+            const response = await fetch('/Settings?handler=UpdateUser', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (response.ok) {
+                showToast && showToast('User updated successfully!');
+                bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showToast && showToast('Error updating user: ' + (await response.text()), true);
+            }
+        });
+    });
+
+</script>
+
+<!--Show Edit Provider Modal-->
+<script>
+
+    async function showEditProviderModal(providerId) {
+        // Optionally, show a spinner/loading while fetching
+        const response = await fetch('/Settings?handler=ShowEditProviderModal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(providerId)
+        });
+        const html = await response.text();
+        document.getElementById('editProviderModalBody').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('editProviderModal'));
+        modal.show();
+    }
+
+
+
+</script>
+
+<!--submit CA Update Creds -->
+<script>
+
+      function submitCAUpdateCreds() {
+        const caPrimeUrl = document.getElementById("caPrimeUrl").value.trim();
+        const caStagingUrl = document.getElementById("caStagingUrl").value.trim();
+
+        const data = {
+            caPrimeUrl: caPrimeUrl,
+            caStagingUrl: caStagingUrl
+        };
+
+        fetch('/Settings?handler=UpdateCAUrl', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        .then(resp => resp.json())
+        .then(result => {
+            if (result.success) {
+                showToast(result.message || "CA URLs updated!", false);
+            } else {
+                showToast(result.message || "Something went wrong updating CA URLs.", true);
+            }
+        })
+        .catch(err => {
+            showToast("Failed to update: " + err, true);
+        });
+    }
+
+    function submitCertSettings() {
+        const certValidityDays = parseInt(document.getElementById("certValidityDaysInput").value, 10);
+        const renewBeforeExpiryDays = parseInt(document.getElementById("renewBeforeExpiryDaysInput").value, 10);
+
+        if (!certValidityDays || certValidityDays < 1) {
+            showToast("Cert validity days must be at least 1.", true);
+            return;
+        }
+        if (!renewBeforeExpiryDays || renewBeforeExpiryDays < 1) {
+            showToast("Renew before expiry days must be at least 1.", true);
+            return;
+        }
+
+        fetch('/Settings?handler=UpdateCertSettings', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ certValidityDays, renewBeforeExpiryDays })
+        })
+        .then(resp => resp.json())
+        .then(result => {
+            if (result.success) {
+                showToast("Certificate settings updated!", false);
+            } else {
+                showToast(result.message || "Failed to update certificate settings.", true);
+            }
+        })
+        .catch(err => {
+            showToast("Failed to update: " + err, true);
+        });
+    }
+
+    // --- Mode Settings ---
+    function saveModeSettings() {
+        fetch('/Settings?handler=UpdateModeSettings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                stagingOnly: document.getElementById('stagingOnlySwitch').checked,
+                restrictViewers: document.getElementById('restrictViewersSwitch').checked,
+                hideViewerLogout: document.getElementById('hideViewerLogoutSwitch').checked
+            })
+        })
+        .then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+        .then(d => showToast(d.message || (d.success ? 'Saved.' : 'Save failed.'), !d.success))
+        .catch(e => showToast('Failed to save: ' + e, true));
+    }
+
+    function saveDemoLogin() {
+        const enabled = document.getElementById('demoLoginEnabledSwitch').checked;
+        const username = document.getElementById('demoUsernameInput').value.trim();
+        const password = document.getElementById('demoPasswordInput').value;
+
+        if (enabled && (!username || !password)) {
+            showToast('Demo username and password are required when Demo Login is enabled.', true);
+            return;
+        }
+
+        fetch('/Settings?handler=UpdateModeSettings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                demoLoginEnabled: enabled,
+                demoUsername: username,
+                demoPassword: password
+            })
+        })
+        .then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+        .then(d => showToast(d.message || (d.success ? 'Saved.' : 'Save failed.'), !d.success))
+        .catch(e => showToast('Failed to save: ' + e, true));
+    }
+
+    // --- Connect Tab ---
+    const connectionSettingsTemplates = {
+        Discord:  `<div class="mb-3"><label class="form-label">Webhook URL</label><input class="form-control" id="cs_webhookUrl" placeholder="https://discord.com/api/webhooks/..."></div>`,
+        Slack:    `<div class="mb-3"><label class="form-label">Webhook URL</label><input class="form-control" id="cs_webhookUrl" placeholder="https://hooks.slack.com/services/..."></div>`,
+        Webhook:  `<div class="mb-3"><label class="form-label">URL</label><input class="form-control" id="cs_url"></div>
+                   <div class="mb-3"><label class="form-label">Method</label><select class="form-select" id="cs_method"><option>POST</option><option>GET</option></select></div>
+                   <div class="mb-3"><label class="form-label">Body template (use {message})</label><input class="form-control" id="cs_body" placeholder='{"text":"{message}"}'></div>`,
+        ntfy:     `<div class="mb-3"><label class="form-label">Topic URL</label><input class="form-control" id="cs_url" placeholder="https://ntfy.sh/mytopic"></div>`,
+        Gotify:   `<div class="mb-3"><label class="form-label">Server URL</label><input class="form-control" id="cs_url" placeholder="https://gotify.example.com"></div>
+                   <div class="mb-3"><label class="form-label">App Token</label><input class="form-control" id="cs_token"></div>`,
+        Telegram: `<div class="mb-3"><label class="form-label">Bot Token</label><input class="form-control" id="cs_botToken"></div>
+                   <div class="mb-3"><label class="form-label">Chat ID</label><input class="form-control" id="cs_chatId"></div>`,
+        Email:    `<div class="mb-3"><label class="form-label">SMTP Host</label><input class="form-control" id="cs_host"></div>
+                   <div class="row g-2 mb-3"><div class="col-4"><label class="form-label">Port</label><input class="form-control" type="number" id="cs_port" value="587"></div><div class="col-8"><label class="form-label">Username</label><input class="form-control" id="cs_username"></div></div>
+                   <div class="mb-3"><label class="form-label">Password</label><input class="form-control" type="password" id="cs_password"></div>
+                   <div class="row g-2 mb-3"><div class="col-6"><label class="form-label">From</label><input class="form-control" id="cs_from"></div><div class="col-6"><label class="form-label">To</label><input class="form-control" id="cs_to"></div></div>`,
+        Script:   `<div class="mb-3"><label class="form-label">Script path or command</label><input class="form-control" id="cs_script" placeholder="/opt/scripts/notify.sh"></div>`
+    };
+
+    const connectionSettingsFields = {
+        Discord: ['webhookUrl'], Slack: ['webhookUrl'],
+        Webhook: ['url', 'method', 'body'], ntfy: ['url'],
+        Gotify: ['url', 'token'], Telegram: ['botToken', 'chatId'],
+        Email: ['host', 'port', 'username', 'password', 'from', 'to'], Script: ['script']
+    };
+
+    function openTypePickerModal() {
+        new bootstrap.Modal(document.getElementById('typePickerModal')).show();
+    }
+
+    function openConnectionModal(type, existingData) {
+        document.getElementById('connType').value = type;
+        document.getElementById('connectionConfigTitle').textContent = (existingData ? 'Edit' : 'Add') + ' ' + type + ' Connection';
+        document.getElementById('connSettingsFields').innerHTML = connectionSettingsTemplates[type] || '';
+        document.getElementById('connEditId').value = existingData?.connectionId ?? '';
+        document.getElementById('connName').value = existingData?.connectionName ?? '';
+        document.getElementById('connIsEnabled').checked = existingData ? existingData.isEnabled : true;
+        document.getElementById('connOnPreRenew').checked = existingData ? existingData.onPreRenew : true;
+        document.getElementById('connOnPreExpiry').checked = existingData ? existingData.onPreExpiry : true;
+        document.getElementById('connOnRenewSuccess').checked = existingData ? existingData.onRenewSuccess : true;
+        document.getElementById('connOnRenewFail').checked = existingData ? existingData.onRenewFail : true;
+
+        if (existingData?.settings) {
+            try {
+                const s = typeof existingData.settings === 'string' ? JSON.parse(existingData.settings) : existingData.settings;
+                Object.entries(s).forEach(([k, v]) => {
+                    const el = document.getElementById('cs_' + k);
+                    if (el) el.value = v;
+                });
+            } catch (e) {}
+        }
+        new bootstrap.Modal(document.getElementById('connectionConfigModal')).show();
+    }
+
+    function buildSettingsJson(type) {
+        const result = {};
+        (connectionSettingsFields[type] || []).forEach(f => {
+            const el = document.getElementById('cs_' + f);
+            if (el) result[f] = el.value;
+        });
+        return result;
+    }
+
+    function buildConnectionPayload() {
+        const type = document.getElementById('connType').value;
+        return {
+            connectionId:   document.getElementById('connEditId').value,
+            connectionName: document.getElementById('connName').value.trim(),
+            connectionType: type,
+            isEnabled:      document.getElementById('connIsEnabled').checked,
+            onPreRenew:     document.getElementById('connOnPreRenew').checked,
+            onPreExpiry:    document.getElementById('connOnPreExpiry').checked,
+            onRenewSuccess: document.getElementById('connOnRenewSuccess').checked,
+            onRenewFail:    document.getElementById('connOnRenewFail').checked,
+            settings:       buildSettingsJson(type)
+        };
+    }
+
+    function saveConnection() {
+        const payload = buildConnectionPayload();
+        if (!payload.connectionName) { showToast("Please enter a connection name.", true); return; }
+        const isEdit = !!payload.connectionId;
+        fetch(`/Settings?handler=${isEdit ? 'UpdateConnection' : 'AddConnection'}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('connectionConfigModal'));
+                if (modal) modal.hide();
+                showToast(d.message, false);
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showToast(d.message || 'Failed to save connection.', true);
+            }
+        })
+        .catch(e => showToast('Request failed: ' + e, true));
+    }
+
+    function editConnection(connectionId) {
+        fetch(`/Settings?handler=GetConnection&connectionId=${encodeURIComponent(connectionId)}`)
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) openConnectionModal(d.connection.connectionType, d.connection);
+            else showToast('Could not load connection.', true);
+        })
+        .catch(e => showToast('Request failed: ' + e, true));
+    }
+
+    function deleteConnection(connectionId, name) {
+        if (!confirm(`Delete connection "${name}"?`)) return;
+        fetch('/Settings?handler=DeleteConnection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ connectionId })
+        })
+        .then(r => r.json())
+        .then(d => {
+            showToast(d.message, !d.success);
+            if (d.success) {
+                const row = document.querySelector(`tr[data-connection-id="${connectionId}"]`);
+                if (row) row.remove();
+            }
+        })
+        .catch(e => showToast('Request failed: ' + e, true));
+    }
+
+    function testConnection() {
+        const payload = buildConnectionPayload();
+        fetch('/Settings?handler=TestConnection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(d => showToast(d.message, !d.success))
+        .catch(e => showToast('Test failed: ' + e, true));
+    }
+</script>
+
+
+<style>
+    .form-check-input.custom-toggle {
+        width: 3rem;
+        height: 1.7rem;
+        border: 2px solid #007bff;
+        box-shadow: 0 0 8px #007bff40;
+        background-color: #f2f8ff;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+        /* Bigger thumb/circle */
+        .form-check-input.custom-toggle:checked {
+            background-color: #007bff;
+            border-color: #0056b3;
+            box-shadow: 0 0 12px #007bff99;
+        }
+
+        .form-check-input.custom-toggle:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 8px #007bff80;
+        }
+
+
+
+    .ca-card {
+        max-width: 500px;
+        border-radius: 18px;
+        border: 1.5px solid #e6eaf0;
+        background: #fff;
+    }
+
+    .url-input {
+        font-family: 'Fira Mono', monospace, monospace;
+        font-size: 1rem;
+        background: #f9fbff;
+        border: 1px solid #cfd8dc;
+        border-radius: 8px;
+        padding: 10px 12px;
+        transition: border 0.2s;
+        width: 100%;
+        word-break: break-all;
+    }
+
+        .url-input:focus {
+            border-color: #3273fa;
+            box-shadow: 0 0 0 2px #e3ebfd;
+            background: #f3f7ff;
+        }
+
+    .ca-card label {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .ca-card .btn-primary {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1.06rem;
+        background: linear-gradient(90deg, #3273fa, #3ec6fd 95%);
+        border: none;
+        box-shadow: 0 1px 4px 0 #e6eaf0;
+        transition: background 0.2s;
+    }
+
+        .ca-card .btn-primary:hover {
+            background: linear-gradient(90deg, #205fd6, #1fa6e0 90%);
+        }
+
+</style>
+
+
