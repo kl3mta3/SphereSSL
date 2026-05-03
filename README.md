@@ -26,18 +26,11 @@ Get the Image here- <a href = "https://hub.docker.com/r/kl3mta3/spheressl"> Dock
 - **Renewal Scheduling**  
   Toggle auto-renew on/off, get renewal notifications, and never let a cert expire.
 - **Multi-User Support**  
-  Share certs/orders for collaborative management.
-- **Notification Connections**
-  Discord, Slack, Webhook, ntfy, Gotify, Telegram, Email/SMTP, and custom script support. Per-connection event subscriptions (Pre-Renew, Pre-Expiry, Renewal Success, Renewal Failure).
+  Share certs/orders for collaborative management (future roadmap).
 - **Import/Export**  
   Convert, download, or upload certs in your preferred formats.
-- **Demo Mode**  
-  Show demo credentials on the login page and pre-fill the form, with a configurable warning banner. Perfect for public demo deployments.
-- **Server Mode Controls**  
-  SuperAdmin can force Staging-only mode globally, lock down viewer cert-creation fields, and hide logout for viewers.
 - **Enterprise Ready**  
   Unlimited domains, no arbitrary limits, tons of provider integrations.
-  
 
 ---
 
@@ -132,6 +125,7 @@ If you spot a bug or want to add a provider, open an [issue](https://github.com/
 ## Roadmap
 
 - [ ] Add more DNS providers
+- [ ] Webhooks & external integrations
 - [ ] Fully automated enterprise deployment
 
 *See the [roadmap](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL#roadmap) for more.*

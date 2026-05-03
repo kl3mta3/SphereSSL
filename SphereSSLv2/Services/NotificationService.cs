@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
+using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Models.ConnectionModels;
 
 namespace SphereSSLv2.Services
@@ -8,6 +9,21 @@ namespace SphereSSLv2.Services
     public static class NotificationService
     {
         private static readonly HttpClient _http = new();
+        private static readonly ConnectionRepository _connectionRepo = new();
+
+        // Fan out an event to every connection the user owns.
+        // Safe to fire-and-forget — all errors are swallowed per-connection.
+        public static async Task NotifyUserAsync(string userId, string eventType, string message)
+        {
+            if (string.IsNullOrEmpty(userId)) return;
+            try
+            {
+                var conns = await _connectionRepo.GetConnectionsByUserIdAsync(userId);
+                foreach (var c in conns)
+                    await SendAsync(c, eventType, message);
+            }
+            catch { /* swallow — never let notifications break cert ops */ }
+        }
 
         public static async Task SendAsync(UserConnection conn, string eventType, string message)
         {

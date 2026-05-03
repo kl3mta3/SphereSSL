@@ -44,6 +44,15 @@ namespace SphereSSLv2.Services.CertServices
                 ConfigureService.ExpiringSoonCertRecords = certRecords
                     .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.RenewBeforeExpiryDays));
 
+                // PreExpiry notification — fire for every cert in the window (regardless of autoRenew)
+                foreach (var cert in ConfigureService.ExpiringSoonCertRecords)
+                {
+                    var domains = string.Join(", ", cert.Challenges.Select(c => c.Domain).Distinct());
+                    var daysLeft = (int)(cert.ExpiryDate - now).TotalDays;
+                    _ = NotificationService.NotifyUserAsync(cert.UserId, "PreExpiry",
+                        $"SphereSSL: certificate for {domains} expires in {daysLeft} day(s).");
+                }
+
                 // Only certs with autoRenew enabled
                 List<CertRecord> expiringSoon = ConfigureService.ExpiringSoonCertRecords
                     .Where(c => c.autoRenew)
@@ -52,6 +61,10 @@ namespace SphereSSLv2.Services.CertServices
                 bool success = true;
                 foreach (var cert in expiringSoon)
                 {
+                    var domains = string.Join(", ", cert.Challenges.Select(c => c.Domain).Distinct());
+                    _ = NotificationService.NotifyUserAsync(cert.UserId, "PreRenew",
+                        $"SphereSSL: starting auto-renewal for {domains}.");
+
                     CertRecordServiceManager certManager = new CertRecordServiceManager();
                     // Attempt auto-renew (success is true only if all pass)
                     success &= await certManager.RenewCertRecordWithAutoDNSById(_logger, cert.OrderId);
