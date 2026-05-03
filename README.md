@@ -7,7 +7,8 @@
 </h2>
 </p>
 
-Get the Image here- <a href = "https://hub.docker.com/r/kl3mta3/spheressl"> Docker Hub<a/> Or try a Demo- <a href = "https://demo.spheressl.com/"> SphereSSL Demo<a/>
+Thanks goes to Thanks [@apples723](https://github.com/apples723)!
+Get the Image here- <a href = "https://hub.docker.com/r/kl3mta3/spheressl"> Docker Hub<a/>
 
 > **SphereSSL** is a modern, user-friendly certificate manager, built with ASP.NET.  
 > Make SSL certificate creation and renewal effortless for everyone—whether you’re a hobbyist or a professional.  
@@ -115,8 +116,6 @@ See [API Credential Requirements](https://github.com/SphereNetwork/SphereSSL/wik
 ---
 
 ## Contributing
-
-<p>Thanks goes to Thanks [@apples723](https://github.com/apples723) for the assist!</p>
 
 Pull requests are welcome!  
 If you spot a bug or want to add a provider, open an [issue](https://github.com/SphereNetwork/SphereSSL/issues) or submit a PR.  

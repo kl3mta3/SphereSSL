@@ -959,12 +959,13 @@ namespace SphereSSLv2.Pages
             };
             try
             {
-                await NotificationService.SendAsync(conn, "RenewSuccess", "SphereSSL test notification — connection is working!");
+                await NotificationService.SendTestAsync(conn, "SphereSSL test notification — connection is working!");
                 return new JsonResult(new { success = true, message = "Test notification sent." });
             }
             catch (Exception ex)
             {
-                return new JsonResult(new { success = false, message = ex.Message });
+                var detail = ex.InnerException?.Message ?? ex.Message;
+                return new JsonResult(new { success = false, message = $"Test failed: {detail}" });
             }
         }
     }

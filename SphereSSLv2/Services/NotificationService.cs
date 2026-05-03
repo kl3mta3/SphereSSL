@@ -15,19 +15,28 @@ namespace SphereSSLv2.Services
             if (!ShouldSend(conn, eventType)) return;
             try
             {
-                switch (conn.ConnectionType.ToLower())
-                {
-                    case "discord":  await SendDiscord(conn.Settings, message);  break;
-                    case "slack":    await SendSlack(conn.Settings, message);    break;
-                    case "webhook":  await SendWebhook(conn.Settings, message);  break;
-                    case "ntfy":     await SendNtfy(conn.Settings, message);     break;
-                    case "gotify":   await SendGotify(conn.Settings, message);   break;
-                    case "telegram": await SendTelegram(conn.Settings, message); break;
-                    case "email":    await SendEmail(conn.Settings, message);    break;
-                    case "script":   await RunScript(conn.Settings, message);    break;
-                }
+                await SendInternal(conn, message);
             }
             catch { /* swallow — notification failure must never break cert ops */ }
+        }
+
+        // Same as SendAsync but throws on failure — used by the Test button so users see real errors.
+        public static Task SendTestAsync(UserConnection conn, string message) => SendInternal(conn, message);
+
+        private static async Task SendInternal(UserConnection conn, string message)
+        {
+            switch (conn.ConnectionType.ToLower())
+            {
+                case "discord":  await SendDiscord(conn.Settings, message);  break;
+                case "slack":    await SendSlack(conn.Settings, message);    break;
+                case "webhook":  await SendWebhook(conn.Settings, message);  break;
+                case "ntfy":     await SendNtfy(conn.Settings, message);     break;
+                case "gotify":   await SendGotify(conn.Settings, message);   break;
+                case "telegram": await SendTelegram(conn.Settings, message); break;
+                case "email":    await SendEmail(conn.Settings, message);    break;
+                case "script":   await RunScript(conn.Settings, message);    break;
+                default: throw new InvalidOperationException($"Unknown connection type: {conn.ConnectionType}");
+            }
         }
 
         private static bool ShouldSend(UserConnection conn, string eventType) => eventType switch
@@ -96,7 +105,12 @@ namespace SphereSSLv2.Services
         {
             var s = JsonDocument.Parse(settingsJson).RootElement;
             var host = s.GetProperty("host").GetString();
-            var port = s.TryGetProperty("port", out var p) ? p.GetInt32() : 587;
+            int port = 587;
+            if (s.TryGetProperty("port", out var p))
+            {
+                if (p.ValueKind == JsonValueKind.Number) port = p.GetInt32();
+                else if (p.ValueKind == JsonValueKind.String && int.TryParse(p.GetString(), out var parsedPort)) port = parsedPort;
+            }
             var user = s.GetProperty("username").GetString();
             var pass = s.GetProperty("password").GetString();
             var from = s.GetProperty("from").GetString();
@@ -104,7 +118,8 @@ namespace SphereSSLv2.Services
             using var smtp = new System.Net.Mail.SmtpClient(host, port)
             {
                 Credentials = new System.Net.NetworkCredential(user, pass),
-                EnableSsl = true
+                EnableSsl = true,
+                DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network
             };
             await smtp.SendMailAsync(from, to, "SphereSSL Notification", message);
         }
