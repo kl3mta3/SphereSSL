@@ -123,9 +123,12 @@
                                             <div class="text-center mb-3">
                                                 <h4 class="fw-bold mb-1 text-primary">Convert PKCS #12</h4>
 
+                                                <div id="pkcsDropZone" class="form-control mb-2 d-flex align-items-center justify-content-center text-muted" style="min-height: 110px; cursor: pointer; border-style: dashed;">
+                                                    <span id="pkcsDropZoneText">Drag &amp; drop your .p12 / .pfx file here, or click to select</span>
+                                                </div>
+                                                <input type="file" id="pkcsFileInput" accept=".p12,.pfx" style="display:none;">
                                                 <div class="d-flex align-items-center justify-content-start mb-2">
-                                                    <label for="pkcsFileInput" id="pkcsFileInputLabel" class="btn btn-outline-primary btn-sm mb-0">Select .p12 / .pfx File</label>
-                                                    <input type="file" id="pkcsFileInput" accept=".p12,.pfx" style="display:none;">
+                                                    <label for="pkcsFileInput" id="pkcsFileInputLabel" class="btn btn-outline-primary btn-sm mb-0">Select File</label>
                                                     <span class="text-muted ms-2" id="pkcsFileName" style="font-size: 0.98rem;">No file selected</span>
                                                 </div>
 
@@ -209,8 +212,8 @@
             const password = document.getElementById('pemPasswordInput') ? document.getElementById('pemPasswordInput').value : "";
             const outputType = document.querySelector('input[name="pemConvertType"]:checked').value;
 
-            const certMatches = pemValue.match(/-----BEGIN CERTIFICATE-----[^-]+-----END CERTIFICATE-----/gs) || [];
-            const privateKeyMatch = pemValue.match(/-----BEGIN (?:RSA )?PRIVATE KEY-----[^-]+-----END (?:RSA )?PRIVATE KEY-----/s);
+            const certMatches = pemValue.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g) || [];
+            const privateKeyMatch = pemValue.match(/-----BEGIN (?:RSA |EC |DSA |ENCRYPTED )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |DSA |ENCRYPTED )?PRIVATE KEY-----/);
 
             const certPem = certMatches.join('\n');
             const keyPem = privateKeyMatch ? privateKeyMatch[0] : "";
@@ -346,17 +349,25 @@
     document.addEventListener('DOMContentLoaded', function () {
         const pkcsFileInput = document.getElementById('pkcsFileInput');
         const pkcsFileName = document.getElementById('pkcsFileName');
+        const pkcsDropZone = document.getElementById('pkcsDropZone');
+        const pkcsDropZoneText = document.getElementById('pkcsDropZoneText');
         const convertPkcsBtn = document.getElementById('convertPkcsBtn');
         let pkcsBase64 = "";
 
-        pkcsFileInput.addEventListener('change', function () {
-            const file = pkcsFileInput.files[0];
+        function loadPkcsFile(file) {
             if (!file) {
                 pkcsFileName.textContent = "No file selected";
+                pkcsDropZoneText.textContent = "Drag & drop your .p12 / .pfx file here, or click to select";
                 pkcsBase64 = "";
                 return;
             }
+            const name = (file.name || "").toLowerCase();
+            if (!name.endsWith(".p12") && !name.endsWith(".pfx")) {
+                showToast("Please drop a .p12 or .pfx file.", true);
+                return;
+            }
             pkcsFileName.textContent = file.name;
+            pkcsDropZoneText.textContent = "Selected: " + file.name;
             const reader = new FileReader();
             reader.onload = function (ev) {
                 const bytes = new Uint8Array(ev.target.result);
@@ -365,6 +376,31 @@
                 pkcsBase64 = btoa(binary);
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        pkcsFileInput.addEventListener('change', function () {
+            loadPkcsFile(pkcsFileInput.files[0]);
+        });
+
+        pkcsDropZone.addEventListener('click', function () {
+            pkcsFileInput.click();
+        });
+
+        pkcsDropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            pkcsDropZone.classList.add('drag-over');
+        });
+
+        pkcsDropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            pkcsDropZone.classList.remove('drag-over');
+        });
+
+        pkcsDropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            pkcsDropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            loadPkcsFile(file);
         });
 
         convertPkcsBtn.addEventListener('click', async function () {
