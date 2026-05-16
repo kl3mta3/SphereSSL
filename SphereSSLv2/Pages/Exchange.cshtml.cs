@@ -67,8 +67,8 @@ namespace SphereSSLv2.Pages
                 var rsa = RSA.Create();
                 rsa.ImportFromPem(key.KeyFile.ToCharArray());
 
-                // If they want a .pfx (PKCS#12)
-                if (key.OutputType == "pfx")
+                // If they want a .pfx or .p12 (PKCS#12)
+                if (key.OutputType == "pfx" || key.OutputType == "pkcs12")
                 {
                     var certWithKey = cert.CopyWithPrivateKey(rsa);
                     var password = key.Password ?? "";
@@ -76,7 +76,8 @@ namespace SphereSSLv2.Pages
                         ? certWithKey.Export(X509ContentType.Pfx)
                         : certWithKey.Export(X509ContentType.Pfx, password);
 
-                    return File(pfxBytes, "application/x-pkcs12", "certificate.pfx");
+                    var outName = key.OutputType == "pkcs12" ? "certificate.p12" : "certificate.pfx";
+                    return File(pfxBytes, "application/x-pkcs12", outName);
                 }
                 // If they want CRT/KEY (zip)
                 else if (key.OutputType == "crtkey")
@@ -105,7 +106,7 @@ namespace SphereSSLv2.Pages
             }
             catch (Exception ex)
             {
-                return BadRequest("Sorry, your PFX was created with a non - exportable key and can’t be converted back to PEM.This is a Windows security restriction.If you have the original PEM/KEY files, use those instead!");
+                return BadRequest("Sorry, your PFX was created with a non - exportable key and canï¿½t be converted back to PEM.This is a Windows security restriction.If you have the original PEM/KEY files, use those instead!");
             }
         }
 
@@ -243,9 +244,9 @@ namespace SphereSSLv2.Pages
                 if (!string.IsNullOrEmpty(certPem) && !string.IsNullOrEmpty(keyPem))
                 {
                    
-                    if (key.OutputType == "pfx")
+                    if (key.OutputType == "pfx" || key.OutputType == "pkcs12")
                     {
-                        
+
                         X509Certificate cert;
                         AsymmetricKeyParameter privKey;
 
@@ -268,7 +269,8 @@ namespace SphereSSLv2.Pages
 
                         using var ms = new MemoryStream();
                         store.Save(ms, password.ToCharArray(), new Org.BouncyCastle.Security.SecureRandom());
-                        return File(ms.ToArray(), "application/x-pkcs12", "certificate.pfx");
+                        var outName = key.OutputType == "pkcs12" ? "certificate.p12" : "certificate.pfx";
+                        return File(ms.ToArray(), "application/x-pkcs12", outName);
                     }
                     else if (key.OutputType == "pem")
                     {

@@ -25,6 +25,10 @@
                                         <button class="nav-link" id="convertcrtkey-tab" data-bs-toggle="tab" data-bs-target="#convertcrtkey" type="button" role="tab" aria-controls="convertcrtkey" aria-selected="false">Convert CRT & Key</button>
                                     </li>
 
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="convertpkcs-tab" data-bs-toggle="tab" data-bs-target="#convertpkcs" type="button" role="tab" aria-controls="convertpkcs" aria-selected="false">Convert PKCS #12</button>
+                                    </li>
+
                                 </ul>
 
                                 <div class="tab-content" id="exchangeTabContent">
@@ -55,6 +59,10 @@
                                                     <div class="form-check form-check-inline">
                                                         <input class="form-check-input" type="radio" name="pemConvertType" id="pemToCrtKey" value="crtkey">
                                                         <label class="form-check-label" for="pemToCrtKey">CRT &amp; KEY</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="pemConvertType" id="pemToPkcs12" value="pkcs12">
+                                                        <label class="form-check-label" for="pemToPkcs12">PKCS #12</label>
                                                     </div>
                                                 </div>
                                                 <button type="button" class="btn btn-primary" id="convertPemBtn">Convert</button>
@@ -99,8 +107,44 @@
                                                         <input class="form-check-input" type="radio" name="crtKeyConvertType" id="crtKeyToPem" value="pem">
                                                         <label class="form-check-label" for="crtKeyToPem">PEM</label>
                                                     </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="crtKeyConvertType" id="crtKeyToPkcs12" value="pkcs12">
+                                                        <label class="form-check-label" for="crtKeyToPkcs12">PKCS #12</label>
+                                                    </div>
                                                 </div>
                                                 <button type="button" class="btn btn-primary" id="convertCrtKeyBtn">Convert</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- PKCS #12 -->
+                                    <div class="tab-pane fade" id="convertpkcs" role="tabpanel" aria-labelledby="convertpkcs-tab">
+                                        <div class="card ca-card domain-card mx-auto shadow p-4 mb-4">
+                                            <div class="text-center mb-3">
+                                                <h4 class="fw-bold mb-1 text-primary">Convert PKCS #12</h4>
+
+                                                <div class="d-flex align-items-center justify-content-start mb-2">
+                                                    <label for="pkcsFileInput" id="pkcsFileInputLabel" class="btn btn-outline-primary btn-sm mb-0">Select .p12 / .pfx File</label>
+                                                    <input type="file" id="pkcsFileInput" accept=".p12,.pfx" style="display:none;">
+                                                    <span class="text-muted ms-2" id="pkcsFileName" style="font-size: 0.98rem;">No file selected</span>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label for="pkcsPasswordInput" class="form-label">PKCS #12 Password <span class="text-muted">(optional)</span></label>
+                                                    <input type="password" class="form-control" id="pkcsPasswordInput" placeholder="Leave blank for none">
+                                                </div>
+
+                                                <div class="d-flex justify-content-center mb-3 gap-3">
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="pkcsConvertType" id="pkcsToPem" value="pem" checked>
+                                                        <label class="form-check-label" for="pkcsToPem">PEM</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="pkcsConvertType" id="pkcsToCrtKey" value="crtkey">
+                                                        <label class="form-check-label" for="pkcsToCrtKey">CRT &amp; KEY</label>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-primary" id="convertPkcsBtn">Convert</button>
                                             </div>
                                         </div>
                                     </div>
@@ -186,7 +230,9 @@
 
             if (response.ok) {
                 const blob = await response.blob();
-                const fileName = outputType === 'pfx' ? "certificate.pfx" : "certificate.zip";
+                const fileName = outputType === 'pfx' ? "certificate.pfx"
+                    : outputType === 'pkcs12' ? "certificate.p12"
+                    : "certificate.zip";
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -276,7 +322,74 @@
 
             if (response.ok) {
                 const blob = await response.blob();
-                const fileName = outputType === 'pfx' ? "certificate.pfx" : "certificate.pem";
+                const fileName = outputType === 'pfx' ? "certificate.pfx"
+                    : outputType === 'pkcs12' ? "certificate.p12"
+                    : "certificate.pem";
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showToast("Conversion successful!", false);
+            } else {
+                const errorText = await response.text();
+                showToast("Failed: " + errorText, true);
+            }
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const pkcsFileInput = document.getElementById('pkcsFileInput');
+        const pkcsFileName = document.getElementById('pkcsFileName');
+        const convertPkcsBtn = document.getElementById('convertPkcsBtn');
+        let pkcsBase64 = "";
+
+        pkcsFileInput.addEventListener('change', function () {
+            const file = pkcsFileInput.files[0];
+            if (!file) {
+                pkcsFileName.textContent = "No file selected";
+                pkcsBase64 = "";
+                return;
+            }
+            pkcsFileName.textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                const bytes = new Uint8Array(ev.target.result);
+                let binary = "";
+                for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+                pkcsBase64 = btoa(binary);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        convertPkcsBtn.addEventListener('click', async function () {
+            if (!pkcsBase64) {
+                showToast("Please select a .p12 / .pfx file first.", true);
+                return;
+            }
+            const password = document.getElementById('pkcsPasswordInput').value;
+            const outputType = document.querySelector('input[name="pkcsConvertType"]:checked').value;
+
+            const payload = {
+                keyFile: pkcsBase64,
+                password: password,
+                outputType: outputType
+            };
+
+            const response = await fetch('/Exchange?handler=PfxConversion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const fileName = outputType === 'pem' ? "certificate.pem" : "cert_and_key.zip";
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
