@@ -130,11 +130,13 @@ namespace SphereSSLv2.Data.Repositories
 
         public static async Task DeleteCertRecordByOrderId(string orderId, SqliteConnection? connection = null, SqliteTransaction? transaction = null)
         {
+            bool localConn = false;
             if (connection == null)
             {
                 connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
+                localConn = true;
             }
-            await connection.OpenAsync();
 
             var command = connection.CreateCommand();
 
@@ -160,6 +162,9 @@ namespace SphereSSLv2.Data.Repositories
             {
                 ConfigureService.CertRecords.Remove(recordToRemove);
             }
+
+            if (localConn)
+                await connection.CloseAsync();
         }
 
         public static async Task SaveCertApiKey(string orderId, string certApiKey)
