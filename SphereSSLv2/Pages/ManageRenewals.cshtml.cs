@@ -468,6 +468,51 @@ namespace SphereSSLv2.Pages
             });
         }
 
+        // SuperAdmin-only: permanently delete a cert and all of its data from the DB.
+        // Does NOT attempt an ACME revoke; it just removes the record entirely.
+        public async Task<IActionResult> OnPostDeleteCertificateAsync([FromBody] OrderRenewRequest request)
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (sessionData == null) return RedirectToPage("/Index");
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null) return RedirectToPage("/Index");
+
+            if (!string.Equals(CurrentUser.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            {
+                await _logger.Error($"[{CurrentUser.Username}]: Only SuperAdmins can delete certificates.");
+                return new JsonResult(new { status = "fail", message = "Only SuperAdmins can delete certificates." });
+            }
+
+            var orderId = request?.OrderId;
+            if (string.IsNullOrEmpty(orderId))
+            {
+                await _logger.Error($"[{CurrentUser.Username}]: Order ID is null or empty.");
+                return BadRequest("Order ID is required.");
+            }
+
+            var order = await CertRepository.GetCertRecordByOrderId(orderId);
+            if (order == null)
+            {
+                // Already gone from CertRecords; still clean up any orphaned challenges/cache.
+                await CertRepository.DeleteAcmeChallengesByOrderIdAsync(orderId);
+                ConfigureService.CertRecordCache.Remove(orderId);
+                ConfigureService.AcmeServiceCache.Remove(orderId);
+                return new JsonResult(new { status = "success", message = "Certificate already removed." });
+            }
+
+            await CertRepository.DeleteAcmeChallengesByOrderIdAsync(orderId);
+            await CertRepository.DeleteCertRecordByOrderId(orderId);
+            await HealthRepository.AdjustTotalCertsInDB(-1);
+
+            ConfigureService.CertRecordCache.Remove(orderId);
+            ConfigureService.AcmeServiceCache.Remove(orderId);
+
+            await _logger.Info($"[{CurrentUser.Username}]: Certificate {orderId} permanently deleted from the database.");
+
+            return new JsonResult(new { status = "success", message = "Certificate deleted." });
+        }
+
 
         public async Task<IActionResult> OnGetCertApiInfo(string orderId)
         {

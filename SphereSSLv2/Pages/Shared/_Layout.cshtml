@@ -29,10 +29,12 @@
             @{
                 var _layoutSessionData = Context.Session.GetString("UserSession");
                 bool _layoutIsViewer = false;
+                bool _layoutIsSuperAdmin = false;
                 if (!string.IsNullOrEmpty(_layoutSessionData))
                 {
                     var _layoutUser = Newtonsoft.Json.JsonConvert.DeserializeObject<SphereSSLv2.Models.UserModels.UserSession>(_layoutSessionData);
                     _layoutIsViewer = _layoutUser?.Role?.Equals("Viewer", StringComparison.OrdinalIgnoreCase) == true;
+                    _layoutIsSuperAdmin = _layoutUser?.Role?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) == true;
                 }
                 bool _layoutHideLogout = _layoutIsViewer && SphereSSLv2.Services.Config.ConfigureService.HideViewerLogout;
             }
@@ -182,6 +184,11 @@
                     <a id="btnDownloadCertKey" class="btn btn-outline-warning flex-fill" href="#">Download KEY</a>
                 </div>
                 <button class="btn btn-outline-info w-100" id="btnRequestApi">Request API</button>
+                @if (_layoutIsSuperAdmin)
+                {
+                    <hr class="w-100 my-1" />
+                    <button class="btn btn-outline-danger w-100" id="btnDeleteCert">Delete from Database</button>
+                }
             </div>
         </div>
     </div>
@@ -1378,6 +1385,44 @@
 
                 } else {
                     showToast("Failed to revoke certificate.", true);
+                }
+            };
+        }
+
+        // Bind Delete Button (SuperAdmin only — element only rendered for SuperAdmins)
+        const btnDelete = document.getElementById('btnDeleteCert');
+        if (btnDelete) {
+            btnDelete.onclick = async function () {
+                if (!confirm("Permanently DELETE this certificate from the database?\n\nThis removes the record entirely and cannot be undone. It does NOT revoke the cert at the CA.")) {
+                    return;
+                }
+
+                btnDelete.disabled = true;
+                try {
+                    const response = await fetch('/ManageRenewals?handler=DeleteCertificate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId })
+                    });
+
+                    const data = await response.json().catch(() => ({}));
+
+                    if (response.ok && data.status === "success") {
+                        showToast(data.message || ("Deleted certificate: " + orderId), false);
+                        manageModal.hide();
+                        const row = document.querySelector(`tr[data-cert-id="${orderId}"]`);
+                        if (row) {
+                            row.style.transition = "opacity 0.3s";
+                            row.style.opacity = 0;
+                            setTimeout(() => row.remove(), 300);
+                        }
+                    } else {
+                        showToast((data && data.message) ? data.message : "Failed to delete certificate.", true);
+                    }
+                } catch (e) {
+                    showToast("Error during delete request.", true);
+                } finally {
+                    btnDelete.disabled = false;
                 }
             };
         }
