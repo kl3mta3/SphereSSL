@@ -29,12 +29,10 @@
             @{
                 var _layoutSessionData = Context.Session.GetString("UserSession");
                 bool _layoutIsViewer = false;
-                bool _layoutIsSuperAdmin = false;
                 if (!string.IsNullOrEmpty(_layoutSessionData))
                 {
                     var _layoutUser = Newtonsoft.Json.JsonConvert.DeserializeObject<SphereSSLv2.Models.UserModels.UserSession>(_layoutSessionData);
                     _layoutIsViewer = _layoutUser?.Role?.Equals("Viewer", StringComparison.OrdinalIgnoreCase) == true;
-                    _layoutIsSuperAdmin = _layoutUser?.Role?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) == true;
                 }
                 bool _layoutHideLogout = _layoutIsViewer && SphereSSLv2.Services.Config.ConfigureService.HideViewerLogout;
             }
@@ -167,6 +165,15 @@
     </div>
 </div>
 
+@{
+    var _manageSessionData = Context.Session.GetString("UserSession");
+    bool _manageIsSuperAdmin = false;
+    if (!string.IsNullOrEmpty(_manageSessionData))
+    {
+        var _manageUser = Newtonsoft.Json.JsonConvert.DeserializeObject<SphereSSLv2.Models.UserModels.UserSession>(_manageSessionData);
+        _manageIsSuperAdmin = _manageUser?.Role?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) == true;
+    }
+}
 <!-- Manage Certificate Modal -->
 <div class="modal fade" id="manageCertMiniModal" tabindex="-1" aria-labelledby="manageCertMiniModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 340px;">
@@ -184,7 +191,7 @@
                     <a id="btnDownloadCertKey" class="btn btn-outline-warning flex-fill" href="#">Download KEY</a>
                 </div>
                 <button class="btn btn-outline-info w-100" id="btnRequestApi">Request API</button>
-                @if (_layoutIsSuperAdmin)
+                @if (_manageIsSuperAdmin)
                 {
                     <hr class="w-100 my-1" />
                     <button class="btn btn-outline-danger w-100" id="btnDeleteCert">Delete from Database</button>
