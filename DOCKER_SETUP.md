@@ -4,15 +4,23 @@ SphereSSL is an SSL certificate management platform built with C# and ASP.NET Co
 
 ## Quick Start
 
-1. **Build and run with Docker Compose:**
-   ```bash
-   docker-compose up -d --build
-   ```
+SphereSSL does not include a default administrator password.
 
-2. **Access the application:**
-   - Navigate to: http://localhost:7171
-   - Default credentials: `admin` / `changeme123`
->  **Important:** Change the default password immediately after first login
+1. Open `.env` and replace the placeholder with a strong temporary password:
+
+   SPHERESSL_ADMIN_PASSWORD=your-strong-temporary-password
+
+2. Start SphereSSL:
+
+   docker compose up -d --build
+
+3. Sign in using the administrator username configured in `app.config` and the password entered in `.env`.
+4. Change the administrator password through SphereSSL Settings after signing in.
+5. After confirming the new password works, remove `SPHERESSL_ADMIN_PASSWORD` from `.env` or delete `.env`.
+
+The administrator password is hashed and stored in SphereSSL’s database during initial setup. Existing installations do not require the environment variable when restarting.
+
+Never commit `.env`, `data/app.config`, the SQLite database, private keys, or generated certificates.
 
 ## Manual Docker Build
 

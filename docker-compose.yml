@@ -13,5 +13,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ServerIP=0.0.0.0
       - ServerPort=7171
+      - SPHERESSL_ADMIN_PASSWORD=${SPHERESSL_ADMIN_PASSWORD:-}
     restart: unless-stopped
     container_name: spheressl

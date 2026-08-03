@@ -100,8 +100,8 @@ namespace SphereSSLv2.Services.Config
 
                 if (!String.IsNullOrWhiteSpace(config.AdminPassword) && oldConfig.AdminPassword != config.AdminPassword)
                 {
-                    oldConfig.AdminPassword = config.AdminPassword;
-                    HashedPassword = PasswordService.HashPassword(config.AdminPassword);
+					HashedPassword = PasswordService.HashPassword(config.AdminPassword);
+					oldConfig.AdminPassword = string.Empty;
                 }
 
                 if (!String.IsNullOrWhiteSpace(config.DatabasePath) && oldConfig.DatabasePath != config.DatabasePath)
@@ -215,14 +215,21 @@ namespace SphereSSLv2.Services.Config
                 {
                     throw new InvalidOperationException("Failed to deserialize node config.");
                 }
-                string passhash = PasswordService.HashPassword(storedConfig.AdminPassword);
-            
-              
+
+
                 UseLogOn = storedConfig.UseLogOn ?? false;
 
                 Username = storedConfig.AdminUsername ?? string.Empty;
 
-                HashedPassword = passhash;
+				string? adminPassword = Environment.GetEnvironmentVariable("SPHERESSL_ADMIN_PASSWORD");
+
+
+
+                HashedPassword = string.IsNullOrWhiteSpace(adminPassword)
+				? string.Empty
+				: PasswordService.HashPassword(adminPassword);
+				
+				
                 ServerPort = storedConfig.ServerPort > 0 ? storedConfig.ServerPort : 7171;
                 ServerIP = storedConfig.ServerURL;
                 dbPath = storedConfig.DatabasePath;

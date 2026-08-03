@@ -25,7 +25,7 @@ namespace SphereSSLv2.Data.Database
                 await pragma.ExecuteNonQueryAsync();
 
                 var adminUUID= Guid.NewGuid();
-                var adminUserId = Guid.NewGuid().ToString("N"); 
+                string adminUserId;
                 var adminPassHash = ConfigureService.HashedPassword;
                 var adminUsername = ConfigureService.Username;
                 var command = connection.CreateCommand();
@@ -216,33 +216,62 @@ namespace SphereSSLv2.Data.Database
                 await command.ExecuteNonQueryAsync();
 
 
-                // Insert defaultSuperAdmin User record
-                command.CommandText = "SELECT COUNT(1) FROM Users WHERE Name = @name";
-                command.Parameters.Clear();
-                command.Parameters.AddWithValue("@name", "Locke-Ann Key");
-                var exists = (long)await command.ExecuteScalarAsync();
+                // Locate the existing default SuperAdmin.
+				command.CommandText =
+					"SELECT UserId FROM Users WHERE Name = @name LIMIT 1;";
+				command.Parameters.Clear();
+				command.Parameters.AddWithValue("@name", "Locke-Ann Key");
 
-                if (exists == 0)
-                {
-                    command.CommandText = @"
-                    INSERT OR IGNORE INTO Users (
-                        UserId, Username, PasswordHash, Name, Email, CreationTime, LastUpdated, UUID, Notes
-                        )
-                    VALUES (
-                        @userId, @username, @passwordHash, 'Locke-Ann Key', 'admin@example.com',
-                        datetime('now'), datetime('now'), @uuid, 'System default super admin account'
-                    );
-                    ";
+				string? existingUserId =
+					Convert.ToString(await command.ExecuteScalarAsync());
 
-                    command.Parameters.Clear();
-                    command.Parameters.AddWithValue("@username", adminUsername);
-                    command.Parameters.AddWithValue("@userId", adminUserId);
-                    command.Parameters.AddWithValue("@passwordHash", adminPassHash);
-                    command.Parameters.AddWithValue("@uuid", adminUUID.ToString());
-                    await command.ExecuteNonQueryAsync();
+				if (string.IsNullOrWhiteSpace(existingUserId))
+				{
+					adminUserId = Guid.NewGuid().ToString("N");
 
-                }
+					if (string.IsNullOrWhiteSpace(adminPassHash))
+					{
+						throw new InvalidOperationException(
+							"No SuperAdmin exists. Set SPHERESSL_ADMIN_PASSWORD for initial startup.");
+					}
 
+					command.CommandText = @"
+						INSERT INTO Users (
+							UserId,
+							Username,
+							PasswordHash,
+							Name,
+							Email,
+							CreationTime,
+							LastUpdated,
+							UUID,
+							Notes
+						)
+						VALUES (
+							@userId,
+							@username,
+							@passwordHash,
+							'Locke-Ann Key',
+							'admin@example.com',
+							datetime('now'),
+							datetime('now'),
+							@uuid,
+							'System default super admin account'
+						);
+					";
+
+					command.Parameters.Clear();
+					command.Parameters.AddWithValue("@username", adminUsername);
+					command.Parameters.AddWithValue("@userId", adminUserId);
+					command.Parameters.AddWithValue("@passwordHash", adminPassHash);
+					command.Parameters.AddWithValue("@uuid", adminUUID.ToString());
+
+					await command.ExecuteNonQueryAsync();
+				}
+				else
+				{
+					adminUserId = existingUserId;
+				}
 
                 command.CommandText = "SELECT COUNT(1) FROM UserRoles WHERE UserId = @userId AND Role = @role";
                 command.Parameters.Clear();

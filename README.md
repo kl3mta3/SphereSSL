@@ -43,10 +43,24 @@ Get the Image here- <a href = "https://hub.docker.com/r/kl3mta3/spheressl"> Dock
 
 ---
 
-## Installation & Quick Start
-“This release will only be available here for a short time. After that, visit Spheressl.com for future versions. Coming soon!!!”
+## Initial Administrator Setup
 
-# Option 1- Build Locally
+SphereSSL does not include a default administrator password.
+
+1. Copy `.env.example` to `.env`.
+2. Open `.env` and replace the placeholder with a strong temporary password:
+
+   SPHERESSL_ADMIN_PASSWORD=your-strong-temporary-password
+
+3. Start SphereSSL:
+
+   docker compose up -d
+
+4. Sign in using the administrator username configured in `app.config` and the password entered in `.env`.
+5. Change the administrator password through SphereSSL Settings after signing in.
+6. After confirming the new password works, remove `SPHERESSL_ADMIN_PASSWORD` from `.env` or delete `.env`.
+
+The administrator password is hashed and stored in SphereSSL’s database during initial setup. Existing installations do not require the environment variable when restarting.
 
 # Build the image
 docker build -t spheressl .
