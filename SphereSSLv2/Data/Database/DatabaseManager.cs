@@ -178,7 +178,7 @@ namespace SphereSSLv2.Data.Database
                      UserId TEXT PRIMARY KEY,
                      IsAdmin BOOL,
                      IsEnabled BOOL,
-                     Role TEXT DEFAULT 'User' CHECK(Role IN ('Viewer', 'User', 'Admin', 'SuperAdmin')),
+                     Role TEXT DEFAULT 'User' CHECK(Role IN ('Viewer', 'User', 'Admin', 'SuperAdmin', 'Demo')),
                      FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
                 );
 
@@ -374,6 +374,58 @@ namespace SphereSSLv2.Data.Database
                     );
                     UPDATE DbVersion SET Version = 4 WHERE Id = 1;";
                 await cmd4.ExecuteNonQueryAsync();
+            }
+
+            if (version < 5)
+            {
+                using var conn5 = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn5.OpenAsync();
+
+                var disableForeignKeys = conn5.CreateCommand();
+                disableForeignKeys.CommandText = "PRAGMA foreign_keys = OFF;";
+                await disableForeignKeys.ExecuteNonQueryAsync();
+
+                using var transaction = conn5.BeginTransaction();
+                try
+                {
+                    var cmd5 = conn5.CreateCommand();
+                    cmd5.Transaction = transaction;
+                    cmd5.CommandText = @"
+                        CREATE TABLE UserRoles_v5 (
+                            UserId TEXT PRIMARY KEY,
+                            IsAdmin BOOL,
+                            IsEnabled BOOL,
+                            Role TEXT DEFAULT 'User' CHECK(Role IN ('Viewer', 'User', 'Admin', 'SuperAdmin', 'Demo')),
+                            FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+                        );
+
+                        INSERT INTO UserRoles_v5 (UserId, IsAdmin, IsEnabled, Role)
+                        SELECT UserId, IsAdmin, IsEnabled, Role
+                        FROM UserRoles;
+
+                        DROP TABLE UserRoles;
+                        ALTER TABLE UserRoles_v5 RENAME TO UserRoles;
+
+                        CREATE UNIQUE INDEX IX_UserRoles_OneDemo
+                        ON UserRoles(Role)
+                        WHERE Role = 'Demo';
+
+                        UPDATE DbVersion SET Version = 5 WHERE Id = 1;";
+
+                    await cmd5.ExecuteNonQueryAsync();
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+                finally
+                {
+                    var enableForeignKeys = conn5.CreateCommand();
+                    enableForeignKeys.CommandText = "PRAGMA foreign_keys = ON;";
+                    await enableForeignKeys.ExecuteNonQueryAsync();
+                }
             }
         }
 

@@ -328,6 +328,123 @@ namespace SphereSSLv2.Data.Repositories
 
         }
 
+        public async Task UpsertDemoUserAsync(string username, string passwordHash)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                throw new ArgumentException("Demo username cannot be empty.", nameof(username));
+
+            if (string.IsNullOrWhiteSpace(passwordHash))
+                throw new ArgumentException("Demo password hash cannot be empty.", nameof(passwordHash));
+
+            using var connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+            await connection.OpenAsync();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                var findDemo = connection.CreateCommand();
+                findDemo.Transaction = transaction;
+                findDemo.CommandText = @"
+                    SELECT u.UserId
+                    FROM Users u
+                    INNER JOIN UserRoles r ON r.UserId = u.UserId
+                    WHERE r.Role = 'Demo'
+                    LIMIT 1;";
+
+                string? demoUserId = Convert.ToString(await findDemo.ExecuteScalarAsync());
+
+                var findConflict = connection.CreateCommand();
+                findConflict.Transaction = transaction;
+                findConflict.CommandText = @"
+                    SELECT UserId
+                    FROM Users
+                    WHERE Username = @username COLLATE NOCASE
+                      AND (@demoUserId = '' OR UserId <> @demoUserId)
+                    LIMIT 1;";
+                findConflict.Parameters.AddWithValue("@username", username.Trim());
+                findConflict.Parameters.AddWithValue("@demoUserId", demoUserId ?? string.Empty);
+
+                if (await findConflict.ExecuteScalarAsync() != null)
+                {
+                    throw new InvalidOperationException(
+                        "That username is already assigned to another user.");
+                }
+
+                string now = DateTime.UtcNow.ToString("o");
+
+                if (string.IsNullOrWhiteSpace(demoUserId))
+                {
+                    demoUserId = Guid.NewGuid().ToString("N");
+
+                    var insertUser = connection.CreateCommand();
+                    insertUser.Transaction = transaction;
+                    insertUser.CommandText = @"
+                        INSERT INTO Users (
+                            UserId, Username, PasswordHash, Name, Email,
+                            CreationTime, LastUpdated, UUID, Notes
+                        )
+                        VALUES (
+                            @userId, @username, @passwordHash, 'Demo User', 'demo@example.com',
+                            @now, @now, @uuid, 'System-managed demo account'
+                        );";
+                    insertUser.Parameters.AddWithValue("@userId", demoUserId);
+                    insertUser.Parameters.AddWithValue("@username", username.Trim());
+                    insertUser.Parameters.AddWithValue("@passwordHash", passwordHash);
+                    insertUser.Parameters.AddWithValue("@now", now);
+                    insertUser.Parameters.AddWithValue("@uuid", Guid.NewGuid().ToString());
+                    await insertUser.ExecuteNonQueryAsync();
+
+                    var insertRole = connection.CreateCommand();
+                    insertRole.Transaction = transaction;
+                    insertRole.CommandText = @"
+                        INSERT INTO UserRoles (UserId, IsAdmin, IsEnabled, Role)
+                        VALUES (@userId, 0, 1, 'Demo');";
+                    insertRole.Parameters.AddWithValue("@userId", demoUserId);
+                    await insertRole.ExecuteNonQueryAsync();
+
+                    var insertStats = connection.CreateCommand();
+                    insertStats.Transaction = transaction;
+                    insertStats.CommandText = @"
+                        INSERT OR IGNORE INTO UserStats (
+                            UserId, TotalCerts, CertsRenewed, CertCreationsFailed,
+                            CertRenewalsFailed, LastCertCreated
+                        )
+                        VALUES (@userId, 0, 0, 0, 0, NULL);";
+                    insertStats.Parameters.AddWithValue("@userId", demoUserId);
+                    await insertStats.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    var updateUser = connection.CreateCommand();
+                    updateUser.Transaction = transaction;
+                    updateUser.CommandText = @"
+                        UPDATE Users
+                        SET Username = @username,
+                            PasswordHash = @passwordHash,
+                            LastUpdated = @now
+                        WHERE UserId = @userId;
+
+                        UPDATE UserRoles
+                        SET IsAdmin = 0,
+                            IsEnabled = 1,
+                            Role = 'Demo'
+                        WHERE UserId = @userId;";
+                    updateUser.Parameters.AddWithValue("@username", username.Trim());
+                    updateUser.Parameters.AddWithValue("@passwordHash", passwordHash);
+                    updateUser.Parameters.AddWithValue("@now", now);
+                    updateUser.Parameters.AddWithValue("@userId", demoUserId);
+                    await updateUser.ExecuteNonQueryAsync();
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
         public async Task<bool> DeleteUserAsync(string userId)
         {
 

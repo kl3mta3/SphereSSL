@@ -14,6 +14,6 @@ namespace SphereSSLv2.Models.UserModels
         public bool IsEnabled { get; set; }
 
         [JsonProperty("role")]
-        public string Role { get; set; } = "User"; // Viewer, User, Admin, SuperAdmin
+        public string Role { get; set; } = "User"; // Viewer, User, Admin, SuperAdmin, Demo
     }
 }

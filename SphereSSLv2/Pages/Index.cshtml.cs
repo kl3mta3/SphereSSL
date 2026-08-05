@@ -96,6 +96,14 @@ namespace SphereSSLv2.Pages
                 }
 
                 var role = await _userRepository.GetUserRoleByIdAsync(user.UserId);
+
+                if (role?.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase) == true &&
+                    !ConfigureService.DemoLoginEnabled)
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid Username or Password.");
+                    return Page();
+                }
+
                 var sessionUser = new UserSession
                 {
                     UserId = user.UserId,

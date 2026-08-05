@@ -851,6 +851,30 @@ namespace SphereSSLv2.Pages
             if (CurrentUser == null || !CurrentUser.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
                 return new JsonResult(new { success = false, message = "Not authorized." });
 
+            if (req.DemoLoginEnabled == true)
+            {
+                if (string.IsNullOrWhiteSpace(req.DemoUsername) ||
+                    string.IsNullOrWhiteSpace(req.DemoPassword))
+                {
+                    return new JsonResult(new
+                    {
+                        success = false,
+                        message = "Demo username and password are required when demo mode is enabled."
+                    });
+                }
+
+                try
+                {
+                    await _userRepository.UpsertDemoUserAsync(
+                        req.DemoUsername,
+                        PasswordService.HashPassword(req.DemoPassword));
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return new JsonResult(new { success = false, message = ex.Message });
+                }
+            }
+
             StoredConfig config = new StoredConfig
             {
                 StagingOnly = req.StagingOnly,
