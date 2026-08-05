@@ -864,7 +864,8 @@ namespace SphereSSLv2.Pages
                             challenge.Status = "Valid";
                         }
 
-                        var (certPem, certKey) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, CurrentUser.Username);
+                        var (certPem, certKey) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles,
+                            order.SavePath, order.Challenges, CurrentUser.Username, order.EffectiveOutputFormat, order.PfxPassword);
                         order.CertPem = certPem;
                         order.CertKey = certKey;
 
@@ -958,6 +959,16 @@ namespace SphereSSLv2.Pages
             _runningCertGeneration = false;
 
             return Content(html, "text/html");
+        }
+
+        public IActionResult OnGetDownloadCertPfx()
+        {
+            string file = Path.Combine(AppContext.BaseDirectory, "Temp", "tempCert.pfx");
+            if (!System.IO.File.Exists(file))
+                return NotFound();
+            var bytes = System.IO.File.ReadAllBytes(file);
+            System.IO.File.Delete(file);
+            return File(bytes, "application/x-pkcs12", "certificate.pfx");
         }
 
         public IActionResult OnGetDownloadCertPem(string savePath)

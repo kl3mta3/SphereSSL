@@ -90,13 +90,13 @@
                                                 <div class="text-center mb-3">
                                                     <h4 class="fw-bold mb-1 text-primary">What is SSL?</h4>
                                                     <p class="lead domain-lead">
-                                                        <b class="domain-term">SSL</b> stands for <b>Secure Sockets Layer</b> — yeah, it sounds fancy, but it's basically a protective bubble for your data when it's flying across the Internet.
+                                                        <b class="domain-term">SSL</b> stands for <b>Secure Sockets Layer</b>. Yeah, it sounds fancy, but it's basically a protective bubble for your data when it's flying across the Internet.
                                                         <br><br>
-                                                        When a website uses <b class="domain-term">SSL</b> (you’ll see <span class="domain-example">https://</span> and a lil' <span class="domain-padlock">🔒</span> in the address bar), it means the info you send and receive — like passwords, messages, or secret pizza orders — is <b class="domain-term">encrypted</b> and safe from eavesdroppers.
+                                                        When a website uses <b class="domain-term">SSL</b> (you’ll see <span class="domain-example">https://</span> and a lil' <span class="domain-padlock">🔒</span> in the address bar), it means the info you send and receive, like passwords, messages, or secret pizza orders, is <b class="domain-term">encrypted</b> and safe from eavesdroppers.
                                                         <br><br>
-                                                        Technically, most sites now use <span class="domain-term">TLS</span> (Transport Layer Security), which is like SSL’s cooler, stronger cousin — but we still say SSL out of habit. Old habits die hard, y’know?
+                                                        Technically, most sites now use <span class="domain-term">TLS</span> (Transport Layer Security), which is like SSL’s cooler, stronger cousin, but we still say SSL out of habit. Old habits die hard, y’know?
                                                         <br><br>
-                                                        To get SSL on your site, you need a <b class="domain-term">certificate</b> from a trusted authority like <span class="domain-vendor">Let’s Encrypt</span>. They’ll check that you own your domain, and boom — <span class="domain-success">secure connection, baby!</span>
+                                                        To get SSL on your site, you need a <b class="domain-term">certificate</b> from a trusted authority like <span class="domain-vendor">Let’s Encrypt</span>. They’ll check that you own your domain, and boom, <span class="domain-success">secure connection, baby!</span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -114,7 +114,7 @@
                                                         <br><br>
                                                         It’s like asking your phone, <span class="domain-quote">“Take me to Pizza Palace”</span>, and it magically knows the exact location.
                                                         <br><br>
-                                                        When setting up <span class="domain-term">SSL certificates</span>, DNS is super important — you might be asked to add special records (like <span class="domain-txt">TXT</span> or <span class="domain-txt">CNAME</span>) to your domain’s DNS settings to prove you own the domain.
+                                                        When setting up <span class="domain-term">SSL certificates</span>, DNS is super important. You might be asked to add special records (like <span class="domain-txt">TXT</span> or <span class="domain-txt">CNAME</span>) to your domain’s DNS settings to prove you own the domain.
                                                         <br><br>
                                                         So yeah, <b class="domain-term">DNS</b> is kinda like your Internet matchmaker. It connects <b>names</b> to <b>addresses</b>.
                                                     </p>
@@ -129,11 +129,12 @@
                                                     <h4 class="fw-bold mb-2 text-primary">What is a Domain?</h4>
                                                     <p class="lead domain-lead">
                                                         A <b>domain</b> is a human-readable address for a website. It is used to identify a specific location on the Internet.
-                                                        For example, <span class="domain-example">example.com</span>, <span class="domain-example">example.org</span>, and <span class="domain-example">example.net</span> are all domains.<br><br>
+                                                        For example, <span class="domain-example">example.com</span>, <span class="domain-example">example.org</span>, and <span class="domain-example">example.net</span> are all domains.
+                                                        <br><br>
                                                         Only one person or organization can own a domain at a time. When you register a domain, you are essentially renting it for a period of time (usually a year).
                                                         <br><br>
                                                         If you don’t have a domain, you can use a domain provider like <span class="domain-vendor">Cloudflare</span> to get one at cost (about <b>$10 for a .com</b>, often less for others).
-                                                        <span class="domain-warning">Avoid using free domains like <b>.tk</b> or <b>.ml</b> as they’re often blacklisted by Let’s Encrypt. (Their providers can also be shady.)</span>
+                                                        <span class="domain-warning">Avoid using free domains like <b>.tk</b> or <b>.ml</b> because they’re often blacklisted by Let’s Encrypt. Their providers can also be shady.</span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -166,7 +167,7 @@
                                                         <br><br>
                                                         Instead of clicking a link or uploading a file, the <b class="domain-term">DNS-01 challenge</b> asks you to add a special <b class="domain-txt">TXT record</b> to your domain’s DNS settings. This record contains a unique verification token that proves you control the domain.
                                                         <br><br>
-                                                        Once the record is live, <span class="domain-vendor">Let’s Encrypt</span> (or another provider) checks your DNS zone, finds the token, and says: <span class="domain-quote">‘Yup, they own it!’</span> — then boom, you’re approved!
+                                                        Once the record is live, <span class="domain-vendor">Let’s Encrypt</span> (or another provider) checks your DNS zone, finds the token, and says: <span class="domain-quote">‘Yup, they own it!’</span> Then boom, you’re approved!
                                                         <br><br>
                                                         <b>When is DNS-01 useful?</b>
                                                         <ul class="domain-list">
@@ -203,26 +204,26 @@
                                                             <span class="how-detail">
                                                                 Log into your provider (like <span class="domain-vendor">Cloudflare</span> or <span class="domain-vendor">Namecheap</span>), go to DNS settings, and create:<br>
                                                                 <span class="how-substep">• <b>Name (host):</b> <span class="domain-example">_acme-challenge.yourdomain.com</span></span><br>
-                                                                <span class="how-substep">• <b>Value:</b> the token we give you — and <b>yes, include the quotes</b> (<span class="domain-example">"your-token-here"</span>)!</span>
+                                                                <span class="how-substep">• <b>Value:</b> the token we give you, and <b>yes, include the quotes</b> (<span class="domain-example">"your-token-here"</span>)!</span>
                                                                 <br>
                                                                 <span class="how-api-tip">(If you’re using Auto Add via API, we’ll handle this for you.)</span>
                                                             </span>
                                                         </li>
                                                         <li>
                                                             <b>Wait for DNS to propagate</b>
-                                                            <span class="how-detail">Can take a few seconds to a few minutes. Chill, stretch, vibe. </span>
+                                                            <span class="how-detail">Can take a few seconds to a few minutes. Chill, stretch, vibe.</span>
                                                         </li>
                                                         <li>
                                                             <b>We verify</b>
-                                                            <span class="how-detail">Once DNS is updated, we’ll check if the <span class="domain-txt">TXT</span> record is correct. If it is — <span class="domain-success">boom!</span> You’re verified.</span>
+                                                            <span class="how-detail">Once DNS is updated, we’ll check if the <span class="domain-txt">TXT</span> record is correct. If it is, <span class="domain-success">boom!</span> You’re verified.</span>
                                                         </li>
                                                         <li>
                                                             <b>Get your SSL certificate</b>
-                                                            <span class="how-detail">If all’s good, we’ll fetch your certificate files (<span class="domain-txt">.crt</span> &amp; <span class="domain-txt">.key</span> or <span class="domain-txt">.pem</span> ). You’re ready for HTTPS life!</span>
+                                                            <span class="how-detail">If all’s good, we’ll fetch your certificate files (<span class="domain-txt">.crt</span> &amp; <span class="domain-txt">.key</span> or <span class="domain-txt">.pem</span>). You’re ready for HTTPS life!</span>
                                                         </li>
                                                     </ol>
                                                     <div class="mt-3">
-                                                        <span class="how-tip">You don’t need to be a wizard  — just follow the steps, copy the token right, and <b>don’t forget those quotes</b>!</span>
+                                                        <span class="how-tip">You don’t need to be a wizard, just follow the steps, copy the token right, and <b>don’t forget those quotes</b>!</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -252,7 +253,7 @@
                                                                 <li>
                                                                     <b>Automation made easy:</b>
                                                                     <span class="how-detail">
-                                                                        If your DNS provider supports API access, we can add verification records for you—no manual copy/paste.
+                                                                        If your DNS provider supports API access, we can add verification records for you, with no manual copy and paste needed.
                                                                     </span>
                                                                 </li>
                                                                 <li>
@@ -301,7 +302,7 @@
                                                 <div class="text-center mb-3">
                                                     <h4 class="fw-bold mb-1 text-primary">Local Certs</h4>
                                                     <p class="lead domain-lead mb-3">
-                                                        Need a certificate for local development or a Windows app? You can create a <b class="domain-term">local .pfx certificate</b> here—no domain needed!
+                                                        Need a certificate for local development or a Windows app? You can create a <b class="domain-term">local .pfx certificate</b> here, no domain needed!
                                                     </p>
                                                     <ol class="how-steps mx-auto text-start">
                                                         <li>
@@ -339,7 +340,7 @@
                                                     </ol>
                                                     <div class="mt-3">
                                                         <span class="how-tip">
-                                                            <b>Pro tip:</b> You can always convert between formats—.pfx, .pem, .crt, .key—using the Exchange tool.<br>
+                                                            <b>Pro tip:</b> You can always convert between formats, .pfx, .pem, .crt, and .key, using the Exchange tool.<br>
                                                             If Chrome or Windows gives warnings, install the cert as a <b>Trusted Root</b> for full trust.
                                                         </span>
                                                     </div>
@@ -353,11 +354,11 @@
                                                 <div class="text-center mb-3">
                                                     <h4 class="fw-bold mb-1 text-primary">What Are SANs?</h4>
                                                     <p class="lead domain-lead">
-                                                        Okay, real talk: <b>SAN</b> stands for <b>Subject Alternative Name</b>—but you can just call it a “bonus name” on your SSL cert!
+                                                        Okay, real talk: <b>SAN</b> stands for <b>Subject Alternative Name</b>, but you can just call it a “bonus name” on your SSL cert!
                                                         <br><br>
-                                                        Normally, a certificate protects just <b>one</b> domain (like <span class="domain-example">example.com</span>). But with <span class="domain-term">SANs</span>, you can secure <b>multiple domains</b> or subdomains—*all* with one certificate.
+                                                        Normally, a certificate protects just <b>one</b> domain (like <span class="domain-example">example.com</span>). But with <span class="domain-term">SANs</span>, you can secure <b>multiple domains</b> or subdomains, all with one certificate.
                                                         <br><br>
-                                                        That means <b>example.com</b>, <b>www.example.com</b>, <b>api.example.com</b>, <b>even totally different domains</b>—all covered by one shiny cert. No more juggling a bunch of certs like a circus clown. 
+                                                        That means <b>example.com</b>, <b>www.example.com</b>, <b>api.example.com</b>, <b>even totally different domains</b>, all covered by one shiny cert. No more juggling a bunch of certs like a circus clown.
                                                     </p>
                                                 </div>
                                                 <div class="text-center mb-3">
@@ -440,7 +441,7 @@
                                                             Add new subdomains later? They’re covered. *No need to re-issue!*
                                                         </li>
                                                         <li>
-                                                            <b>Note:</b> Your <span class="domain-example">root domain</span> (like <b>yourdomain.com</b> without the <b>*.</b>) is <b>not</b> included—add that separately if you want both.
+                                                            <b>Note:</b> Your <span class="domain-example">root domain</span> (like <b>yourdomain.com</b> without the <b>*.</b>) is <b>not</b> included, add that separately if you want both.
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -469,7 +470,7 @@
                                                         <li>
                                                             <b>Done!</b>
                                                             <span class="how-detail">
-                                                                You now have a cert that works for <b>any subdomain</b> at that level—super clutch for apps, catch-alls, and “I’ll probably add more stuff later.”
+                                                                You now have a cert that works for <b>any subdomain</b> at that level, super clutch for apps, catch-alls, and “I’ll probably add more stuff later.”
                                                             </span>
                                                         </li>
                                                     </ol>
@@ -490,7 +491,7 @@
                                                 <div class="text-center mb-3">
                                                     <h4 class="fw-bold mb-1 text-primary">Local Certs</h4>
                                                     <p class="lead domain-lead mb-3">
-                                                        Need a certificate for local development or a Windows app? You can create a <b class="domain-term">local .pfx certificate</b> here—no domain needed!
+                                                        Need a certificate for local development or a Windows app? You can create a <b class="domain-term">local .pfx certificate</b> here, no domain needed!
                                                     </p>
                                                     <ol class="how-steps mx-auto text-start">
                                                         <li>
@@ -514,7 +515,7 @@
                                                                     <li>Double-click your <span class="domain-txt">.pfx</span> file.</li>
                                                                     <li>Follow the Certificate Import Wizard prompts. Enter password if needed.</li>
                                                                     <li>Choose <b>“Local Machine”</b> (for all users) or <b>“Current User”</b> (just you).</li>
-                                                                    <li>Let Windows finish up—your cert is now installed!</li>
+                                                                    <li>Let Windows finish up, your cert is now installed!</li>
                                                                 </ol>
                                                             </span>
                                                         </li>
@@ -528,7 +529,7 @@
                                                     </ol>
                                                     <div class="mt-3">
                                                         <span class="how-tip">
-                                                            <b>Pro tip:</b> You can always convert between formats—.pfx, .pem, .crt, .key—using the Exchange tool.<br>
+                                                            <b>Pro tip:</b> You can always convert between formats, .pfx, .pem, .crt, and .key, using the Exchange tool.<br>
                                                             If Chrome or Windows gives warnings, install the cert as a <b>Trusted Root</b> for full trust.
                                                         </span>
                                                     </div>
@@ -543,7 +544,7 @@
                                                     <h4 class="fw-bold mb-1 text-primary">API Credential Requirements</h4>
                                                     <p class="lead domain-lead">
                                                         Here’s what you need to connect SphereSSL to your DNS provider for <b>automatic DNS record creation</b>.<br>
-                                                        <b>Tip:</b> If your provider needs two values (like a key <i>and</i> a secret), enter them as <code>KEY:SECRET</code>—with a colon, no spaces.
+                                                        <b>Tip:</b> If your provider needs two values (like a key <i>and</i> a secret), enter them as <code>KEY:SECRET</code>, with a colon and no spaces.
                                                     </p>
                                                 </div>
                                                 <div class="text-center mb-3">
@@ -661,7 +662,7 @@
                                                 <div class="text-center mb-3">
                                                     <h4 class="fw-bold mb-1 text-primary">What is “Auto Add Record”?</h4>
                                                     <p class="lead domain-lead">
-                                                        <b>Auto Add Record</b> is your shortcut to letting SphereSSL do the nerdy stuff for you—like adding DNS records automatically (so you don’t have to log in and click around).
+                                                        <b>Auto Add Record</b> is your shortcut to letting SphereSSL do the nerdy stuff for you, like adding DNS records automatically (so you don’t have to log in and click around).
                                                         <br><br>
                                                         When you enable this, SphereSSL uses the DNS provider’s API to <b>create the DNS challenge record for you</b>. All you gotta do? Sit back, sip your coffee, and watch your certs get validated on autopilot.
                                                     </p>
@@ -715,7 +716,7 @@
                                                         The <b>Staging</b> environment is like your certificate “practice arena.”
                                                         It lets you test out certificate creation, DNS challenges, and automated flows <b>without worrying about rate limits</b> or burning through your real cert quota.
                                                         <br><br>
-                                                        When you use <span class="domain-term">Staging</span>, you get real ACME-style certificates—
+                                                        When you use <span class="domain-term">Staging</span>, you get real ACME-style certificates, 
                                                         but <span class="text-danger"><b>they’re NOT trusted by browsers</b></span>.
                                                         It’s all about debugging, experimenting, and getting your process perfect before you go “live.”
                                                     </p>
@@ -723,7 +724,7 @@
                                                 <div class="text-center mb-3">
                                                     <h5 class="fw-bold mb-1 text-success">Why use Staging?</h5>
                                                     <ul class="domain-list mb-3 text-start mx-auto" style="max-width: 540px;">
-                                                        <li><b>Unlimited tries:</b> Practice as much as you want—no “rate limit” smackdown.</li>
+                                                        <li><b>Unlimited tries:</b> Practice as much as you want, no “rate limit” smackdown.</li>
                                                         <li><b>Safe space:</b> Mess up? Who cares! Your real cert quota is untouched.</li>
                                                         <li><b>Debug everything:</b> Iron out DNS, automation, API flows, or wild new configs.</li>
                                                         <li><b>Zero risk:</b> Staging certs won’t break your website or make Chrome mad.</li>
@@ -757,7 +758,7 @@
                                                     <span class="how-tip">
                                                         <b>Heads up:</b>
                                                         <span class="text-danger">Staging certificates are <u>NOT trusted by browsers</u>.</span><br>
-                                                        When you’re ready to go live, <b>disable Staging</b> and create a “real” cert—SphereSSL will handle it all!
+                                                        When you’re ready to go live, <b>disable Staging</b> and create a “real” cert, SphereSSL will handle it all!
                                                     </span>
                                                 </div>
                                             </div>
@@ -770,7 +771,7 @@
                                                 <div class="text-center mb-3">
                                                     <h4 class="fw-bold mb-1 text-primary">What is Auto Renew?</h4>
                                                     <p class="lead domain-lead">
-                                                        <b>Auto Renew</b> means SphereSSL will <span class="text-success fw-bold">automatically renew your SSL certificates</span> before they expire—no reminders, no panic, no manual steps!
+                                                        <b>Auto Renew</b> means SphereSSL will <span class="text-success fw-bold">automatically renew your SSL certificates</span> before they expire, no reminders, no panic, no manual steps!
                                                         <br><br>
                                                         If you enable this feature, SphereSSL will check your certs, handle renewals, and update your DNS provider (if you’re using API auto-DNS).
                                                         <span class="text-info"><b>Your site stays secure, and you stay stress-free.</b></span>
@@ -782,7 +783,7 @@
                                                         <li><b>Set it and forget it:</b> Never worry about expiring SSL certificates again.</li>
                                                         <li><b>No downtime:</b> Your site won’t suddenly break or show scary warnings to visitors.</li>
                                                         <li><b>Great for lots of domains:</b> Have more than one cert? Let the robot do the work.</li>
-                                                        <li><b>Peace of mind:</b> Even if you’re busy, sick, or on vacation—your renewals are covered.</li>
+                                                        <li><b>Peace of mind:</b> Even if you’re busy, sick, or on vacation, your renewals are covered.</li>
                                                     </ul>
                                                 </div>
                                                 <div class="text-center mb-3">
@@ -803,13 +804,13 @@
                                                         <li>
                                                             <b>DNS automation (optional)</b>
                                                             <span class="how-detail">
-                                                                If you use an API DNS provider, SphereSSL will update your DNS records for you—hands-free.
+                                                                If you use an API DNS provider, SphereSSL will update your DNS records for you, hands-free.
                                                             </span>
                                                         </li>
                                                         <li>
                                                             <b>Cert renewed!</b>
                                                             <span class="how-detail">
-                                                                You get a fresh cert, and your website stays secure—without lifting a finger.
+                                                                You get a fresh cert, and your website stays secure, without lifting a finger.
                                                             </span>
                                                         </li>
                                                     </ol>

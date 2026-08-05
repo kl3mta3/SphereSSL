@@ -223,7 +223,8 @@ namespace SphereSSLv2.Services.AcmeServices
         }
 
 
-        internal async Task<(string certPem, string keyPem)> ProcessCertificateGeneration(bool useSeperateFiles, string savePath, List<AcmeChallenge> challenges, string username)
+        internal async Task<(string certPem, string keyPem)> ProcessCertificateGeneration(bool useSeperateFiles, string savePath,
+            List<AcmeChallenge> challenges, string username, string outputFormat = "", string pfxPassword = "")
         {
             var key = KeyFactory.NewKey(KeyAlgorithm.RS256);
             var csrBuilder = new CertificationRequestBuilder(key);
@@ -339,7 +340,7 @@ namespace SphereSSLv2.Services.AcmeServices
             var certPem = await http.GetStringAsync(certUrl);
             var keyPem = key.ToPem();
 
-            await DownloadCertificateAsync(useSeperateFiles, savePath, certPem, keyPem, username);
+            await DownloadCertificateAsync(useSeperateFiles, savePath, certPem, keyPem, username, outputFormat, pfxPassword);
 
             _ = _logger.Info($"[{username}]: SSL Certificate successfully generated and downloaded!");
             return (certPem, keyPem);
@@ -433,89 +434,73 @@ namespace SphereSSLv2.Services.AcmeServices
             }
         }
 
-        private async Task DownloadCertificateAsync(bool useSeperateFiles, string savePath, string certPem, string keyPem, string username)
+        private async Task DownloadCertificateAsync(bool useSeparateFiles, string savePath, string certPem, string keyPem,
+            string username, string outputFormat = "", string pfxPassword = "")
         {
-    
-            _= _logger.Info($"[{username}]: Getting ready for Download  Path:{savePath}!");
-
-
+            _ = _logger.Info($"[{username}]: Getting ready for Download Path:{savePath}!");
             if (Path.GetPathRoot(savePath)?.TrimEnd('\\') == savePath.TrimEnd('\\'))
+                throw new InvalidOperationException("Cannot save directly to the root of a drive. Please choose a subfolder.");
+
+            savePath = string.IsNullOrWhiteSpace(savePath)
+                ? Path.Combine(Directory.GetCurrentDirectory(), "certs")
+                : Path.GetFullPath(Path.IsPathRooted(savePath)
+                    ? savePath
+                    : Path.Combine(Directory.GetCurrentDirectory(), savePath));
+            Directory.CreateDirectory(savePath);
+
+            var format = string.IsNullOrWhiteSpace(outputFormat)
+                ? (useSeparateFiles ? "separate" : "pem")
+                : outputFormat.Trim().ToLowerInvariant();
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var prefix = "cert_" + timestamp;
+            byte[]? pfxBytes = null;
+
+            if (format == "pfx")
             {
-                _= _logger.Error($"[{username}]: Cannot save directly to the root of a drive. Please choose a subfolder.");
-                return;
+                pfxBytes = CreateFullChainPfx(certPem, keyPem, pfxPassword);
+                var pfxPath = Path.Combine(savePath, $"{prefix}.pfx");
+                await File.WriteAllBytesAsync(pfxPath, pfxBytes);
+                _ = _logger.Info($"[{username}]: Saved PFX certificate: {pfxPath}");
+            }
+            else if (format == "separate")
+            {
+                var certPath = Path.Combine(savePath, $"{prefix}.crt");
+                var keyPath = Path.Combine(savePath, $"{prefix}.key");
+                await File.WriteAllTextAsync(certPath, certPem);
+                await File.WriteAllTextAsync(keyPath, keyPem);
+                _ = _logger.Info($"[{username}]: Saved certificate: {certPath}");
+                _ = _logger.Info($"[{username}]: Saved private key: {keyPath}");
+            }
+            else
+            {
+                var pemPath = Path.Combine(savePath, $"{prefix}.pem");
+                await File.WriteAllTextAsync(pemPath, certPem + "\n" + keyPem);
+                _ = _logger.Info($"[{username}]: Saved combined PEM: {pemPath}");
             }
 
-
-            if (string.IsNullOrWhiteSpace(savePath))
+            var tempFolder = Path.Combine(AppContext.BaseDirectory, "Temp");
+            Directory.CreateDirectory(tempFolder);
+            if (format == "pfx")
+                await File.WriteAllBytesAsync(Path.Combine(tempFolder, "tempCert.pfx"), pfxBytes!);
+            else if (format == "separate")
             {
-                savePath = System.IO.Directory.GetCurrentDirectory()+"/certs";
+                await File.WriteAllTextAsync(Path.Combine(tempFolder, "tempCert.crt"), certPem);
+                await File.WriteAllTextAsync(Path.Combine(tempFolder, "tempKey.key"), keyPem);
             }
-            else if (!Path.IsPathRooted(savePath))
-            {
-                savePath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), savePath);
-            }
-            savePath = Path.GetFullPath(savePath);
+            else
+                await File.WriteAllTextAsync(Path.Combine(tempFolder, "tempCert.pem"), certPem + "\n" + keyPem);
+        }
 
-
-            System.IO.Directory.CreateDirectory(savePath);
-
-            string certFile = "";
-            string keyFile = "";
-            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            string prefix = "cert_" + timestamp;
-
-            try
-            {
-
-                if (!useSeperateFiles)
-                {
-
-                    string combinedPath = Path.Combine(savePath, $"{prefix}.pem");
-                    File.WriteAllText(combinedPath, certPem + "\n" + keyPem);
-                    _ = _logger.Info($"[{username}]: Saved combined PEM: {combinedPath}");
-                    certFile = certPem + "\n" + keyPem;
-                }
-                else if (useSeperateFiles)
-                {
-                    string certPath = Path.Combine(savePath, $"{prefix}.crt");
-                    string keyPath = Path.Combine(savePath, $"{prefix}.key");
-                    File.WriteAllText(certPath, certPem);
-                    File.WriteAllText(keyPath, keyPem);
-                    _= _logger.Info($"[{username}]: Saved certificate: {certPath}");
-                    _ = _logger.Info($"[{username}]: Saved private key: {keyPath}");
-                    certFile = certPem ;
-                    keyFile = keyPem;
-                }
-
-            }
-            catch (Exception ex)
-            {
-                _ = _logger.Error($"[{username}]: Error saving files: {ex.Message}");
-            }
-
-            await Task.Delay(500);
-            string tempFolder = Path.Combine(AppContext.BaseDirectory, "Temp");
-            System.IO.Directory.CreateDirectory(tempFolder);
-           
-            try
-            {
-                if (!useSeperateFiles)
-                {
-                    string savefile = Path.Combine(tempFolder, $"tempCert.pem");
-                    File.WriteAllText(savefile, certFile);
-
-                }
-                else
-                {
-                    string saveCrtfile = Path.Combine(tempFolder, $"tempCert.crt");
-                    string saveKeyfile = Path.Combine(tempFolder, $"tempKey.key");
-
-                    File.WriteAllText(saveCrtfile, certFile);
-                    File.WriteAllText(saveKeyfile, keyFile);
-
-                }
-            }
-            catch { /* silently fail if not Windows or explorer not available */ }
+        internal static byte[] CreateFullChainPfx(string certPem, string keyPem, string password)
+        {
+            using var leafWithKey = X509Certificate2.CreateFromPem(certPem, keyPem);
+            var pemCertificates = new X509Certificate2Collection();
+            pemCertificates.ImportFromPem(certPem);
+            var exportCollection = new X509Certificate2Collection { leafWithKey };
+            foreach (var certificate in pemCertificates.Cast<X509Certificate2>().Skip(1))
+                exportCollection.Add(certificate);
+            return exportCollection.Export(X509ContentType.Pfx, password)
+                ?? throw new InvalidOperationException("PFX export failed.");
         }
 
         internal static  ESJwsTool LoadOrCreateSigner( AcmeService acme, string path = "signer.pem")

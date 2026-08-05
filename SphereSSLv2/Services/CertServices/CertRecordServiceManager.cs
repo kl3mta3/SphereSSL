@@ -239,7 +239,8 @@ namespace SphereSSLv2.Services.CertServices
                             _challenge.Status = "Valid";
                         }
 
-                        var (certPem, certKey) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
+                        var (certPem, certKey) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles,
+                            order.SavePath, order.Challenges, username, order.EffectiveOutputFormat, order.PfxPassword);
                         order.CertPem = certPem;
                         order.CertKey = certKey;
 
@@ -512,7 +513,8 @@ namespace SphereSSLv2.Services.CertServices
                         _challenge.Status = "Valid";
                     }
 
-                    var (certPem2, certKey2) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
+                    var (certPem2, certKey2) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles,
+                        order.SavePath, order.Challenges, username, order.EffectiveOutputFormat, order.PfxPassword);
                     order.CertPem = certPem2;
                     order.CertKey = certKey2;
 

@@ -40,6 +40,8 @@ namespace SphereSSLv2.Data.Database
                     CreationTime TEXT NOT NULL,
                     ExpiryDate TEXT NOT NULL,
                     UseSeparateFiles INTEGER DEFAULT 0,
+                    OutputFormat TEXT DEFAULT '',
+                    PfxPassword TEXT DEFAULT '',
                     SaveForRenewal INTEGER DEFAULT 0,
                     AutoRenew INTEGER DEFAULT 0,
                     FailedRenewals INTEGER DEFAULT 0,
@@ -66,6 +68,8 @@ namespace SphereSSLv2.Data.Database
                     ExpiryDate TEXT NOT NULL,
                     RevokeDate TEXT NOT NULL,
                     UseSeparateFiles INTEGER DEFAULT 0,
+                    OutputFormat TEXT DEFAULT '',
+                    PfxPassword TEXT DEFAULT '',
                     SaveForRenewal INTEGER DEFAULT 0,
                     AutoRenew INTEGER DEFAULT 0,
                     FailedRenewals INTEGER DEFAULT 0,
@@ -426,6 +430,37 @@ namespace SphereSSLv2.Data.Database
                     enableForeignKeys.CommandText = "PRAGMA foreign_keys = ON;";
                     await enableForeignKeys.ExecuteNonQueryAsync();
                 }
+            }
+
+            if (version < 6)
+            {
+                using var conn6 = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn6.OpenAsync();
+
+                foreach (var sql in new[]
+                {
+                    "ALTER TABLE CertRecords ADD COLUMN OutputFormat TEXT DEFAULT '';",
+                    "ALTER TABLE CertRecords ADD COLUMN PfxPassword TEXT DEFAULT '';",
+                    "ALTER TABLE RevokedRecords ADD COLUMN OutputFormat TEXT DEFAULT '';",
+                    "ALTER TABLE RevokedRecords ADD COLUMN PfxPassword TEXT DEFAULT '';"
+                })
+                {
+                    try
+                    {
+                        var cmd = conn6.CreateCommand();
+                        cmd.CommandText = sql;
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                    catch (SqliteException ex) when (
+                        ex.SqliteErrorCode == 1 &&
+                        ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
+                    {
+                    }
+                }
+
+                var versionCommand = conn6.CreateCommand();
+                versionCommand.CommandText = "UPDATE DbVersion SET Version = 6 WHERE Id = 1;";
+                await versionCommand.ExecuteNonQueryAsync();
             }
         }
 
