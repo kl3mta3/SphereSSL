@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Spheressl
+// Ignore Spelling: Spheressl
 
 using DnsClient;
 using DnsClient.Protocol;
@@ -203,12 +203,16 @@ namespace SphereSSLv2.Services.Config
                 for (int i = 0; i < 3; i++)
                 {
                     string json = File.ReadAllText(ConfigFilePath);
+
+                    if (string.IsNullOrWhiteSpace(json) || json.Trim() == "{}")
+                    {
+                        await Task.Delay(500);
+                        continue;
+                    }
+
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     storedConfig = JsonSerializer.Deserialize<StoredConfig>(json, options);
-      
-                    if (!string.IsNullOrWhiteSpace(json) && json.Trim() != "{}")
-            
-                        break;
+                    break;
                 }
               
                 if (storedConfig == null)

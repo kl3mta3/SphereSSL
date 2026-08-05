@@ -5,6 +5,7 @@ using SphereSSLv2.Data.Helpers;
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Models.Dtos;
+using SphereSSLv2.Services.ReportServices;
 using SphereSSLv2.Models.UserModels;
 using SphereSSLv2.Services.CertServices;
 using SphereSSLv2.Services.Config;
@@ -77,6 +78,86 @@ namespace SphereSSLv2.Pages
                 .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.RenewBeforeExpiryDays));
 
             return Page();
+        }
+
+        public async Task<IActionResult> OnGetCertificateReportAsync(string filter = "all")
+        {
+            var currentUser = GetCurrentUserFromSession();
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
+            if (!CertificateInventoryReportService.TryNormalizeFilter(filter, out var normalizedFilter))
+            {
+                return BadRequest("Unknown certificate report filter.");
+            }
+
+            var (certificates, providers) = await GetCertificateReportDataAsync(currentUser);
+            var report = CertificateInventoryReportService.Build(certificates, providers, normalizedFilter);
+
+            return new JsonResult(report);
+        }
+
+        public async Task<IActionResult> OnGetDownloadCertificateReportAsync(string filter = "all")
+        {
+            var currentUser = GetCurrentUserFromSession();
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
+            if (!CertificateInventoryReportService.TryNormalizeFilter(filter, out var normalizedFilter))
+            {
+                return BadRequest("Unknown certificate report filter.");
+            }
+
+            var (certificates, providers) = await GetCertificateReportDataAsync(currentUser);
+            var report = CertificateInventoryReportService.Build(certificates, providers, normalizedFilter);
+            var filename =
+                $"spheressl-certificate-inventory-{normalizedFilter}-{report.GeneratedAtUtc:yyyyMMdd-HHmmss}.csv";
+
+            return File(
+                CertificateInventoryReportService.BuildCsv(report),
+                "text/csv",
+                filename);
+        }
+
+        private UserSession? GetCurrentUserFromSession()
+        {
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (string.IsNullOrWhiteSpace(sessionData))
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonConvert.DeserializeObject<UserSession>(sessionData);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        private async Task<(List<CertRecord> Certificates, List<DNSProvider> Providers)>
+            GetCertificateReportDataAsync(UserSession currentUser)
+        {
+            var isAdminOrAbove =
+                string.Equals(currentUser.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase) ||
+                currentUser.IsAdmin;
+
+            if (isAdminOrAbove)
+            {
+                return (
+                    await CertRepository.GetAllCertRecords(),
+                    await _dnsProviderRepository.GetAllDNSProviders());
+            }
+
+            return (
+                await _certRepository.GetAllCertsForUserIdAsync(currentUser.UserId),
+                await _dnsProviderRepository.GetAllDNSProvidersByUserId(currentUser.UserId));
         }
 
         public async Task<IActionResult> OnPostRenewCertificate([FromBody] OrderRenewRequest request)
