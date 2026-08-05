@@ -128,7 +128,8 @@ namespace SphereSSLv2.Pages
                 order.UserId = CurrentUser.UserId;
 
                 bool _isViewer = !string.IsNullOrEmpty(CurrentUser.Role)
-                    && CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase);
+                    && (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase)
+                        || CurrentUser.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase));
                 if (_isViewer && ConfigureService.RestrictViewers)
                 {
                     order.SaveForRenewal = false;

@@ -1,10 +1,11 @@
-﻿@page
+@page
 @model SphereSSLv2.Pages.CreateNewModel
 @{
     ViewData["Title"] = "Create";
     bool stagingOnly = SphereSSLv2.Services.Config.ConfigureService.StagingOnly;
     bool restrictViewerFields = SphereSSLv2.Services.Config.ConfigureService.RestrictViewers
-        && Model.CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase);
+        && (Model.CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase)
+            || Model.CurrentUser.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase));
 }
 <div class="container-fluid px-4">
     <div class="row justify-content-center">

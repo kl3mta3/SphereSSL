@@ -730,7 +730,8 @@ namespace SphereSSLv2.Pages
             if (sessionData == null) return RedirectToPage("/Index");
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
             if (CurrentUser == null) return RedirectToPage("/Index");
-            if (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase))
+            if (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase)
+                || CurrentUser.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase))
                 return new JsonResult(new { success = false, message = "Viewers cannot perform bulk renewals." });
 
             int succeeded = 0, failed = 0, skipped = 0;
@@ -767,7 +768,8 @@ namespace SphereSSLv2.Pages
             if (sessionData == null) return RedirectToPage("/Index");
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
             if (CurrentUser == null) return RedirectToPage("/Index");
-            if (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase))
+            if (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase)
+                || CurrentUser.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase))
                 return new JsonResult(new { success = false, message = "Viewers cannot toggle auto-renew." });
 
             int succeeded = 0, failed = 0;
@@ -798,7 +800,8 @@ namespace SphereSSLv2.Pages
             if (sessionData == null) return RedirectToPage("/Index");
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
             if (CurrentUser == null) return RedirectToPage("/Index");
-            if (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase))
+            if (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase)
+                || CurrentUser.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase))
                 return new JsonResult(new { success = false, message = "Viewers cannot revoke certificates." });
 
             int succeeded = 0, failed = 0;
@@ -850,7 +853,8 @@ namespace SphereSSLv2.Pages
             if (sessionData == null) return Unauthorized();
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
             if (CurrentUser == null) return Unauthorized();
-            if (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase))
+            if (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase)
+                || CurrentUser.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase))
                 return new JsonResult(new { success = false, message = "Viewers cannot import certificates." });
 
             Request.EnableBuffering();

@@ -2,7 +2,8 @@
 @model SphereSSLv2.Pages.ManageRenewalsModel
 @{
     ViewData["Title"] = "Manage";
-    bool isViewer = Model.CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase);
+    bool isViewer = Model.CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase)
+        || Model.CurrentUser.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase);
 }
 <div class="container-fluid px-4">
     <div class="row justify-content-center">
