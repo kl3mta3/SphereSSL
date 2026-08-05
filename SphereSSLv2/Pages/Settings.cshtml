@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model SphereSSLv2.Pages.SettingsModel
 @{
     ViewData["Title"] = "Settings";
@@ -386,7 +386,7 @@
                                                 {
                                                     foreach (var user in Model.UserList)
                                                     {
-                                                        if (user.Name != "Locke-Ann Key")
+                                                        if (user.Name != "Locke-Ann Key" && user.Name != "Seeduser" && user.Name != "Demo User")
                                                         {
                                                             <tr data-user-id="@user.UserId">
                                                                 <td>@user.Username</td>
