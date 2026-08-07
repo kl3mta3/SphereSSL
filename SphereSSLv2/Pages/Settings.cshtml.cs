@@ -658,22 +658,33 @@ namespace SphereSSLv2.Pages
 
         public async Task<IActionResult> OnPostShowEditProviderModal([FromBody] string providerId)
         {
-            // Fetch the DNSProvider from your repo
+            var sessionData = HttpContext.Session.GetString("UserSession");
+            if (string.IsNullOrWhiteSpace(sessionData))
+                return Unauthorized();
+
+            CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
+            if (CurrentUser == null)
+                return Unauthorized();
+
             DNSProvider provider = await _dnsProviderRepository.GetDNSProviderById(providerId);
-
             if (provider == null)
-                return Content("<div class='text-danger'>Provider not found.</div>", "text/html");
+                return NotFound("Provider not found.");
 
+            if (provider.UserId != CurrentUser.UserId && !CurrentUser.IsAdmin)
+                return StatusCode(StatusCodes.Status403Forbidden);
+
+            string encodedProviderId = System.Net.WebUtility.HtmlEncode(provider.ProviderId);
+            string encodedProviderName = System.Net.WebUtility.HtmlEncode(provider.ProviderName);
             string optionsHtml = string.Join("", SupportedAutoProviders.Select(p =>
-                $"<option value='{p}'{(p == provider.Provider ? " selected" : "")}>{p}</option>"));
+                $"<option value='{System.Net.WebUtility.HtmlEncode(p)}'{(p == provider.Provider ? " selected" : "")}>{System.Net.WebUtility.HtmlEncode(p)}</option>"));
 
             var html = $@"
             <form id='editProviderForm' class='p-4 bg-white rounded shadow-sm' style='max-width: 500px; margin: auto;'>
                 <h4 class='mb-3 text-center text-primary fw-bold'>Edit DNS Provider</h4>
-                <input type='hidden' id='editProviderId' value='{provider.ProviderId}'>
+                <input type='hidden' id='editProviderId' value='{encodedProviderId}'>
                 <div class='mb-3'>
                     <label for='editProviderName' class='form-label'>Name</label>
-                    <input type='text' id='editProviderName' class='form-control' value='{provider.ProviderName}' required>
+                    <input type='text' id='editProviderName' class='form-control' value='{encodedProviderName}' required>
                 </div>
                 <div class='mb-3'>
                     <label for='editProvider' class='form-label'>Provider</label>
@@ -684,51 +695,48 @@ namespace SphereSSLv2.Pages
                 </div>
                 <div class='mb-3'>
                     <label for='editApiKey' class='form-label'>API Key</label>
-                    <input type='text' id='editApiKey' class='form-control' value='{provider.APIKey}' required>
+                    <input type='password' id='editApiKey' class='form-control' value='' placeholder='Leave blank to keep the current API key' autocomplete='new-password'>
                 </div>
                 <div class='mb-3'>
                     <label for='editTtl' class='form-label'>TTL (Time to Live)</label>
                     <input type='number' id='editTtl' class='form-control' value='{provider.Ttl}' min='60'>
                 </div>
                 <div class='d-flex justify-content-end gap-2'>
-                    <button type='button' class='btn btn-danger' onclick='promptDeleteProvider(""{provider.ProviderId}"")'>Delete</button>
+                    <button type='button' class='btn btn-danger' onclick='promptDeleteProvider(""{encodedProviderId}"")'>Delete</button>
                     <button type='button' class='btn btn-primary' onclick='saveEditedProvider()'>Save</button>
                     <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button>
                 </div>
             </form>";
             return Content(html, "text/html");
-
         }
-
         public async Task<IActionResult> OnPostDeleteDNSProviderAsync([FromBody] ProviderDeleteRequest request)
         {
-            var providerId = request.ProviderId;
             var sessionData = HttpContext.Session.GetString("UserSession");
+            if (string.IsNullOrWhiteSpace(sessionData))
+                return Unauthorized();
 
-            if (string.IsNullOrEmpty(sessionData))
-            {
-
-                return new JsonResult(new { success = false, redirect = "/Index" });
-            }
             CurrentUser = JsonConvert.DeserializeObject<UserSession>(sessionData);
             if (CurrentUser == null)
-            {
-                return new JsonResult(new { success = false, redirect = "/Index" });
-            }
+                return Unauthorized();
+
+            DNSProvider provider = await _dnsProviderRepository.GetDNSProviderById(request.ProviderId);
+            if (provider == null)
+                return NotFound(new { success = false, message = "Provider not found." });
+
+            if (provider.UserId != CurrentUser.UserId && !CurrentUser.IsAdmin)
+                return StatusCode(StatusCodes.Status403Forbidden);
 
             try
             {
-
-                bool success = await _dnsProviderRepository.DeleteDNSProviderById(providerId);
-                return new JsonResult(new { success = success });
+                bool success = await _dnsProviderRepository.DeleteDNSProviderById(provider.ProviderId);
+                return new JsonResult(new { success });
             }
             catch (Exception ex)
             {
-                await _logger.Error($"Error Deleting DNS Provider: {ex.Message}");
-                return new JsonResult(new { success = false, message = "Internal error occurred." });
+                await _logger.Error($"Error deleting DNS provider: {ex.Message}");
+                return StatusCode(500, new { success = false, message = "Internal error occurred." });
             }
         }
-
         public async Task<IActionResult> OnPostUpdateDNSProviderAsync([FromBody] UpdateDNSProviderRequest provider)
         {
 
@@ -744,20 +752,18 @@ namespace SphereSSLv2.Pages
                 return new JsonResult(new { success = false, redirect = "/Index" });
             }
             DNSProvider existingProvider = await _dnsProviderRepository.GetDNSProviderById(provider.ProviderId);
+            if (existingProvider == null)
+            {
+                return new JsonResult(new { success = false, message = "Provider not found." });
+            }
 
             if (existingProvider.UserId != CurrentUser.UserId && !CurrentUser.IsAdmin)
             {
                 return new JsonResult(new { success = false, message = "You do not own this DNS provider." });
             }
 
-
             try
             {
-
-                if (existingProvider == null)
-                {
-                    return new JsonResult(new { success = false, message = "Provider not found." });
-                }
 
                 if (!string.IsNullOrWhiteSpace(provider.ProviderName) && existingProvider.ProviderName != provider.ProviderName)
                 {

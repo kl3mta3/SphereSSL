@@ -42,22 +42,17 @@ namespace SphereSSLv2.Services.Config
             builder.Services.AddScoped<DnsProviderRepository>();
             builder.Services.AddScoped<ApiRepository>();
             builder.Services.AddScoped<ConnectionRepository>();
-
-            // CORS Policy
-            builder.Services.AddCors(options =>
+            builder.Services.AddAntiforgery(options =>
             {
-                options.AddDefaultPolicy(policy =>
-                {
-                    policy.AllowAnyOrigin()
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
-                });
+                options.HeaderName = "RequestVerificationToken";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.Strict;
+                options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+                    ? CookieSecurePolicy.SameAsRequest
+                    : CookieSecurePolicy.Always;
             });
 
-            builder.Services.AddRazorPages(options =>
-            {
-                options.Conventions.ConfigureFilter(new IgnoreAntiforgeryTokenAttribute());
-            });
+            builder.Services.AddRazorPages();
 
             builder.Services.AddAuthorization();
             builder.Services.AddScoped<DatabaseManager>();
@@ -65,20 +60,18 @@ namespace SphereSSLv2.Services.Config
             builder.WebHost.ConfigureKestrel(options =>
             {
                 options.Listen(IPAddress.Any, port); // HTTP - Listen on all interfaces for Docker
-
-                //options.Listen(IPAddress.Parse(ConfigureService.ServerIP), port -1, listen =>
-                //{
-                //    listen.UseHttps("c:/SphereVRF/spherevrf.pfx", "Empanada1030!");
-                //});
             });
 
             builder.Services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromMinutes(15);
+                options.Cookie.Name = "SphereSSL.Session";
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
-                options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Strict;
+                options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+                    ? CookieSecurePolicy.SameAsRequest
+                    : CookieSecurePolicy.Always;
             });
 
             var app = builder.Build();
@@ -86,7 +79,6 @@ namespace SphereSSLv2.Services.Config
             app.UseStaticFiles();
             app.UseSession();
             app.UseRouting();
-            app.UseCors();
             app.UseAuthorization();
 
 
