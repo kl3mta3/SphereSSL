@@ -21,14 +21,14 @@ namespace SphereSSLv2.Data.Repositories
 
             command.CommandText = @"
             INSERT INTO CertRecords (
-                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
+                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, UseSeparateFiles, OutputFormat, PfxPassword, SaveForRenewal, AutoRenew,
                 FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-                ChallengeType, Thumbprint
+                ChallengeType, Thumbprint, CertPem, CertKey, CertApiKey
             )
             VALUES (
-                @UserId, @OrderId, @Email, @SavePath, @CreationTime, @ExpiryDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
+                @UserId, @OrderId, @Email, @SavePath, @CreationTime, @ExpiryDate, @UseSeparateFiles, @OutputFormat, @PfxPassword, @SaveForRenewal, @AutoRenew,
                 @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl,
-                @ChallengeType, @Thumbprint
+                @ChallengeType, @Thumbprint, @CertPem, @CertKey, @CertApiKey
             );";
 
             command.Parameters.AddWithValue("@UserId", record.UserId);
@@ -38,6 +38,8 @@ namespace SphereSSLv2.Data.Repositories
             command.Parameters.AddWithValue("@CreationTime", record.CreationDate.ToString("o"));
             command.Parameters.AddWithValue("@ExpiryDate", record.ExpiryDate.ToString("o"));
             command.Parameters.AddWithValue("@UseSeparateFiles", record.UseSeparateFiles ? 1 : 0);
+            command.Parameters.AddWithValue("@OutputFormat", record.EffectiveOutputFormat);
+            command.Parameters.AddWithValue("@PfxPassword", record.PfxPassword ?? "");
             command.Parameters.AddWithValue("@SaveForRenewal", record.SaveForRenewal ? 1 : 0);
             command.Parameters.AddWithValue("@AutoRenew", record.autoRenew ? 1 : 0);
             command.Parameters.AddWithValue("@FailedRenewals", record.FailedRenewals);
@@ -47,6 +49,9 @@ namespace SphereSSLv2.Data.Repositories
             command.Parameters.AddWithValue("@OrderUrl", record.OrderUrl);
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
+            command.Parameters.AddWithValue("@CertPem", record.CertPem ?? "");
+            command.Parameters.AddWithValue("@CertKey", record.CertKey ?? "");
+            command.Parameters.AddWithValue("@CertApiKey", record.CertApiKey ?? "");
 
             await command.ExecuteNonQueryAsync();
 
@@ -80,6 +85,8 @@ namespace SphereSSLv2.Data.Repositories
             CreationTime = @CreationTime,
             ExpiryDate = @ExpiryDate,
             UseSeparateFiles = @UseSeparateFiles,
+            OutputFormat = @OutputFormat,
+            PfxPassword = @PfxPassword,
             SaveForRenewal = @SaveForRenewal,
             AutoRenew = @AutoRenew,
             FailedRenewals = @FailedRenewals,
@@ -88,7 +95,10 @@ namespace SphereSSLv2.Data.Repositories
             AccountID = @AccountID,
             OrderUrl = @OrderUrl,
             ChallengeType = @ChallengeType,
-            Thumbprint = @Thumbprint
+            Thumbprint = @Thumbprint,
+            CertPem = @CertPem,
+            CertKey = @CertKey,
+            CertApiKey = @CertApiKey
 
         WHERE OrderId = @OrderId";
             command.Parameters.AddWithValue("@OrderId", record.OrderId);
@@ -97,6 +107,8 @@ namespace SphereSSLv2.Data.Repositories
             command.Parameters.AddWithValue("@CreationTime", record.CreationDate.ToString("o"));
             command.Parameters.AddWithValue("@ExpiryDate", record.ExpiryDate.ToString("o"));
             command.Parameters.AddWithValue("@UseSeparateFiles", record.UseSeparateFiles ? 1 : 0);
+            command.Parameters.AddWithValue("@OutputFormat", record.EffectiveOutputFormat);
+            command.Parameters.AddWithValue("@PfxPassword", record.PfxPassword ?? "");
             command.Parameters.AddWithValue("@SaveForRenewal", record.SaveForRenewal ? 1 : 0);
             command.Parameters.AddWithValue("@AutoRenew", record.autoRenew ? 1 : 0);
             command.Parameters.AddWithValue("@FailedRenewals", record.FailedRenewals);
@@ -106,6 +118,9 @@ namespace SphereSSLv2.Data.Repositories
             command.Parameters.AddWithValue("@OrderUrl", record.OrderUrl);
             command.Parameters.AddWithValue("@ChallengeType", record.ChallengeType);
             command.Parameters.AddWithValue("@Thumbprint", record.Thumbprint);
+            command.Parameters.AddWithValue("@CertPem", record.CertPem ?? "");
+            command.Parameters.AddWithValue("@CertKey", record.CertKey ?? "");
+            command.Parameters.AddWithValue("@CertApiKey", record.CertApiKey ?? "");
         
 
             await command.ExecuteNonQueryAsync();
@@ -121,11 +136,13 @@ namespace SphereSSLv2.Data.Repositories
 
         public static async Task DeleteCertRecordByOrderId(string orderId, SqliteConnection? connection = null, SqliteTransaction? transaction = null)
         {
+            bool localConn = false;
             if (connection == null)
             {
                 connection = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await connection.OpenAsync();
+                localConn = true;
             }
-            await connection.OpenAsync();
 
             var command = connection.CreateCommand();
 
@@ -151,6 +168,20 @@ namespace SphereSSLv2.Data.Repositories
             {
                 ConfigureService.CertRecords.Remove(recordToRemove);
             }
+
+            if (localConn)
+                await connection.CloseAsync();
+        }
+
+        public static async Task SaveCertApiKey(string orderId, string certApiKey)
+        {
+            using var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE CertRecords SET CertApiKey = @key WHERE OrderId = @orderId";
+            cmd.Parameters.AddWithValue("@key", certApiKey);
+            cmd.Parameters.AddWithValue("@orderId", orderId);
+            await cmd.ExecuteNonQueryAsync();
         }
 
         public static async Task<CertRecord?> GetCertRecordByOrderId(string orderId)
@@ -179,6 +210,8 @@ namespace SphereSSLv2.Data.Repositories
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
+                    OutputFormat = reader["OutputFormat"]?.ToString() ?? string.Empty,
+                    PfxPassword = reader["PfxPassword"]?.ToString() ?? string.Empty,
                     SaveForRenewal = Convert.ToBoolean(reader["SaveForRenewal"]),
                     autoRenew = Convert.ToBoolean(reader["AutoRenew"]),
                     FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
@@ -188,6 +221,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     Challenges = new List<AcmeChallenge>()
                 };
 
@@ -210,10 +246,10 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-            SELECT 
-                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
+            SELECT
+                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, UseSeparateFiles, OutputFormat, PfxPassword, SaveForRenewal, AutoRenew,
                 FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
-                ChallengeType, Thumbprint
+                ChallengeType, Thumbprint, CertPem, CertKey, CertApiKey
             FROM CertRecords;
             ";
 
@@ -229,6 +265,8 @@ namespace SphereSSLv2.Data.Repositories
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
+                    OutputFormat = reader["OutputFormat"]?.ToString() ?? string.Empty,
+                    PfxPassword = reader["PfxPassword"]?.ToString() ?? string.Empty,
                     SaveForRenewal = Convert.ToBoolean(reader["SaveForRenewal"]),
                     autoRenew = Convert.ToBoolean(reader["AutoRenew"]),
                     FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
@@ -238,13 +276,18 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     Challenges = new List<AcmeChallenge>()
                 };
 
 
                 cert.Challenges = await GetAllChallengesForOrderIdAsync(cert.OrderId);
-
-                records.Add(cert);
+                if (cert.OrderId != "12345")
+                {
+                    records.Add(cert);
+                }
             }
 
             return records;
@@ -289,6 +332,8 @@ namespace SphereSSLv2.Data.Repositories
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
+                    OutputFormat = reader["OutputFormat"]?.ToString() ?? string.Empty,
+                    PfxPassword = reader["PfxPassword"]?.ToString() ?? string.Empty,
                     SaveForRenewal = Convert.ToBoolean(reader["SaveForRenewal"]),
                     autoRenew = Convert.ToBoolean(reader["AutoRenew"]),
                     FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
@@ -298,6 +343,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
                     Thumbprint = reader["Thumbprint"].ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     Challenges = new List<AcmeChallenge>()
                 };
 
@@ -337,6 +385,8 @@ namespace SphereSSLv2.Data.Repositories
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString() ?? DateTime.MinValue.ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
+                    OutputFormat = reader["OutputFormat"]?.ToString() ?? string.Empty,
+                    PfxPassword = reader["PfxPassword"]?.ToString() ?? string.Empty,
                     SaveForRenewal = Convert.ToBoolean(reader["SaveForRenewal"]),
                     autoRenew = Convert.ToBoolean(reader["AutoRenew"]),
                     FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
@@ -345,7 +395,10 @@ namespace SphereSSLv2.Data.Repositories
                     AccountID = reader["AccountID"].ToString(),
                     OrderUrl = reader["OrderUrl"].ToString(),
                     ChallengeType = reader["ChallengeType"].ToString(),
-                    Thumbprint = reader["Thumbprint"].ToString()
+                    Thumbprint = reader["Thumbprint"].ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? ""
                 };
 
                 records.Add(record);
@@ -380,9 +433,14 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"]?.ToString() ?? "",
                     ChallengeType = reader["ChallengeType"]?.ToString() ?? "",
                     Thumbprint = reader["Thumbprint"]?.ToString() ?? "",
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     CreationDate = DateTime.TryParse(reader["CreationTime"]?.ToString(), out var created) ? created : DateTime.MinValue,
                     ExpiryDate = DateTime.TryParse(reader["ExpiryDate"]?.ToString(), out var expired) ? expired : DateTime.MinValue,
                     UseSeparateFiles = Convert.ToInt32(reader["UseSeparateFiles"]) == 1,
+                    OutputFormat = reader["OutputFormat"]?.ToString() ?? string.Empty,
+                    PfxPassword = reader["PfxPassword"]?.ToString() ?? string.Empty,
                     SaveForRenewal = Convert.ToInt32(reader["SaveForRenewal"]) == 1,
                     autoRenew = Convert.ToInt32(reader["AutoRenew"]) == 1,
                     FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
@@ -408,11 +466,11 @@ namespace SphereSSLv2.Data.Repositories
 
             var command = connection.CreateCommand();
             command.CommandText = @"
-        SELECT 
-            Id, UserId, OrderId, Domain, Email, DnsChallengeToken, SavePath, Provider, 
-            CreationTime, ExpiryDate, UseSeparateFiles, SaveForRenewal, AutoRenew, 
-            FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, 
-            ChallengeType, Thumbprint
+        SELECT
+            UserId, OrderId, Email, SavePath,
+            CreationTime, ExpiryDate, UseSeparateFiles, OutputFormat, PfxPassword, SaveForRenewal, AutoRenew,
+            FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl,
+            ChallengeType, Thumbprint, CertPem, CertKey, CertApiKey
         FROM CertRecords
         WHERE UserId = @UserId;
     ";
@@ -431,6 +489,8 @@ namespace SphereSSLv2.Data.Repositories
                     CreationDate = DateTime.Parse(reader["CreationTime"].ToString()),
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString()),
                     UseSeparateFiles = reader.GetInt32(reader.GetOrdinal("UseSeparateFiles")) == 1,
+                    OutputFormat = reader["OutputFormat"]?.ToString() ?? string.Empty,
+                    PfxPassword = reader["PfxPassword"]?.ToString() ?? string.Empty,
                     SaveForRenewal = reader.GetInt32(reader.GetOrdinal("SaveForRenewal")) == 1,
                     autoRenew = reader.GetInt32(reader.GetOrdinal("AutoRenew")) == 1,
                     FailedRenewals = reader.GetInt32(reader.GetOrdinal("FailedRenewals")),
@@ -440,6 +500,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"]?.ToString(),
                     ChallengeType = reader["ChallengeType"]?.ToString(),
                     Thumbprint = reader["Thumbprint"]?.ToString(),
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    CertApiKey = reader["CertApiKey"]?.ToString() ?? "",
                     Challenges = new List<AcmeChallenge>()
                 };
 
@@ -463,11 +526,11 @@ namespace SphereSSLv2.Data.Repositories
                         var cmd = conn.CreateCommand();
                         cmd.Transaction = tx;
                         cmd.CommandText = @"INSERT INTO RevokedRecords (
-                        UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, RevokeDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
-                        FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, ChallengeType, Thumbprint
+                        UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, RevokeDate, UseSeparateFiles, OutputFormat, PfxPassword, SaveForRenewal, AutoRenew,
+                        FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, ChallengeType, Thumbprint, CertPem, CertKey
                         ) VALUES (
-                            @UserId, @OrderId, @Email, @SavePath, @CreationTime, @ExpiryDate, @RevokeDate, @UseSeparateFiles, @SaveForRenewal, @AutoRenew,
-                            @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl, @ChallengeType, @Thumbprint
+                            @UserId, @OrderId, @Email, @SavePath, @CreationTime, @ExpiryDate, @RevokeDate, @UseSeparateFiles, @OutputFormat, @PfxPassword, @SaveForRenewal, @AutoRenew,
+                            @FailedRenewals, @SuccessfulRenewals, @Signer, @AccountID, @OrderUrl, @ChallengeType, @Thumbprint, @CertPem, @CertKey
                         );";
                         // ... add params (as in your code above)
                         cmd.Parameters.AddWithValue("@UserId", record.UserId ?? "");
@@ -478,6 +541,8 @@ namespace SphereSSLv2.Data.Repositories
                         cmd.Parameters.AddWithValue("@ExpiryDate", record.ExpiryDate.ToString("o"));
                         cmd.Parameters.AddWithValue("@RevokeDate", DateTime.UtcNow.ToString("o"));
                         cmd.Parameters.AddWithValue("@UseSeparateFiles", record.UseSeparateFiles ? 1 : 0);
+                        cmd.Parameters.AddWithValue("@OutputFormat", record.EffectiveOutputFormat);
+                        cmd.Parameters.AddWithValue("@PfxPassword", record.PfxPassword ?? "");
                         cmd.Parameters.AddWithValue("@SaveForRenewal", record.SaveForRenewal ? 1 : 0);
                         cmd.Parameters.AddWithValue("@AutoRenew", record.autoRenew ? 1 : 0);
                         cmd.Parameters.AddWithValue("@FailedRenewals", record.FailedRenewals);
@@ -487,6 +552,8 @@ namespace SphereSSLv2.Data.Repositories
                         cmd.Parameters.AddWithValue("@OrderUrl", record.OrderUrl ?? "");
                         cmd.Parameters.AddWithValue("@ChallengeType", record.ChallengeType ?? "");
                         cmd.Parameters.AddWithValue("@Thumbprint", record.Thumbprint ?? "");
+                        cmd.Parameters.AddWithValue("@CertPem", record.CertPem ?? "");
+                        cmd.Parameters.AddWithValue("@CertKey", record.CertKey ?? "");
                         await cmd.ExecuteNonQueryAsync();
 
                         // Add all challenges to RevokedChallenges
@@ -522,8 +589,8 @@ namespace SphereSSLv2.Data.Repositories
             var command = connection.CreateCommand();
             command.CommandText = @"
                 SELECT 
-                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, RevokeDate, UseSeparateFiles, SaveForRenewal, AutoRenew,
-                    FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, ChallengeType, Thumbprint
+                UserId, OrderId, Email, SavePath, CreationTime, ExpiryDate, RevokeDate, UseSeparateFiles, OutputFormat, PfxPassword, SaveForRenewal, AutoRenew,
+                    FailedRenewals, SuccessfulRenewals, Signer, AccountID, OrderUrl, ChallengeType, Thumbprint, CertPem, CertKey
                 FROM RevokedRecords;
             ";
 
@@ -540,6 +607,8 @@ namespace SphereSSLv2.Data.Repositories
                     ExpiryDate = DateTime.Parse(reader["ExpiryDate"].ToString() ?? DateTime.MinValue.ToString()),
                     RevokeDate = DateTime.Parse(reader["RevokeDate"].ToString() ?? DateTime.MinValue.ToString()),
                     UseSeparateFiles = Convert.ToBoolean(reader["UseSeparateFiles"]),
+                    OutputFormat = reader["OutputFormat"]?.ToString() ?? string.Empty,
+                    PfxPassword = reader["PfxPassword"]?.ToString() ?? string.Empty,
                     SaveForRenewal = Convert.ToBoolean(reader["SaveForRenewal"]),
                     autoRenew = Convert.ToBoolean(reader["AutoRenew"]),
                     FailedRenewals = Convert.ToInt32(reader["FailedRenewals"]),
@@ -549,7 +618,9 @@ namespace SphereSSLv2.Data.Repositories
                     OrderUrl = reader["OrderUrl"]?.ToString() ?? "",
                     ChallengeType = reader["ChallengeType"]?.ToString() ?? "",
                     Thumbprint = reader["Thumbprint"]?.ToString() ?? "",
-                    Challenges = new List<AcmeChallenge>() // Up to you if you want to load challenges for revoked ones
+                    CertPem = reader["CertPem"]?.ToString() ?? "",
+                    CertKey = reader["CertKey"]?.ToString() ?? "",
+                    Challenges = new List<AcmeChallenge>()
                 };
 
                 List<AcmeChallenge> challenges = await GetAllRevokedChallengesAsync(reader["OrderId"].ToString());

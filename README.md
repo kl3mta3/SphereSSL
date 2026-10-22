@@ -1,4 +1,4 @@
-# SphereSSL
+# SphereSSL-Docker
 
 <p align="center">
   <img src="https://github.com/kl3mta3/SphereSSL/blob/master/Images/SphereSSL_ICON.png" alt="SphereSSL Logo" width="300"/>
@@ -7,7 +7,10 @@
 </h2>
 </p>
 
-> **SphereSSL** is a modern, user-friendly certificate manager for Windows, built with ASP.NET.  
+Thanks goes to Thanks [@apples723](https://github.com/apples723)!
+Get the Image here- <a href = "https://hub.docker.com/r/kl3mta3/spheressl"> Docker Hub<a/>
+
+> **SphereSSL** is a modern, user-friendly certificate manager, built with ASP.NET.  
 > Make SSL certificate creation and renewal effortless for everyone—whether you’re a hobbyist or a professional.  
 > Handles both manual and automated DNS challenges, supports multiple DNS providers, and puts the power of SSL in the hands of, well… literally everyone.
 
@@ -40,15 +43,54 @@
 
 ---
 
-## Installation & Quick Start
-“This release will only be available here for a short time. After that, visit Spheressl.com for future versions. Coming soon!!!”
-1. **[Download the latest release](https://github.com/SphereNetwork/SphereSSL/releases)** and extract it.
-2. **Run SphereSSL.exe** (no complicated setup).
-3. **Configure your settings:**  
-   - Add domains
-   - Choose or add a DNS provider
-   - Set up auto-renew (optional)
-4. **Request your certificate** and let SphereSSL handle the rest!
+## Initial Administrator Setup
+
+SphereSSL does not include a default administrator password.
+
+1. Copy `.env.example` to `.env`.
+2. Open `.env` and replace the placeholder with a strong temporary password:
+
+   SPHERESSL_ADMIN_PASSWORD=your-strong-temporary-password
+
+3. Start SphereSSL:
+
+   docker compose up -d
+
+4. Sign in using the administrator username configured in `app.config` and the password entered in `.env`.
+5. Change the administrator password through SphereSSL Settings after signing in.
+6. After confirming the new password works, remove `SPHERESSL_ADMIN_PASSWORD` from `.env` or delete `.env`.
+
+The administrator password is hashed and stored in SphereSSL’s database during initial setup. Existing installations do not require the environment variable when restarting.
+
+# Build the image
+docker build -t spheressl .
+
+# Run the container with persistent storage
+docker run -d \
+  -p 7171:7171 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/certs:/app/certs \
+  -v $(pwd)/logs:/app/logs \
+  --name spheressl \
+  --restart unless-stopped \
+  spheressl
+
+# Option 2- Run from Docker Hub
+
+# Pull the latest image
+docker pull kl3mta3/spheressl:latest
+
+# Or just run directly (no local build needed!)
+docker run -d \
+  -p 7171:7171 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/certs:/app/certs \
+  -v $(pwd)/logs:/app/logs \
+  --name spheressl \
+  --restart unless-stopped \
+  kl3mta3/spheressl:latest
+
+ **Request your certificate** and let SphereSSL handle the rest!
 
 > **Tip:** For advanced setup, head to the [Wiki](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL).
 
@@ -91,14 +133,12 @@ See [API Credential Requirements](https://github.com/SphereNetwork/SphereSSL/wik
 
 Pull requests are welcome!  
 If you spot a bug or want to add a provider, open an [issue](https://github.com/SphereNetwork/SphereSSL/issues) or submit a PR.  
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more info.
 
 ---
 
 ## Roadmap
 
 - [ ] Add more DNS providers
-- [ ] Linux & cross-platform support
 - [ ] Webhooks & external integrations
 - [ ] Fully automated enterprise deployment
 
@@ -111,13 +151,25 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more info.
 This project is licensed under the Business Source License 1.1 (BSL-1.1).  
 See [LICENSE](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL#license) for details.
 
+
+---
+
+Yes, the source is open. You can fork it, study it, use it, and self-host for free.
+You can absolutely use SphereSSL to manage certificates for your own company, organization, or projects. The only thing you can’t do is turn it into a paid product, paid service, or SaaS for others without permission.
+
+Some folks argue that only MIT/Apache/OSI-approved licenses are “real” open source.
+I disagree. “Open source” is about sharing knowledge and empowering builders, not giving SaaS companies a free product to resell 1,000,000 times.
+
+If you want to call it “source-available,” that’s fine. The point is:
+You get the code, you get the freedom to use it for anything except commercial exploitation. That’s the trade-off.
+
 ---
 
 ## Support & Feedback
 
 - **Questions?** [Open an Issue](https://github.com/SphereNetwork/SphereSSL/issues)
 - **Feature requests?** We wanna hear ‘em!
-- **Need help?** See the [Wiki](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL) or ask in [Discussions](https://github.com/SphereNetwork/SphereSSL/discussions)
+- **Need help?** See the [Wiki](https://github.com/SphereNetwork/SphereSSL/wiki/SphereSSL).
 
 ---
 
