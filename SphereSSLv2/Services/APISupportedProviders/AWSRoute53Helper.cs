@@ -1,5 +1,4 @@
-﻿
-using SphereSSLv2.Services.Config;
+﻿using SphereSSLv2.Services.Config;
 using Amazon.Route53;
 using Amazon.Route53.Model;
 

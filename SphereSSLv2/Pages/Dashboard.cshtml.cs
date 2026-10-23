@@ -77,29 +77,24 @@ namespace SphereSSLv2.Pages
                 return RedirectToPage("/Index");
             }
 
-            bool _isSuperAdmin = string.Equals(CurrentUser.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            bool _isAdminOrAbove = string.Equals(CurrentUser.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase) || CurrentUser.IsAdmin;
 
             CAPrimeUrl = ConfigureService.CAPrimeUrl;
             CAStagingUrl = ConfigureService.CAStagingUrl;
 
-            if (CurrentUser.IsEnabled && _isSuperAdmin)
+            var now = DateTime.UtcNow;
+            if (_isAdminOrAbove)
             {
-                var now = DateTime.UtcNow;
                 CertRecords = await CertRepository.GetAllCertRecords();
-                ExpiringSoonRecords = CertRecords
-                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProviders();
-
             }
-            else if (CurrentUser.IsEnabled && !_isSuperAdmin)
+            else
             {
-                var now = DateTime.UtcNow;
                 CertRecords = await _certRepository.GetAllCertsForUserIdAsync(CurrentUser.UserId);
-                ExpiringSoonRecords = CertRecords
-                    .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(30));
                 DNSProviders = await _dnsProviderRepository.GetAllDNSProvidersByUserId(CurrentUser.UserId);
-
             }
+            ExpiringSoonRecords = CertRecords
+                .FindAll(cert => cert.ExpiryDate >= now && cert.ExpiryDate <= now.AddDays(ConfigureService.RenewBeforeExpiryDays));
 
             return Page();
         }
@@ -132,10 +127,18 @@ namespace SphereSSLv2.Pages
                 order.OrderId = orderID;
                 order.UserId = CurrentUser.UserId;
 
+                bool _isViewer = !string.IsNullOrEmpty(CurrentUser.Role)
+                    && (CurrentUser.Role.Equals("Viewer", StringComparison.OrdinalIgnoreCase)
+                        || CurrentUser.Role.Equals("Demo", StringComparison.OrdinalIgnoreCase));
+                if (_isViewer && ConfigureService.RestrictViewers)
+                {
+                    order.SaveForRenewal = false;
+                    order.autoRenew = false;
+                    request.AutoAdd = false;
+                }
 
-
-                string _baseAddress = request.UseStaging
-
+                bool _useStaging = request.UseStaging || ConfigureService.StagingOnly;
+                string _baseAddress = _useStaging
                      ? ConfigureService.CAStagingUrl
                      : ConfigureService.CAPrimeUrl;
 
@@ -284,7 +287,7 @@ namespace SphereSSLv2.Pages
             order.AccountID = Acme._account.Kid;
             order.OrderUrl = Acme._order.OrderUrl;
             order.CreationDate = DateTime.UtcNow;
-            order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+            order.ExpiryDate = DateTime.UtcNow.AddDays(ConfigureService.CertValidityDays);
 
             if (_order.AutoAdd)
             {
@@ -307,12 +310,12 @@ namespace SphereSSLv2.Pages
                     {
 
                         (string providerLink, string fullDomainName, string dnsToken) = nsDict.FirstOrDefault(x => x.Item2 == $"_acme-challenge.{challenge.Domain}");
-                        string ns1 = "—", ns2 = "—";
+                        string ns1 = "ï¿½", ns2 = "ï¿½";
                         try
                         {
                             var nsList = await ConfigureService.GetNameServers(challenge.Domain);
-                            ns1 = nsList.ElementAtOrDefault(0) ?? "—";
-                            ns2 = nsList.ElementAtOrDefault(1) ?? "—";
+                            ns1 = nsList.ElementAtOrDefault(0) ?? "ï¿½";
+                            ns2 = nsList.ElementAtOrDefault(1) ?? "ï¿½";
                         }
                         catch { }
 
@@ -416,14 +419,14 @@ namespace SphereSSLv2.Pages
                     {
 
 
-                        string ns1 = "—", ns2 = "—", fullDomainName = $"_acme-challenge.{challenge.Domain}", dnsToken = challenge.DnsChallengeToken;
+                        string ns1 = "ï¿½", ns2 = "ï¿½", fullDomainName = $"_acme-challenge.{challenge.Domain}", dnsToken = challenge.DnsChallengeToken;
                         string fullLink = $"https://{challenge.Domain}";
 
                         try
                         {
                             var nsList = await ConfigureService.GetNameServers(challenge.Domain);
-                            ns1 = nsList.ElementAtOrDefault(0) ?? "—";
-                            ns2 = nsList.ElementAtOrDefault(1) ?? "—";
+                            ns1 = nsList.ElementAtOrDefault(0) ?? "ï¿½";
+                            ns2 = nsList.ElementAtOrDefault(1) ?? "ï¿½";
                         }
                         catch { }
                         string[] parts = ns1.Split('.');
@@ -633,15 +636,15 @@ namespace SphereSSLv2.Pages
                 {
                     domain = domain.Substring(2);
                 }
-                string ns1 = "—", ns2 = "—", fullDomainName = $"_acme-challenge.{domain}", dnsToken = challenge.DnsChallengeToken;
+                string ns1 = "ï¿½", ns2 = "ï¿½", fullDomainName = $"_acme-challenge.{domain}", dnsToken = challenge.DnsChallengeToken;
                 string fullLink = $"https://{challenge.Domain}";
             
                 DNSProvider provider = await _dnsProviderRepository.GetDNSProviderById(challenge.ProviderId);
                 try
                 {
                     var nsList = await ConfigureService.GetNameServers(challenge.Domain);
-                    ns1 = nsList.ElementAtOrDefault(0) ?? "—";
-                    ns2 = nsList.ElementAtOrDefault(1) ?? "—";
+                    ns1 = nsList.ElementAtOrDefault(0) ?? "ï¿½";
+                    ns2 = nsList.ElementAtOrDefault(1) ?? "ï¿½";
                 }
                 catch { }
 
@@ -862,8 +865,10 @@ namespace SphereSSLv2.Pages
                             challenge.Status = "Valid";
                         }
 
-                        await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, CurrentUser.Username);
-
+                        var (certPem, certKey) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles,
+                            order.SavePath, order.Challenges, CurrentUser.Username, order.EffectiveOutputFormat, order.PfxPassword);
+                        order.CertPem = certPem;
+                        order.CertKey = certKey;
 
                         if (order.SaveForRenewal)
                         {
@@ -955,6 +960,16 @@ namespace SphereSSLv2.Pages
             _runningCertGeneration = false;
 
             return Content(html, "text/html");
+        }
+
+        public IActionResult OnGetDownloadCertPfx()
+        {
+            string file = Path.Combine(AppContext.BaseDirectory, "Temp", "tempCert.pfx");
+            if (!System.IO.File.Exists(file))
+                return NotFound();
+            var bytes = System.IO.File.ReadAllBytes(file);
+            System.IO.File.Delete(file);
+            return File(bytes, "application/x-pkcs12", "certificate.pfx");
         }
 
         public IActionResult OnGetDownloadCertPem(string savePath)

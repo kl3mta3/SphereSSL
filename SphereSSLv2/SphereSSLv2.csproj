@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
     <Authors>Kenneth Lasyone</Authors>
     <Version>1.0.0</Version>
 
@@ -15,8 +16,30 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="View\**" />
+    <Content Remove="View\**" />
+    <EmbeddedResource Remove="View\**" />
+    <None Remove="View\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="public_suffix_list.dat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="public_suffix_list.dat">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+
+  <ItemGroup>
     <Folder Include="wwwroot\js\" />
     <Folder Include="wwwroot\lib\" />
+  </ItemGroup>
+
+
+  <ItemGroup>
     <None Include="wwwroot\img\SphereSSL.ico" />
     <None Include="wwwroot\img\SphereSSL_ICON.png" />
   </ItemGroup>
@@ -32,9 +55,6 @@
   </ItemGroup>
     
 <ItemGroup>
-        <None Update="SphereSSL.exe">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
         <None Update="SphereSSL.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory> 
     </None>

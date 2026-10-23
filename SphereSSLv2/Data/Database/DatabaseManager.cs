@@ -2,7 +2,6 @@
 using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Services.Config;
 
-
 namespace SphereSSLv2.Data.Database
 {
     public class DatabaseManager
@@ -26,7 +25,7 @@ namespace SphereSSLv2.Data.Database
                 await pragma.ExecuteNonQueryAsync();
 
                 var adminUUID= Guid.NewGuid();
-                var adminUserId = Guid.NewGuid().ToString("N"); 
+                string adminUserId;
                 var adminPassHash = ConfigureService.HashedPassword;
                 var adminUsername = ConfigureService.Username;
                 var command = connection.CreateCommand();
@@ -41,6 +40,8 @@ namespace SphereSSLv2.Data.Database
                     CreationTime TEXT NOT NULL,
                     ExpiryDate TEXT NOT NULL,
                     UseSeparateFiles INTEGER DEFAULT 0,
+                    OutputFormat TEXT DEFAULT '',
+                    PfxPassword TEXT DEFAULT '',
                     SaveForRenewal INTEGER DEFAULT 0,
                     AutoRenew INTEGER DEFAULT 0,
                     FailedRenewals INTEGER DEFAULT 0,
@@ -50,6 +51,9 @@ namespace SphereSSLv2.Data.Database
                     OrderUrl TEXT,
                     ChallengeType TEXT,
                     Thumbprint TEXT,
+                    CertPem TEXT DEFAULT '',
+                    CertKey TEXT DEFAULT '',
+                    CertApiKey TEXT DEFAULT '',
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE SET NULL
                 );
 
@@ -64,6 +68,8 @@ namespace SphereSSLv2.Data.Database
                     ExpiryDate TEXT NOT NULL,
                     RevokeDate TEXT NOT NULL,
                     UseSeparateFiles INTEGER DEFAULT 0,
+                    OutputFormat TEXT DEFAULT '',
+                    PfxPassword TEXT DEFAULT '',
                     SaveForRenewal INTEGER DEFAULT 0,
                     AutoRenew INTEGER DEFAULT 0,
                     FailedRenewals INTEGER DEFAULT 0,
@@ -176,7 +182,7 @@ namespace SphereSSLv2.Data.Database
                      UserId TEXT PRIMARY KEY,
                      IsAdmin BOOL,
                      IsEnabled BOOL,
-                     Role TEXT DEFAULT 'User' CHECK(Role IN ('Viewer', 'User', 'Admin', 'SuperAdmin')),
+                     Role TEXT DEFAULT 'User' CHECK(Role IN ('Viewer', 'User', 'Admin', 'SuperAdmin', 'Demo')),
                      FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
                 );
 
@@ -188,7 +194,22 @@ namespace SphereSSLv2.Data.Database
                     Message TEXT,
                     Timestamp DATETIME,
                     FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
-                ); 
+                );
+
+                CREATE TABLE IF NOT EXISTS UserConnections (
+                    ConnectionId   TEXT PRIMARY KEY,
+                    UserId         TEXT NOT NULL,
+                    ConnectionName TEXT NOT NULL,
+                    ConnectionType TEXT NOT NULL,
+                    IsEnabled      INTEGER DEFAULT 1,
+                    Settings       TEXT DEFAULT '{{}}',
+                    OnPreRenew     INTEGER DEFAULT 1,
+                    OnPreExpiry    INTEGER DEFAULT 1,
+                    OnRenewSuccess INTEGER DEFAULT 1,
+                    OnRenewFail    INTEGER DEFAULT 1,
+                    CreatedAt      TEXT NOT NULL,
+                    FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+                );
 
                 ";
 
@@ -199,33 +220,62 @@ namespace SphereSSLv2.Data.Database
                 await command.ExecuteNonQueryAsync();
 
 
-                // Insert defaultSuperAdmin User record
-                command.CommandText = "SELECT COUNT(1) FROM Users WHERE Name = @name";
-                command.Parameters.Clear();
-                command.Parameters.AddWithValue("@name", "Locke-Ann Key");
-                var exists = (long)await command.ExecuteScalarAsync();
+                // Locate the existing default SuperAdmin.
+				command.CommandText =
+					"SELECT UserId FROM Users WHERE Name = @name LIMIT 1;";
+				command.Parameters.Clear();
+				command.Parameters.AddWithValue("@name", "Locke-Ann Key");
 
-                if (exists == 0)
-                {
-                    command.CommandText = @"
-                    INSERT OR IGNORE INTO Users (
-                        UserId, Username, PasswordHash, Name, Email, CreationTime, LastUpdated, UUID, Notes
-                        )
-                    VALUES (
-                        @userId, @username, @passwordHash, 'Locke-Ann Key', 'admin@example.com',
-                        datetime('now'), datetime('now'), @uuid, 'System default super admin account'
-                    );
-                    ";
+				string? existingUserId =
+					Convert.ToString(await command.ExecuteScalarAsync());
 
-                    command.Parameters.Clear();
-                    command.Parameters.AddWithValue("@username", adminUsername);
-                    command.Parameters.AddWithValue("@userId", adminUserId);
-                    command.Parameters.AddWithValue("@passwordHash", adminPassHash);
-                    command.Parameters.AddWithValue("@uuid", adminUUID.ToString());
-                    await command.ExecuteNonQueryAsync();
+				if (string.IsNullOrWhiteSpace(existingUserId))
+				{
+					adminUserId = Guid.NewGuid().ToString("N");
 
-                }
+					if (string.IsNullOrWhiteSpace(adminPassHash))
+					{
+						throw new InvalidOperationException(
+							"No SuperAdmin exists. Set SPHERESSL_ADMIN_PASSWORD for initial startup.");
+					}
 
+					command.CommandText = @"
+						INSERT INTO Users (
+							UserId,
+							Username,
+							PasswordHash,
+							Name,
+							Email,
+							CreationTime,
+							LastUpdated,
+							UUID,
+							Notes
+						)
+						VALUES (
+							@userId,
+							@username,
+							@passwordHash,
+							'Locke-Ann Key',
+							'admin@example.com',
+							datetime('now'),
+							datetime('now'),
+							@uuid,
+							'System default super admin account'
+						);
+					";
+
+					command.Parameters.Clear();
+					command.Parameters.AddWithValue("@username", adminUsername);
+					command.Parameters.AddWithValue("@userId", adminUserId);
+					command.Parameters.AddWithValue("@passwordHash", adminPassHash);
+					command.Parameters.AddWithValue("@uuid", adminUUID.ToString());
+
+					await command.ExecuteNonQueryAsync();
+				}
+				else
+				{
+					adminUserId = existingUserId;
+				}
 
                 command.CommandText = "SELECT COUNT(1) FROM UserRoles WHERE UserId = @userId AND Role = @role";
                 command.Parameters.Clear();
@@ -258,10 +308,159 @@ namespace SphereSSLv2.Data.Database
                 }
 
                 await HealthRepository.RecalculateHealthStats();
+                await MigrateAsync();
             }
             catch (Exception ex)
             {
 
+            }
+        }
+
+        private static async Task MigrateAsync()
+        {
+            int version = await GetDatabaseVersion();
+
+            if (version < 2)
+            {
+                using var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn.OpenAsync();
+                foreach (var sql in new[]
+                {
+                    "ALTER TABLE CertRecords ADD COLUMN CertPem TEXT DEFAULT '';",
+                    "ALTER TABLE CertRecords ADD COLUMN CertKey TEXT DEFAULT '';",
+                    "ALTER TABLE RevokedRecords ADD COLUMN CertPem TEXT DEFAULT '';",
+                    "ALTER TABLE RevokedRecords ADD COLUMN CertKey TEXT DEFAULT '';"
+                })
+                {
+                    try { var cmd = conn.CreateCommand(); cmd.CommandText = sql; await cmd.ExecuteNonQueryAsync(); }
+                    catch { /* column already exists */ }
+                }
+                var v = conn.CreateCommand();
+                v.CommandText = "UPDATE DbVersion SET Version = 2 WHERE Id = 1;";
+                await v.ExecuteNonQueryAsync();
+            }
+
+            if (version < 3)
+            {
+                using var conn = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn.OpenAsync();
+                try
+                {
+                    var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE CertRecords ADD COLUMN CertApiKey TEXT DEFAULT '';";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch { /* column already exists */ }
+                var v = conn.CreateCommand();
+                v.CommandText = "UPDATE DbVersion SET Version = 3 WHERE Id = 1;";
+                await v.ExecuteNonQueryAsync();
+            }
+
+            if (version < 4)
+            {
+                using var conn4 = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn4.OpenAsync();
+                var cmd4 = conn4.CreateCommand();
+                cmd4.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS UserConnections (
+                        ConnectionId   TEXT PRIMARY KEY,
+                        UserId         TEXT NOT NULL,
+                        ConnectionName TEXT NOT NULL,
+                        ConnectionType TEXT NOT NULL,
+                        IsEnabled      INTEGER DEFAULT 1,
+                        Settings       TEXT DEFAULT '{}',
+                        OnPreRenew     INTEGER DEFAULT 1,
+                        OnPreExpiry    INTEGER DEFAULT 1,
+                        OnRenewSuccess INTEGER DEFAULT 1,
+                        OnRenewFail    INTEGER DEFAULT 1,
+                        CreatedAt      TEXT NOT NULL,
+                        FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+                    );
+                    UPDATE DbVersion SET Version = 4 WHERE Id = 1;";
+                await cmd4.ExecuteNonQueryAsync();
+            }
+
+            if (version < 5)
+            {
+                using var conn5 = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn5.OpenAsync();
+
+                var disableForeignKeys = conn5.CreateCommand();
+                disableForeignKeys.CommandText = "PRAGMA foreign_keys = OFF;";
+                await disableForeignKeys.ExecuteNonQueryAsync();
+
+                using var transaction = conn5.BeginTransaction();
+                try
+                {
+                    var cmd5 = conn5.CreateCommand();
+                    cmd5.Transaction = transaction;
+                    cmd5.CommandText = @"
+                        CREATE TABLE UserRoles_v5 (
+                            UserId TEXT PRIMARY KEY,
+                            IsAdmin BOOL,
+                            IsEnabled BOOL,
+                            Role TEXT DEFAULT 'User' CHECK(Role IN ('Viewer', 'User', 'Admin', 'SuperAdmin', 'Demo')),
+                            FOREIGN KEY(UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+                        );
+
+                        INSERT INTO UserRoles_v5 (UserId, IsAdmin, IsEnabled, Role)
+                        SELECT UserId, IsAdmin, IsEnabled, Role
+                        FROM UserRoles;
+
+                        DROP TABLE UserRoles;
+                        ALTER TABLE UserRoles_v5 RENAME TO UserRoles;
+
+                        CREATE UNIQUE INDEX IX_UserRoles_OneDemo
+                        ON UserRoles(Role)
+                        WHERE Role = 'Demo';
+
+                        UPDATE DbVersion SET Version = 5 WHERE Id = 1;";
+
+                    await cmd5.ExecuteNonQueryAsync();
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+                finally
+                {
+                    var enableForeignKeys = conn5.CreateCommand();
+                    enableForeignKeys.CommandText = "PRAGMA foreign_keys = ON;";
+                    await enableForeignKeys.ExecuteNonQueryAsync();
+                }
+            }
+
+            if (version < 6)
+            {
+                using var conn6 = new SqliteConnection($"Data Source={ConfigureService.dbPath}");
+                await conn6.OpenAsync();
+
+                foreach (var sql in new[]
+                {
+                    "ALTER TABLE CertRecords ADD COLUMN OutputFormat TEXT DEFAULT '';",
+                    "ALTER TABLE CertRecords ADD COLUMN PfxPassword TEXT DEFAULT '';",
+                    "ALTER TABLE RevokedRecords ADD COLUMN OutputFormat TEXT DEFAULT '';",
+                    "ALTER TABLE RevokedRecords ADD COLUMN PfxPassword TEXT DEFAULT '';"
+                })
+                {
+                    try
+                    {
+                        var cmd = conn6.CreateCommand();
+                        cmd.CommandText = sql;
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                    catch (SqliteException ex) when (
+                        ex.SqliteErrorCode == 1 &&
+                        ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
+                    {
+                    }
+                }
+
+                var versionCommand = conn6.CreateCommand();
+                versionCommand.CommandText = "UPDATE DbVersion SET Version = 6 WHERE Id = 1;";
+                await versionCommand.ExecuteNonQueryAsync();
             }
         }
 

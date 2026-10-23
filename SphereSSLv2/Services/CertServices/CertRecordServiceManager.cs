@@ -5,9 +5,11 @@ using SphereSSLv2.Data.Repositories;
 using SphereSSLv2.Models.CertModels;
 using SphereSSLv2.Models.DNSModels;
 using SphereSSLv2.Models.UserModels;
+using SphereSSLv2.Services;
 using SphereSSLv2.Services.AcmeServices;
 using SphereSSLv2.Services.Config;
 using System.Diagnostics;
+
 using CertRecord = SphereSSLv2.Models.CertModels.CertRecord;
 
 namespace SphereSSLv2.Services.CertServices
@@ -237,8 +239,10 @@ namespace SphereSSLv2.Services.CertServices
                             _challenge.Status = "Valid";
                         }
 
-                        await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
-
+                        var (certPem, certKey) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles,
+                            order.SavePath, order.Challenges, username, order.EffectiveOutputFormat, order.PfxPassword);
+                        order.CertPem = certPem;
+                        order.CertKey = certKey;
 
                         if (order.SaveForRenewal)
                         {
@@ -246,7 +250,7 @@ namespace SphereSSLv2.Services.CertServices
 
 
                             await logger.Update($"[{username}]: Saving order for renewal!");
-                            order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+                            order.ExpiryDate = DateTime.UtcNow.AddDays(ConfigureService.CertValidityDays);
                             order.SuccessfulRenewals++;
                             await CertRepository.UpdateCertRecord(order);
 
@@ -269,6 +273,10 @@ namespace SphereSSLv2.Services.CertServices
                                 stats.LastCertCreated = DateTime.UtcNow;
                             }
                             await _userRepository.UpdateUserStatAsync(stats);
+
+                            var _domains = string.Join(", ", order.Challenges.Select(c => c.Domain).Distinct());
+                            _ = NotificationService.NotifyUserAsync(order.UserId, "RenewSuccess",
+                                $"SphereSSL: certificate renewed successfully for {_domains}. New expiry: {order.ExpiryDate:yyyy-MM-dd}.");
                         }
                         else
                         {
@@ -505,7 +513,11 @@ namespace SphereSSLv2.Services.CertServices
                         _challenge.Status = "Valid";
                     }
 
-                    await ACME.ProcessCertificateGeneration(order.UseSeparateFiles, order.SavePath, order.Challenges, username);
+                    var (certPem2, certKey2) = await ACME.ProcessCertificateGeneration(order.UseSeparateFiles,
+                        order.SavePath, order.Challenges, username, order.EffectiveOutputFormat, order.PfxPassword);
+                    order.CertPem = certPem2;
+                    order.CertKey = certKey2;
+
                     if (order.SaveForRenewal)
                     {
 
@@ -513,7 +525,7 @@ namespace SphereSSLv2.Services.CertServices
 
                         await logger.Update($"[{username}]: Saving order for renewal!");
                         order.SuccessfulRenewals++;
-                        order.ExpiryDate = DateTime.UtcNow.AddDays(90);
+                        order.ExpiryDate = DateTime.UtcNow.AddDays(ConfigureService.CertValidityDays);
                         await CertRepository.UpdateCertRecord(order);
 
                         UserStat stats1 = await _userRepository.GetUserStatByIdAsync(order.UserId);
@@ -535,6 +547,9 @@ namespace SphereSSLv2.Services.CertServices
                             stats1.LastCertCreated = DateTime.UtcNow;
                         }
 
+                        var _domains2 = string.Join(", ", order.Challenges.Select(c => c.Domain).Distinct());
+                        _ = NotificationService.NotifyUserAsync(order.UserId, "RenewSuccess",
+                            $"SphereSSL: certificate renewed successfully for {_domains2}. New expiry: {order.ExpiryDate:yyyy-MM-dd}.");
                     }
                     else
                     {
@@ -579,6 +594,10 @@ namespace SphereSSLv2.Services.CertServices
             await logger.Error($"[{username}]: All {maxAttempts} attempts failed.");
             order.FailedRenewals++;
             await CertRepository.UpdateCertRecord(order);
+
+            var _failDomains = string.Join(", ", order.Challenges.Select(c => c.Domain).Distinct());
+            _ = NotificationService.NotifyUserAsync(order.UserId, "RenewFail",
+                $"SphereSSL: certificate renewal FAILED for {_failDomains} after {maxAttempts} attempts.");
 
             UserStat stats = await _userRepository.GetUserStatByIdAsync(order.UserId);
 
