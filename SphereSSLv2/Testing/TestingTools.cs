@@ -16,10 +16,10 @@ namespace SphereSSLv2.Testing
         {
             var now = DateTime.UtcNow;
 
-            List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
-           .Cast<DNSProvider.ProviderType>()
-           .Select(p => p.ToString())
-           .ToList();
+             List<string> SupportedAutoProviders = Enum.GetValues(typeof(DNSProvider.ProviderType))
+            .Cast<DNSProvider.ProviderType>()
+            .Select(p => p.ToString())
+            .ToList();
 
             for (int i = 0; i < 12; i++)
             {
@@ -99,11 +99,9 @@ namespace SphereSSLv2.Testing
                         ProviderId=ConfigureService.CapitalizeFirstLetter(fakeProvider)
                     }
                 };
-
+               
                 await CertRepository.InsertCertRecord(cert);
             }
         }
-
-
     }
 }
